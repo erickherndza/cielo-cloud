@@ -4695,6 +4695,8 @@ decisión informada):**
 
 ## Auditoría de seguridad (2026-11-12) y rama `security/hardening`
 
+> **Actualizado 2026-11-13** (ver «Estado al 2026-11-13»): `next` ya es 15.5.29 (viene de la rama de Manuel) y `npm audit` quedó en 15 vulnerabilidades (6 altas, 9 moderadas, 0 críticas); el aviso «11 vulnerabilidades» de abajo es el estado anterior.
+
 Auditoría completa con el skill `app-security-auditor` (solo lectura + `npm audit`;
 no se probó contra Firebase real ni producción). Rama **solo local**: `origin`
 (`manuel-erasmo-oss/tyui`) no es del usuario y tiene permiso READ, no se subió nada.
@@ -4750,6 +4752,8 @@ y login con Firebase real.
 
 ## Acceso con Microsoft y acceso generado al crear empresa (sin probar con Firebase real)
 
+> **Actualizado 2026-11-13:** el botón de Microsoft está OCULTO (se muestra solo con `NEXT_PUBLIC_MICROSOFT_LOGIN=true`) hasta tener un tenant propio en Entra. Google y correo/contraseña sí funcionan en producción de prueba.
+
 - **Microsoft (Outlook / Microsoft 365):** `microsoftProvider` en `src/lib/firebase.ts`,
   botón primero en `/login`, `/registro` y `AgregarCuentaModal`; Google queda segundo.
   Requiere activar el proveedor en Firebase Console con una app de Microsoft Entra.
@@ -4764,3 +4768,62 @@ y login con Firebase real.
   pero al entrar desde otro dispositivo verá la cuenta vacía hasta que exista un backend.
 - El onboarding inicial (`OnboardingWizard`) sigue sin crear credenciales: el primer
   acceso lo crea quien se registra en `/registro` o entra con Microsoft/Google.
+
+## Estado al 2026-11-13: Firebase publicado, módulos integrados y arquitectura por decidir
+
+### Ramas (todo LOCAL; no se ha subido nada)
+- `security/hardening`: nuestros fixes de seguridad, login Microsoft/Google, acceso generado y soporte Firebase Hosting (base `1555027c`).
+- **`integracion/modulos-claude`** (rama activa): `security/hardening` + merge de `origin/claude/accounting-app-sme-design-wqfazv` de Manuel (99 commits, 11-jul a 13-nov; merge `40304f30`). Esa rama YA tenía commiteados `nomina/envios`, Centro de Alertas, disfrute de vacaciones, Liquidación en asistente, etc.; simplemente no estaban en `main`. `gh-pages` se desplegó desde su commit `ecdc7d37`.
+- Conflictos resueltos: `package.json`/lock (Next 15.5.29 de la rama; se conserva `build:firebase`), `nomina/page.tsx` y `liquidacion/page.tsx` (versión de la rama: ya no hay `exportarCSV`, exportan a Excel), `prestamos/page.tsx` (imports combinados: `MAX_ADJUNTO_*` + `hoyLocalISO`/`parseFechaLocal`).
+- `origin` es de `manuel-erasmo-oss` y la cuenta del usuario solo tiene lectura: para guardar esto en GitHub hace falta un fork o repo propio (decisión pendiente).
+
+### Despliegue en Firebase Hosting (plan Spark, sin costo)
+- Proyecto `cielo-nomina-prueba`, app web `cielo-nomina-web`, URL `https://cielo-nomina-prueba.web.app`.
+- Publicar (con el servidor de desarrollo PARADO: `build` pisa `.next` y provoca `ChunkLoadError`):
+  `npm run build:firebase && npx firebase-tools deploy --only hosting`.
+- `build:firebase` = `BASE_PATH=` (vacío) + `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<proyecto>.web.app`. `next.config.mjs` usa `BASE_PATH` (por defecto `/tyui`, para GitHub Pages) y expone `NEXT_PUBLIC_BASE_PATH`.
+- `firebase.json`: `no-cache` en todo el HTML, caché inmutable solo en `/_next/static/`, cabeceras `nosniff`, `Referrer-Policy`, `X-Frame-Options`. (Antes el HTML salía con `max-age=3600` y se veía la versión vieja una hora.)
+- `.env.local` (ignorado por git; NO leerlo ni mostrarlo) trae las 6 `NEXT_PUBLIC_FIREBASE_*` del proyecto de prueba y pesa más que `.env.production` en el build. Un build sin ese archivo quedaría enlazado al Firebase original del repo.
+- Authentication: correo/contraseña y Google habilitados.
+- **Cliente OAuth de Google** (Google Cloud Console → cliente «Web client (auto created by Google Service)»): se agregaron el URI de redirección `https://<proyecto>.web.app/__/auth/handler` y el origen JS `https://<proyecto>.web.app`. Sin eso, el login con Google da `redirect_uri_mismatch` porque `authDomain` es `web.app`. Verificado en producción: Google lleva al asistente de datos de la empresa.
+- `getRedirectResult` ya no traga el error: lo registra en consola como `[auth] getRedirectResult: <código>`.
+- Sin Firebase configurado, «Cerrar sesión» no hace nada (antes lanzaba `auth/invalid-api-key`) y `RouteGuard` redirige `/login` y `/registro` a `/`.
+
+### Microsoft (pendiente)
+- Botón oculto salvo `NEXT_PUBLIC_MICROSOFT_LOGIN=true`.
+- La cuenta de Microsoft con sesión abierta del usuario es institucional (`@educacion.edu.do`, tenant del Ministerio de Educación): **NO usarla** para registrar la app de un cliente privado.
+- Hace falta un tenant propio en Entra (cuenta nueva o el administrador del cliente); registrar la app con «cuentas de cualquier directorio y personales», URI de redirección `https://<proyecto>.firebaseapp.com/__/auth/handler`, y el usuario pega ID y secreto de cliente en Firebase (los secretos no los escribe Claude). El secreto caduca (máx. 24 meses).
+- La extensión de Chrome no puede operar en `login.microsoftonline.com` ni en `accounts.google.com`.
+
+### Textos
+- Registro sin el título «Crea tu cuenta» ni «Es gratis, siempre.»; notas bajo el botón de Google en `/login` (solo entra con cuenta ya creada) y `/registro` (el siguiente paso son los datos de la empresa). Eso es solo texto: Firebase no distingue entrar de registrarse con Google.
+- Quedan textos «gratis» (panel del registro, enlace «Regístrate gratis», modal Agregar empresa). Es una promesa comercial que el abogado no ha confirmado: decidir si se quitan.
+
+### Cómo probar en local sin Firebase (y sin pisar datos)
+`NEXT_PUBLIC_FIREBASE_API_KEY= npx next dev -p 3001` y abrir `http://127.0.0.1:3001/tyui/`. El botón «Cargar Datos Demo» abre un modal propio («¿Cargar datos demo?» → «Sí, cargar demo»): si se navega antes de confirmar, no se carga nada. «Marcar como Pagada» usa `confirm()` nativo, que bloquea el control del navegador.
+
+### Verificado / sin verificar
+- Verificado en local con demo: Dashboard (RD$322K / 374K / 288K), Gestión de Envíos (4 períodos cerrados pendientes de pago) y 12 módulos más, sin `NaN`, `undefined` ni errores de consola. Los fixes de seguridad (límite 1 MB, sin bypass admin, `mailto` codificado) siguen presentes tras el merge.
+- **Sin probar:** «Marcar como Pagada» y el modal de comprobantes, descargas PDF/Excel, el asistente completo de Liquidación, «Cerrar sesión» con Firebase activo, el correo del acceso generado, procesar un período real, y todo lo nuevo de la rama de Manuel más allá de la carga de las páginas.
+- Los comprobantes NO se envían solos: cada «Enviar» abre el cliente de correo (`mailto:`) y el PDF se adjunta a mano.
+
+### Datos: NO hay base de datos
+El código solo importa `firebase/app` y `firebase/auth`. Todo (empresa, empleados, salarios, cédulas, bancos, préstamos, períodos) vive en `localStorage` por `uid`, sin cifrar ni respaldo. Otro navegador o equipo ve la cuenta vacía; limpiar datos del navegador lo borra todo; dos personas de una empresa no comparten datos.
+
+### Decisión de arquitectura (pendiente, sin implementar)
+- Requisitos del usuario: varios roles por empresa (gerente general, RRHH, contador y una capa adicional según la empresa), 50 empresas en el primer año, empresas de 1–9 y de 100–300 empleados, y que **cada empresa decida dónde se guardan sus datos**.
+- Recomendación: PostgreSQL con Row Level Security (`empresa_id` en toda tabla), una API pequeña que valide el token de Firebase, y almacenamiento de objetos para adjuntos y respaldos; mantener Firebase Auth y Hosting. Ubicación por empresa: modalidades A (nube de Cielo, región estándar), B (región elegida), C (instancia dedicada), D (base del cliente); v1 = A y B. Firestore y MongoDB encajan peor.
+- Rutas comparadas (Supabase / DigitalOcean / AWS): efectividad 91 % / 73 % / 64 % con el perfil equilibrado; con el perfil «clientes grandes: ubicación y cumplimiento», Supabase y AWS empatan (~80 %). Para el piloto, Supabase; las tres usan PostgreSQL estándar, así que migrar después es posible.
+- Informe completo con requisitos, estructura de datos, matriz de roles, 23 controles de seguridad, costos, cronograma de 16 semanas y presupuesto: `Cielo_Nomina_Informe_Arquitectura_Costos.xlsx` (carpeta personal del usuario, fuera del repo).
+- **Sin verificar:** las horas son estimación mía; solo se verificaron en web los precios de Supabase, Neon y Cloudflare R2 (DigitalOcean y AWS son cifras de terceros, el resto estimaciones). Plazos de conservación y ubicación de datos personales los define el abogado: no inventarlos.
+
+### Pendiente para continuar
+1. Que el usuario pruebe en su navegador: terminar el asistente de la empresa, «Cerrar sesión» y volver a entrar con Google (¿se conserva la empresa?), «Marcar como Pagada» y el modal de comprobantes.
+2. Restringir la API key de Firebase por dominio (Google Cloud Console → Credenciales) y cerrar el registro abierto.
+3. Tenant propio en Entra para activar Microsoft.
+4. Decidir si se quitan los textos «gratis» restantes.
+5. Repo propio o fork para subir esta rama; hoy todo es local.
+6. Decidir la arquitectura (varias personas por empresa, ¿mismo usuario en varias empresas?, ¿el primer cliente exige modalidad C o D?) y revisarla con el abogado antes de tocar código.
+7. Reemplazar `xlsx` (sin parche) y limitar tamaño y filas en los 3 importadores; `npm audit` sigue con 15 vulnerabilidades.
+8. Revisión legal de la cesantía de más de 5 años (fracción de año, Art. 80).
+9. Nunca guardar contraseñas iniciales en archivos ni en este documento: se entregan al usuario en el chat.
