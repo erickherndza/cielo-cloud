@@ -77,7 +77,7 @@ export function AuthBrandPanel({ eyebrow, title, description, features }: AuthBr
       {/* Fotografía real (Unsplash License — libre de uso comercial, sin atribución requerida) */}
       <div
         className="animate-ken-burns absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/tyui/images/auth/glass-facade.jpg')" }}
+        style={{ backgroundImage: `url('${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/images/auth/glass-facade.jpg')` }}
       />
       {/* Velos de marca para legibilidad y coherencia de color */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0d1449]/95 via-[#151f66]/78 to-[#0d1449]/96" />
