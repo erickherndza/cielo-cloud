@@ -33,3 +33,7 @@ yarn-error.log*
 
 # claude code
 .claude/
+
+# firebase cli
+firebase-debug.log
+.firebase/
