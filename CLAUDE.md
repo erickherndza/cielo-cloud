@@ -1860,3 +1860,58 @@ colapsarse — patrón "hover-to-peek" (VS Code, Notion).
 | `9ae3389` | feat: micro-animaciones modals/toasts + empty states ilustrativos |
 | `8467140` | feat: logo SVG wordmark sidebar + jerarquía tipográfica reportes |
 | `2d9ef8d` | feat: períodos únicos, estado en_proceso, procesamiento por empleado |
+
+## Auditoría de seguridad (2026-11-12) y rama `security/hardening`
+
+Auditoría completa con el skill `app-security-auditor` (solo lectura + `npm audit`;
+no se probó contra Firebase real ni producción). Rama **solo local**: `origin`
+(`manuel-erasmo-oss/tyui`) no es del usuario y tiene permiso READ, no se subió nada.
+
+### Riesgo estructural (sin backend)
+Todo el estado vive en `localStorage` en texto plano (cédulas, salarios, cuentas
+bancarias, adjuntos en base64). El `RouteGuard` solo protege la UI; `logout` no
+borra datos; sin `FIREBASE_ENABLED` las claves ni siquiera llevan el `uid`, así que
+cualquier app en el mismo origen las lee. La solución real es un backend
+(Firestore con rules por `uid` o API propia). **No limpiar `localStorage` al cerrar
+sesión sin antes ofrecer respaldo exportable:** es la única copia de la nómina.
+
+### Ya aplicado en `security/hardening` (2 commits, `tsc` y `npm run build` limpios)
+- `RouteGuard.tsx`: eliminado el bypass `admin@admin.com` (omitía verificación de
+  correo y precargaba datos demo). Los datos demo se cargan a mano desde
+  Configuración → Datos y Migración.
+- Adjuntos (documentos de empleado, foto, documento de préstamo): tope de 1 MB
+  (`MAX_ADJUNTO_BYTES` en `src/lib/utils.ts`) para no agotar la cuota de ~5 MB.
+- `csvCell()` (`utils.ts`): neutraliza inyección de fórmulas (`= + - @`) en los CSV de
+  Nómina y Liquidación; los números reales, incluidos negativos, no se alteran.
+- `comprobante-email.ts`: `mailto:` con destinatario, asunto y cuerpo codificados
+  (evita inyección de `cc`/`bcc`).
+- `next` y `eslint-config-next` 14.2.5 → 14.2.35.
+
+### Pendiente (por prioridad)
+1. Reemplazar `xlsx` (prototype pollution + ReDoS, sin fix; lo usan los 3 importadores)
+   y limitar tamaño/filas de importación.
+2. Respaldo exportable + limpieza opcional de datos al cerrar sesión.
+3. CSP por `<meta>` (hay que probarlo con Firebase Auth real: popup/redirect).
+4. Workflow `pages.yml`: `contents: write` solo en el job, fijar la acción por SHA,
+   desplegar solo desde `main`.
+5. `npm audit` sigue en 11 vulnerabilidades: `next` solo se cierra con 16.x (salto
+   mayor); los avisos son de funciones de servidor que un export estático no usa
+   (inferido, no verificado). `dompurify` llega vía `jspdf`.
+6. Proyecto Firebase (no verificable desde el repo): restringir la API key por
+   dominio, dominios autorizados, protección contra enumeración de correos, y
+   comprobar si existe la cuenta `admin@admin.com`.
+- `.env.production` está versionado y solo contiene `NEXT_PUBLIC_FIREBASE_*` (llaves
+  públicas por diseño). No es una fuga, pero no agregar ahí nada que no sea público.
+
+### Cómo probar en vivo sin pisar datos
+`npm run dev` → `http://localhost:3000/tyui/` (el `basePath` es `/tyui`; la raíz da
+404). Para no sobrescribir datos de otra sesión, usar `http://127.0.0.1:3000/tyui/`
+(`localStorage` separado por origen): onboarding de prueba y luego Configuración →
+Datos y Migración → Cargar Datos Demo. Verificado en vivo con datos demo: las 14
+rutas del menú, los 13 reportes (sin `NaN`/errores), cuadre TSS/ISR entre Nómina y
+Cumplimiento Fiscal, y Liquidación (preaviso, regalía y descuento de préstamo
+exactos). **A validar por un contador/abogado:** la cesantía de más de 5 años
+paga 23 días por año completo y no suma la fracción de año (7 años 4 meses → 161
+días); es intencional según este documento, pero el Art. 80 puede exigirla.
+Sin probar: exportaciones PDF/Excel/CSV, finalizar liquidación, procesar un período
+y login con Firebase real.
