@@ -39,7 +39,7 @@ function PasswordStrength({ pwd }: { pwd: string }) {
 type Paso = 'elegir' | 'login' | 'registro'
 
 export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
-  const { agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft } = useAuth()
+  const { agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft, agregarCuentaGenerada } = useAuth()
 
   const [paso, setPaso] = useState<Paso>('elegir')
   const [nombre, setNombre]     = useState('')
@@ -52,6 +52,8 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
   const [gLoading, setGLoading] = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState(false)
+  // Por defecto el acceso se genera: la empresa define su contraseña desde un enlace en su correo.
+  const [generar, setGenerar]   = useState(true)
 
   function volver() {
     setPaso('elegir')
@@ -72,11 +74,14 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
 
   async function handleRegistro(e: FormEvent) {
     e.preventDefault()
-    if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    if (!generar) {
+      if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
+      if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    }
     setError(''); setLoading(true)
     try {
-      await agregarCuentaRegistro(email, password, nombre.trim())
+      if (generar) await agregarCuentaGenerada(email.trim(), nombre.trim())
+      else await agregarCuentaRegistro(email, password, nombre.trim())
       setSuccess(true)
       setTimeout(onClose, 1400)
     } catch (err: unknown) {
@@ -280,7 +285,9 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
                   </div>
                   <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">¡Cuenta creada!</h2>
                   <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">
-                    Te enviamos un correo de verificación para esta empresa. Ábrelo para activarla.
+                    {generar
+                      ? `Enviamos a ${email.trim()} un enlace para que la empresa cree su contraseña. La contraseña nunca se muestra ni se guarda aquí.`
+                      : 'Te enviamos un correo de verificación para esta empresa. Ábrelo para activarla.'}
                   </p>
                 </div>
               ) : (
@@ -325,6 +332,14 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
                       <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">Correo electrónico</label>
                       <input type="email" placeholder="empresa@correo.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" className={INPUT} />
                     </div>
+                    <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3.5 py-3">
+                      <input type="checkbox" checked={generar} onChange={e => setGenerar(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#1B2980]" />
+                      <span className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        <span className="block font-semibold text-zinc-800 dark:text-zinc-200">Generar acceso automáticamente</span>
+                        Enviamos al correo de la empresa un enlace para que cree su propia contraseña. Tú no la ves ni la escribes.
+                      </span>
+                    </label>
+                    {!generar && (<>
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">Contraseña</label>
                       <div className="relative">
@@ -345,6 +360,7 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
                       </div>
                       {confirm && password !== confirm && <p className="mt-1.5 text-[11px] text-rose-500">Las contraseñas no coinciden.</p>}
                     </div>
+                    </>)}
 
                     {error && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/30 px-3.5 py-3">
@@ -354,7 +370,7 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
                     )}
 
                     <button type="submit" disabled={loading} className="mt-1 w-full rounded-xl bg-[#1B2980] py-3 text-sm font-semibold text-white hover:bg-[#151f66] disabled:opacity-60 transition-colors">
-                      {loading ? 'Creando cuenta…' : 'Crear cuenta'}
+                      {loading ? 'Creando cuenta…' : generar ? 'Crear cuenta y enviar acceso' : 'Crear cuenta'}
                     </button>
 
                     <p className="text-center text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-600">

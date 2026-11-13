@@ -54,6 +54,15 @@ function cargarRegistro(): RegistroCuentas {
   }
 }
 
+// Contraseña aleatoria (24 caracteres, CSPRNG) para cuentas cuyo acceso se
+// entrega por enlace de restablecimiento. Nunca se muestra, guarda ni registra:
+// vive solo dentro de agregarCuentaGenerada y se descarta al terminar.
+function passwordAleatoria(): string {
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*-_'
+  const bytes = crypto.getRandomValues(new Uint32Array(24))
+  return Array.from(bytes, b => alfabeto[b % alfabeto.length]).join('')
+}
+
 function genAppName(): string {
   return `cuenta-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
@@ -76,6 +85,7 @@ interface AuthCtx {
   agregarCuentaRegistro:  (email: string, password: string, nombre: string) => Promise<void>
   agregarCuentaGoogle:    () => Promise<void>
   agregarCuentaMicrosoft: () => Promise<void>
+  agregarCuentaGenerada:  (email: string, nombre: string) => Promise<void>
   quitarCuenta:           (appName: string) => Promise<void>
 }
 
@@ -97,6 +107,7 @@ const Ctx = createContext<AuthCtx>({
   agregarCuentaRegistro:  async () => {},
   agregarCuentaGoogle:    async () => {},
   agregarCuentaMicrosoft: async () => {},
+  agregarCuentaGenerada:  async () => {},
   quitarCuenta:           async () => {},
 })
 
@@ -239,6 +250,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     upsertCuenta(appName, cred.user)
   }
 
+  // Crea la cuenta de una empresa SIN que quien la registra elija contraseña:
+  // se genera una aleatoria (nunca visible) y se envía al correo de la empresa
+  // el enlace oficial de Firebase para que defina la suya. Como el correo recibe
+  // el enlace, también queda verificado al usarlo.
+  async function agregarCuentaGenerada(email: string, nombre: string) {
+    asegurarCuentaActualRegistrada()
+    const appName = genAppName()
+    const auth = getFirebaseAuthNamed(appName)
+    const cred = await createUserWithEmailAndPassword(auth, email, passwordAleatoria())
+    await updateProfile(cred.user, { displayName: nombre })
+    await sendPasswordResetEmail(auth, email)
+    upsertCuenta(appName, cred.user)
+  }
+
   async function agregarCuentaMicrosoft() {
     asegurarCuentaActualRegistrada()
     const appName = genAppName()
@@ -261,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cuentasVinculadas: registro.cuentas,
       cuentaActivaAppName: activaAppName,
       signIn, signUp, signInGoogle, signInMicrosoft, logout, resetPassword, sendVerification, refreshUser,
-      cambiarCuenta, agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft, quitarCuenta,
+      cambiarCuenta, agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft, agregarCuentaGenerada, quitarCuenta,
     }}>
       {children}
     </Ctx.Provider>

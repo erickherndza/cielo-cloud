@@ -1915,3 +1915,20 @@ paga 23 días por año completo y no suma la fracción de año (7 años 4 meses 
 días); es intencional según este documento, pero el Art. 80 puede exigirla.
 Sin probar: exportaciones PDF/Excel/CSV, finalizar liquidación, procesar un período
 y login con Firebase real.
+
+## Acceso con Microsoft y acceso generado al crear empresa (sin probar con Firebase real)
+
+- **Microsoft (Outlook / Microsoft 365):** `microsoftProvider` en `src/lib/firebase.ts`,
+  botón primero en `/login`, `/registro` y `AgregarCuentaModal`; Google queda segundo.
+  Requiere activar el proveedor en Firebase Console con una app de Microsoft Entra.
+- **Acceso generado (`agregarCuentaGenerada` en `auth-context.tsx`):** en
+  "Agregar empresa → Crear cuenta nueva" la opción "Generar acceso automáticamente"
+  (activa por defecto) pide solo nombre y correo, crea la cuenta con una contraseña
+  aleatoria de 24 caracteres (CSPRNG, nunca visible ni guardada) y envía al correo el
+  enlace de Firebase para que la empresa defina la suya. Desmarcarla vuelve al flujo
+  con contraseña escrita a mano.
+- **Limitación estructural:** sin backend, los datos de cada empresa viven en
+  `localStorage` bajo su `uid` en ESTE navegador. La empresa recibe un acceso real,
+  pero al entrar desde otro dispositivo verá la cuenta vacía hasta que exista un backend.
+- El onboarding inicial (`OnboardingWizard`) sigue sin crear credenciales: el primer
+  acceso lo crea quien se registra en `/registro` o entra con Microsoft/Google.
