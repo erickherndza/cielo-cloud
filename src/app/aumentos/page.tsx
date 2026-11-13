@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   TrendingUp, Users, Building2, Check, ChevronDown, CalendarClock, Clock,
   FileSpreadsheet, ShieldCheck, UserCheck, Ban, History, X, Info, CheckCircle2,
+  Download,
 } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Toast } from '@/components/ui/Toast'
@@ -12,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useAumentos } from '@/lib/aumentos-context'
 import { useAuth } from '@/lib/auth-context'
+import { useEmpresa } from '@/lib/empresa-context'
 import { ImportadorAumentosExcel } from '@/components/aumentos/ImportadorAumentosExcel'
 import { formatRD, fullName, formatDate } from '@/lib/utils'
 import type { Empleado, RegistroAumento, EstadoAumento } from '@/types'
@@ -36,12 +38,14 @@ function EstadoBadge({ estado }: { estado: EstadoAumento }) {
 export default function AumentosPage() {
   const { empleados, empleadosActivos } = useEmpleados()
   const { user } = useAuth()
+  const { empresa } = useEmpresa()
   const { solicitar, aprobar, rechazar, aplicar, getPendientes, getHistorial } = useAumentos()
 
   // ─── Solicitud por criterio ────────────────────────────────────────────────
   const [tipoAjuste, setTipoAjuste] = useState<'porcentaje' | 'fijo'>('porcentaje')
   const [valor, setValor] = useState('')
   const [motivo, setMotivo] = useState('')
+  const [fechaEfectiva, setFechaEfectiva] = useState('')
   const [filtroDepto, setFiltroDepto] = useState<string>('todos')
   const [filtroFechaIngresoAntes, setFiltroFechaIngresoAntes] = useState('')
   const [filtroSinAumentoDesde, setFiltroSinAumentoDesde] = useState('')
@@ -142,14 +146,16 @@ export default function AumentosPage() {
         motivo: motivo.trim(),
         solicitadoPor: user?.email ?? undefined,
         origen: 'manual',
+        fechaEfectiva: fechaEfectiva || undefined,
       })
       enviados++
     })
-    const tipoLabel = tipoAjuste === 'porcentaje' ? `${valorNum}%` : formatRD(valorNum, 0)
-    setToast(`${enviados} solicitud(es) de aumento de ${tipoLabel} enviada(s) a aprobación — impacto mensual estimado: +${formatRD(totalImpacto, 0)}`)
+    const tipoLabel = tipoAjuste === 'porcentaje' ? `${valorNum}%` : formatRD(valorNum)
+    setToast(`${enviados} solicitud(es) de aumento de ${tipoLabel} enviada(s) a aprobación — impacto mensual estimado: +${formatRD(totalImpacto)}`)
     setSeleccionados(new Set())
     setValor('')
     setMotivo('')
+    setFechaEfectiva('')
   }
 
   const canSolicitar = valorNum > 0 && seleccionados.size > 0 && motivo.trim() !== ''
@@ -179,15 +185,74 @@ export default function AumentosPage() {
     const ok = aplicar(registro.id)
     const emp = empleadoDe(registro.empleadoId)
     setToast(ok
-      ? `Salario de ${emp ? fullName(emp) : 'empleado'} actualizado a ${formatRD(registro.salarioNuevo, 0)}`
+      ? `Salario de ${emp ? fullName(emp) : 'empleado'} actualizado a ${formatRD(registro.salarioNuevo)}`
       : 'No se pudo aplicar el aumento — verifica que esté aprobado')
   }
 
   const historialFiltrado = getHistorial(filtroHistorialEmpleado === 'todos' ? undefined : filtroHistorialEmpleado)
 
+  // Exporta el registro COMPLETO de solicitudes de aumento (todos los estados
+  // — pendientes, aprobadas, aplicadas, rechazadas), sin importar el filtro
+  // de empleado activo en la tabla de Historial: el valor de este export es
+  // ser el rastro de auditoría completo, no una vista filtrada.
+  async function handleExportarExcel() {
+    const registros = historialGlobal
+    if (registros.length === 0) return
+    const { exportarExcel } = await import('@/lib/excel-export')
+    const filas = registros.map(r => {
+      const emp = empleadoDe(r.empleadoId)
+      const pctAumento = r.salarioAnterior > 0
+        ? ((r.salarioNuevo - r.salarioAnterior) / r.salarioAnterior) * 100
+        : 0
+      return [
+        emp ? fullName(emp) : 'Empleado eliminado',
+        emp?.departamento ?? '—',
+        r.salarioAnterior,
+        r.salarioNuevo,
+        `${pctAumento.toFixed(2)}%`,
+        r.motivo,
+        estadoLabel(r.estado),
+        r.aprobadoPor ?? '—',
+        formatDate(r.fechaSolicitud),
+        r.fechaAplicacion ? formatDate(r.fechaAplicacion) : '—',
+      ]
+    })
+    await exportarExcel({
+      nombreArchivo: `aumentos-salariales-${new Date().toISOString().slice(0, 10)}`,
+      empresa: empresa.nombre,
+      rnc: empresa.rnc,
+      hojas: [{
+        nombre: 'Aumentos',
+        titulo: 'Aumentos Salariales — Registro Completo',
+        subtitulo: `${registros.length} solicitud(es) · todos los estados`,
+        encabezados: [
+          'Empleado', 'Departamento', 'Salario Anterior', 'Salario Nuevo',
+          '% de Aumento', 'Motivo', 'Estado', 'Aprobado Por',
+          'Fecha de Solicitud', 'Fecha de Aplicación',
+        ],
+        filas,
+        anchos: [24, 16, 16, 16, 12, 30, 14, 18, 16, 16],
+      }],
+    })
+    setToast(`${registros.length} solicitud(es) de aumento exportada(s) a Excel`)
+  }
+
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <Header title="Aumentos Salariales" subtitle="Selección por criterio, con aprobación antes de impactar nómina" />
+      <Header
+        title="Aumentos Salariales"
+        subtitle="Selección por criterio, con aprobación antes de impactar nómina"
+        actions={
+          <button
+            onClick={handleExportarExcel}
+            disabled={historialGlobal.length === 0}
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download className="h-4 w-4" />
+            Exportar Excel
+          </button>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
@@ -348,6 +413,24 @@ export default function AumentosPage() {
                 />
               </div>
 
+              {/* Fecha efectiva */}
+              <div className="px-5 pb-4">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Fecha Efectiva (opcional)</label>
+                <input
+                  type="date"
+                  value={fechaEfectiva}
+                  onChange={e => setFechaEfectiva(e.target.value)}
+                  className="mt-1.5 w-full max-w-xs rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
+                />
+                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+                  <Info className="h-3 w-3 shrink-0 mt-0.5" />
+                  Si cae dentro de un período de Nómina todavía en proceso, el sistema calcula un salario
+                  ponderado por días (parte al salario anterior, parte al nuevo) en vez de aplicar el
+                  salario nuevo completo desde el día 1. Sin fecha, se asume que rige desde el momento en
+                  que se aplique el aumento.
+                </p>
+              </div>
+
               {filtroSinAumentoDesde && (
                 <div className="px-5 pb-4 flex items-start gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
                   <Info className="h-3 w-3 shrink-0 mt-0.5" />
@@ -401,7 +484,7 @@ export default function AumentosPage() {
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Nuevo Salario</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+                  <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                     {empleadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6}>
@@ -470,7 +553,7 @@ export default function AumentosPage() {
 
                             {/* Salario Actual */}
                             <td className="px-4 py-3.5 text-right tabular-nums text-zinc-600 dark:text-zinc-400">
-                              {formatRD(emp.salarioBase, 0)}
+                              {formatRD(emp.salarioBase)}
                             </td>
 
                             {/* Ajuste */}
@@ -479,7 +562,7 @@ export default function AumentosPage() {
                                 <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                   {tipoAjuste === 'porcentaje'
                                     ? `+${valorNum}%`
-                                    : `+${formatRD(valorNum, 0)}`
+                                    : `+${formatRD(valorNum)}`
                                   }
                                 </span>
                               ) : (
@@ -490,7 +573,7 @@ export default function AumentosPage() {
                             {/* Nuevo Salario */}
                             <td className="px-4 py-3.5 text-right tabular-nums font-bold text-[#151f66] dark:text-indigo-300">
                               {valorNum > 0
-                                ? formatRD(nuevoSalario(emp), 0)
+                                ? formatRD(nuevoSalario(emp))
                                 : <span className="text-zinc-300 dark:text-zinc-600 font-normal">—</span>
                               }
                             </td>
@@ -512,19 +595,19 @@ export default function AumentosPage() {
                   </span>
                   <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
                   <span className="text-zinc-600 dark:text-zinc-400">
-                    Costo actual: <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">{formatRD(totalActual, 0)}</span>
+                    Costo actual: <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">{formatRD(totalActual)}</span>
                   </span>
                   <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
                   <span className="text-zinc-600 dark:text-zinc-400">
-                    Costo nuevo: <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">{formatRD(totalNuevo, 0)}</span>
+                    Costo nuevo: <span className="font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">{formatRD(totalNuevo)}</span>
                   </span>
                   <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
                   <span className="text-zinc-600 dark:text-zinc-400">
-                    Impacto mensual estimado: <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatRD(totalImpacto, 0)}</span>
+                    Impacto mensual estimado: <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatRD(totalImpacto)}</span>
                   </span>
                   <span className="text-zinc-300 dark:text-zinc-600 hidden sm:inline">|</span>
                   <span className="text-zinc-600 dark:text-zinc-400">
-                    Impacto anual estimado: <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatRD(totalImpacto * 12, 0)}</span>
+                    Impacto anual estimado: <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatRD(totalImpacto * 12)}</span>
                   </span>
                 </div>
 
@@ -598,7 +681,7 @@ export default function AumentosPage() {
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {pendientes.length === 0 ? (
                   <tr>
                     <td colSpan={7}>
@@ -616,10 +699,10 @@ export default function AumentosPage() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-[#1B2980] dark:text-indigo-400">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(p.salarioAnterior, 0)}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(p.salarioNuevo, 0)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(p.salarioAnterior)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(p.salarioNuevo)}</td>
                       <td className="px-4 py-3">
-                        <Badge variant="info">{p.tipoAjuste === 'porcentaje' ? `+${p.valorAjuste}%` : `+${formatRD(p.valorAjuste, 0)}`}</Badge>
+                        <Badge variant="info">{p.tipoAjuste === 'porcentaje' ? `+${p.valorAjuste}%` : `+${formatRD(p.valorAjuste)}`}</Badge>
                       </td>
                       <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 max-w-[220px] truncate" title={p.motivo}>{p.motivo}</td>
                       <td className="px-4 py-3 text-xs text-zinc-400">
@@ -671,7 +754,7 @@ export default function AumentosPage() {
                     <th className="px-4 py-3">Acción</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                   {aprobadosPorAplicar.map(a => {
                     const emp = empleadoDe(a.empleadoId)
                     return (
@@ -679,8 +762,8 @@ export default function AumentosPage() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-[#1B2980] dark:text-indigo-400">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                         </td>
-                        <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(a.salarioAnterior, 0)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(a.salarioNuevo, 0)}</td>
+                        <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(a.salarioAnterior)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(a.salarioNuevo)}</td>
                         <td className="px-4 py-3 text-xs text-zinc-400">
                           <p>{a.aprobadoPor}</p>
                           {a.fechaAprobacion && <p>{formatDate(a.fechaAprobacion)}</p>}
@@ -735,7 +818,7 @@ export default function AumentosPage() {
                   <th className="px-4 py-3">Fechas</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {historialFiltrado.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-xs text-zinc-400">
@@ -751,10 +834,10 @@ export default function AumentosPage() {
                         {r.origen === 'importacion_excel' && <p className="text-[10px] text-zinc-400">Importado (Excel)</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant="neutral">{r.tipoAjuste === 'porcentaje' ? `+${r.valorAjuste}%` : `+${formatRD(r.valorAjuste, 0)}`}</Badge>
+                        <Badge variant="neutral">{r.tipoAjuste === 'porcentaje' ? `+${r.valorAjuste}%` : `+${formatRD(r.valorAjuste)}`}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioAnterior, 0)}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioNuevo, 0)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioAnterior)}</td>
+                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioNuevo)}</td>
                       <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 max-w-[200px] truncate" title={r.motivo}>{r.motivo}</td>
                       <td className="px-4 py-3"><EstadoBadge estado={r.estado} /></td>
                       <td className="px-4 py-3 text-[11px] text-zinc-400 space-y-0.5">
@@ -820,7 +903,7 @@ export default function AumentosPage() {
                     <div className="rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-4 py-3 text-xs space-y-1">
                       <p className="font-semibold text-zinc-800 dark:text-zinc-200">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                       <p className="text-zinc-500 dark:text-zinc-400">
-                        {formatRD(r.salarioAnterior, 0)} → <span className="font-semibold text-[#151f66] dark:text-indigo-300">{formatRD(r.salarioNuevo, 0)}</span>
+                        {formatRD(r.salarioAnterior)} → <span className="font-semibold text-[#151f66] dark:text-indigo-300">{formatRD(r.salarioNuevo)}</span>
                       </p>
                       <p className="text-zinc-500 dark:text-zinc-400">Motivo: {r.motivo}</p>
                     </div>

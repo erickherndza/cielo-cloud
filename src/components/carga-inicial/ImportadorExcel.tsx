@@ -8,10 +8,12 @@ import {
 } from 'lucide-react'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useEmpresa } from '@/lib/empresa-context'
+import { useSaldoISR } from '@/lib/saldo-isr-context'
 import { getCategoriaSRLPorSector } from '@/lib/dominican-labor'
-import { formatRD } from '@/lib/utils'
+import { DOC_TIPOS, PAISES, BANCOS, TIPO_CONTRATO_OPTIONS, cedulasCoinciden } from '@/lib/empleado-form'
+import { formatRD, hoyLocalISO } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
-import type { Empleado } from '@/types'
+import type { Empleado, TipoDocumento, TipoContrato, Banco } from '@/types'
 
 interface Props {
   onFinish: () => void
@@ -25,9 +27,21 @@ const ENCABEZADOS = [
   'Departamento',
   'Fecha de Ingreso',
   'Salario Base',
+  // ─── Identidad y contacto (opcionales, salvo default para empleados nuevos) ─
+  'Tipo de Documento',
+  'Nacionalidad',
+  'Fecha de Nacimiento',
+  'Tipo de Contrato',
+  'Correo Electrónico',
+  'Teléfono',
+  'Banco',
+  'Número de Cuenta',
+  'Régimen Intermitente (Sí/No)',
+  // ─── Migración (saldos/créditos previos a Cielo Cloud) ─────────────────────
   'Vacaciones Pendientes (días)',
   'Regalía Pagada Este Año (RD$)',
   'Salario Histórico de Referencia (RD$)',
+  'Saldo ISR a Favor (RD$)',
 ] as const
 
 type Accion = 'crear' | 'actualizar'
@@ -41,9 +55,24 @@ interface FilaImportacion {
   departamento: string
   fechaIngreso: string
   salarioBase: number | null
+  // ─── Identidad y contacto — null significa "no cambiar" (actualizar) o
+  // "usar el default" (crear), ver confirmarImportacion() ────────────────────
+  tipoDocumento: TipoDocumento | null
+  nacionalidad: string | null
+  fechaNacimiento: string | null
+  tipoContrato: TipoContrato | null
+  email: string | null
+  telefono: string | null
+  banco: Banco | null
+  numeroCuenta: string | null
+  regimenIntermitente: boolean | null
   saldoVacacionesInicial: number | null
   regaliaPagadaEsteAnio: number | null
   salarioHistoricoReferencia: number | null
+  // No es un campo de Empleado — crea un SaldoISRFavor real vía
+  // registrarSaldoISR() al confirmar, igual que registrarlo desde la ficha
+  // del empleado (ver comentario en confirmarImportacion).
+  saldoISRFavor: number | null
   accion: Accion
   empleadoExistenteId?: string
   error?: string
@@ -130,9 +159,59 @@ function parsearNumeroOpcional(v: unknown): { ok: boolean; valor: number | null 
   return { ok: true, valor: n }
 }
 
+// Quita acentos y normaliza mayúsculas/espacios — para aceptar tanto el
+// valor exacto en inglés (ej. "cedula") como la etiqueta en español que ve
+// el usuario (ej. "Cédula") en las columnas de catálogo del Excel.
+function normalizar(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+function parsearTipoDocumento(v: unknown): { ok: boolean; valor: TipoDocumento | null } {
+  const s = celdaTexto(v)
+  if (!s) return { ok: true, valor: null }
+  const norm = normalizar(s)
+  const match = DOC_TIPOS.find(d => normalizar(d.label) === norm || d.value === norm)
+  return match ? { ok: true, valor: match.value } : { ok: false, valor: null }
+}
+
+// Acepta el código ISO (ej. "DO") o el nombre en español (ej. "República Dominicana")
+function parsearNacionalidad(v: unknown): { ok: boolean; valor: string | null } {
+  const s = celdaTexto(v)
+  if (!s) return { ok: true, valor: null }
+  const norm = normalizar(s)
+  const match = PAISES.find(p => p.code.toLowerCase() === norm || normalizar(p.nombre) === norm)
+  return match ? { ok: true, valor: match.code } : { ok: false, valor: null }
+}
+
+function parsearTipoContrato(v: unknown): { ok: boolean; valor: TipoContrato | null } {
+  const s = celdaTexto(v)
+  if (!s) return { ok: true, valor: null }
+  const norm = normalizar(s)
+  const match = TIPO_CONTRATO_OPTIONS.find(t => normalizar(t.label) === norm || t.value === norm)
+  return match ? { ok: true, valor: match.value } : { ok: false, valor: null }
+}
+
+function parsearBanco(v: unknown): { ok: boolean; valor: Banco | null } {
+  const s = celdaTexto(v)
+  if (!s) return { ok: true, valor: null }
+  const norm = normalizar(s)
+  const match = BANCOS.find(b => normalizar(b) === norm)
+  return match ? { ok: true, valor: match } : { ok: false, valor: null }
+}
+
+function parsearBooleanoSiNo(v: unknown): { ok: boolean; valor: boolean | null } {
+  const s = celdaTexto(v)
+  if (!s) return { ok: true, valor: null }
+  const norm = normalizar(s)
+  if (['si', 'sí', 'true', '1', 'x'].includes(norm)) return { ok: true, valor: true }
+  if (['no', 'false', '0'].includes(norm)) return { ok: true, valor: false }
+  return { ok: false, valor: null }
+}
+
 export function ImportadorExcel({ onFinish }: Props) {
   const { empleados, add, update } = useEmpleados()
   const { empresa } = useEmpresa()
+  const { registrar: registrarSaldoISR } = useSaldoISR()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [paso, setPaso] = useState<Paso>('plantilla')
@@ -147,16 +226,29 @@ export function ImportadorExcel({ onFinish }: Props) {
     const wsData: (string | number | null)[][] = [
       [...ENCABEZADOS],
       [
-        '000-0000000-0 (ejemplo — bórrame)', 'Juana', 'Pérez', 'Analista de Contabilidad', 'Contabilidad',
-        '2019-03-15', 35000, 14, 0, 32000,
+        // Cédulas de ejemplo con formato válido pero claramente ficticio (fuera
+        // del rango real de la Junta Central Electoral) — el texto "bórrame" NO
+        // vive en esta celda a propósito: si el usuario dejara la cédula sin
+        // completar por error, un texto pegado al dato produciría un error de
+        // importación confuso en vez de una fila simplemente vacía. La
+        // instrucción de borrar las filas de ejemplo ya vive aparte, en la nota
+        // de abajo.
+        '000-0000000-0', 'Juana', 'Pérez', 'Analista de Contabilidad', 'Contabilidad',
+        '2019-03-15', 35000,
+        'Cédula', 'República Dominicana', '1990-05-20', 'Fijo (Tiempo Indefinido)',
+        'juana.perez@empresa.com', '809-555-0101', 'Banco Popular', '100-2345678-9', 'No',
+        14, 0, 32000, 0,
       ],
       [
-        '000-0000001-1 (ejemplo — bórrame)', 'Carlos', 'Ramírez', 'Supervisor de Bodega', 'Almacén',
-        '2022-08-01', 28000, 7, 5000, '',
+        '000-0000001-1', 'Carlos', 'Ramírez', 'Supervisor de Bodega', 'Almacén',
+        '2022-08-01', 28000,
+        'Cédula', 'República Dominicana', '1985-11-03', 'Fijo (Tiempo Indefinido)',
+        'carlos.ramirez@empresa.com', '829-555-0202', 'BanReservas', '200-3456789-0', 'No',
+        7, 5000, '', 3500,
       ],
     ]
     const ws = XLSX.utils.aoa_to_sheet(wsData)
-    ws['!cols'] = [16, 16, 16, 24, 18, 16, 14, 16, 20, 22].map(w => ({ wch: w }))
+    ws['!cols'] = [16, 14, 14, 22, 16, 14, 12, 16, 20, 16, 22, 26, 14, 16, 16, 14, 16, 20, 22, 18].map(w => ({ wch: w }))
     XLSX.utils.book_append_sheet(wb, ws, 'Saldos Iniciales')
     XLSX.writeFile(wb, 'plantilla-carga-inicial-cielo-cloud.xlsx')
   }
@@ -175,12 +267,24 @@ export function ImportadorExcel({ onFinish }: Props) {
     setArchivoNombre(file.name)
     setProcesando(true)
 
+    // .csv es texto plano (UTF-8) — leerlo como "binary string" corrompe
+    // cualquier acento/ñ (cada byte multi-byte de UTF-8 se lee como un
+    // carácter latin1 aparte, ej. "Cédula" → "CÃ©dula"), lo cual antes no
+    // se notaba porque ningún valor de columna necesitaba coincidir
+    // exactamente contra un catálogo (nombres/cédulas no se comparan por
+    // igualdad). Los nuevos catálogos (Tipo de Documento, Banco, etc.) sí
+    // lo necesitan, así que .csv se lee como texto UTF-8 real y .xlsx/.xls
+    // (formato binario ZIP) como ArrayBuffer — cada uno con el modo de
+    // lectura de xlsx que le corresponde.
+    const esCSV = /\.csv$/i.test(file.name) || file.type === 'text/csv'
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
         const data = ev.target?.result
         if (!data) throw new Error('No se pudo leer el archivo')
-        const wb = XLSX.read(data, { type: 'binary', cellDates: true })
+        const wb = esCSV
+          ? XLSX.read(data, { type: 'string', cellDates: true })
+          : XLSX.read(data, { type: 'array', cellDates: true })
         const primeraHoja = wb.SheetNames[0]
         if (!primeraHoja) throw new Error('El archivo no tiene hojas')
         const ws = wb.Sheets[primeraHoja]
@@ -198,19 +302,39 @@ export function ImportadorExcel({ onFinish }: Props) {
           const departamentoRaw = celdaTexto(row[4])
           const fechaRaw = row[5]
           const salarioRaw = row[6]
-          const vacacionesRaw = row[7]
-          const regaliaRaw = row[8]
-          const salarioHistRaw = row[9]
+          const tipoDocRaw = row[7]
+          const nacionalidadRaw = row[8]
+          const fechaNacRaw = row[9]
+          const tipoContratoRaw = row[10]
+          const emailRaw = row[11]
+          const telefonoRaw = row[12]
+          const bancoRaw = row[13]
+          const numeroCuentaRaw = row[14]
+          const regimenIntermRaw = row[15]
+          const vacacionesRaw = row[16]
+          const regaliaRaw = row[17]
+          const salarioHistRaw = row[18]
+          const saldoISRRaw = row[19]
 
           const filaCompletamenteVacia =
             !cedulaRaw && !nombreRaw && !apellidoRaw && !cargoRaw && !departamentoRaw &&
             celdaTexto(fechaRaw) === '' && celdaTexto(salarioRaw) === '' &&
-            celdaTexto(vacacionesRaw) === '' && celdaTexto(regaliaRaw) === '' && celdaTexto(salarioHistRaw) === ''
+            celdaTexto(tipoDocRaw) === '' && celdaTexto(nacionalidadRaw) === '' && celdaTexto(fechaNacRaw) === '' &&
+            celdaTexto(tipoContratoRaw) === '' && celdaTexto(emailRaw) === '' && celdaTexto(telefonoRaw) === '' &&
+            celdaTexto(bancoRaw) === '' && celdaTexto(numeroCuentaRaw) === '' && celdaTexto(regimenIntermRaw) === '' &&
+            celdaTexto(vacacionesRaw) === '' && celdaTexto(regaliaRaw) === '' && celdaTexto(salarioHistRaw) === '' &&
+            celdaTexto(saldoISRRaw) === ''
           if (filaCompletamenteVacia) return
 
           const numFila = idx + 2 // +1 por header, +1 por 1-index
+          // Compara tolerando pérdida de ceros a la izquierda (frecuente
+          // cuando Excel interpreta la columna de cédula como número en vez
+          // de texto) — antes era una comparación de string exacta, así que
+          // prácticamente cualquier cédula dominicana con cero inicial subida
+          // vía CSV/Excel fallaba el matching, generando un empleado
+          // duplicado en vez de actualizar el registro existente.
           const existente = cedulaRaw
-            ? empleados.find(emp => emp.cedula.trim().toLowerCase() === cedulaRaw.toLowerCase())
+            ? empleados.find(emp => cedulasCoinciden(cedulaRaw, emp.cedula))
             : undefined
           const accion: Accion = existente ? 'actualizar' : 'crear'
 
@@ -218,9 +342,17 @@ export function ImportadorExcel({ onFinish }: Props) {
           const salarioNum = salarioRaw === '' || salarioRaw === null || salarioRaw === undefined
             ? null
             : (typeof salarioRaw === 'number' ? salarioRaw : Number(String(salarioRaw).replace(/[, ]/g, '')))
+          const tipoDoc = parsearTipoDocumento(tipoDocRaw)
+          const nacionalidad = parsearNacionalidad(nacionalidadRaw)
+          const fechaNacRawTexto = celdaTexto(fechaNacRaw)
+          const fechaNacimiento = parsearFecha(fechaNacRaw)
+          const tipoContratoParsed = parsearTipoContrato(tipoContratoRaw)
+          const banco = parsearBanco(bancoRaw)
+          const regimenInterm = parsearBooleanoSiNo(regimenIntermRaw)
           const vac = parsearNumeroOpcional(vacacionesRaw)
           const reg = parsearNumeroOpcional(regaliaRaw)
           const histRef = parsearNumeroOpcional(salarioHistRaw)
+          const isr = parsearNumeroOpcional(saldoISRRaw)
 
           let error: string | undefined
 
@@ -235,9 +367,16 @@ export function ImportadorExcel({ onFinish }: Props) {
             else if (salarioNum === null || isNaN(salarioNum) || salarioNum <= 0) error = 'Salario Base debe ser mayor a 0'
           }
 
+          if (!error && !tipoDoc.ok) error = 'Tipo de Documento no reconocido — usa Cédula/Pasaporte/Residencia/Permiso de trabajo'
+          if (!error && !nacionalidad.ok) error = 'Nacionalidad no reconocida — usa el nombre del país o su código (ej. DO)'
+          if (!error && fechaNacRawTexto !== '' && !fechaNacimiento) error = 'Fecha de Nacimiento inválida (use YYYY-MM-DD)'
+          if (!error && !tipoContratoParsed.ok) error = 'Tipo de Contrato no reconocido — usa Fijo/Temporal/Estacional/Ocasional/Pasante/Aprendiz/Eventual'
+          if (!error && !banco.ok) error = 'Banco no reconocido — usa Banco Popular/BanReservas/Scotiabank/BHD León/Banistmo/Otro'
+          if (!error && !regimenInterm.ok) error = 'Régimen Intermitente debe ser Sí o No'
           if (!error && !vac.ok) error = 'Vacaciones Pendientes debe ser un número mayor o igual a 0'
           if (!error && !reg.ok) error = 'Regalía Pagada debe ser un número mayor o igual a 0'
           if (!error && !histRef.ok) error = 'Salario Histórico de Referencia debe ser un número mayor o igual a 0'
+          if (!error && !isr.ok) error = 'Saldo ISR a Favor debe ser un número mayor o igual a 0'
 
           parsed.push({
             fila: numFila,
@@ -248,9 +387,19 @@ export function ImportadorExcel({ onFinish }: Props) {
             departamento: departamentoRaw,
             fechaIngreso: fechaIngreso ?? '',
             salarioBase: salarioNum !== null && !isNaN(salarioNum) ? salarioNum : null,
+            tipoDocumento: tipoDoc.valor,
+            nacionalidad: nacionalidad.valor,
+            fechaNacimiento: fechaNacimiento,
+            tipoContrato: tipoContratoParsed.valor,
+            email: emailRaw ? celdaTexto(emailRaw) : null,
+            telefono: telefonoRaw ? celdaTexto(telefonoRaw) : null,
+            banco: banco.valor,
+            numeroCuenta: numeroCuentaRaw ? celdaTexto(numeroCuentaRaw) : null,
+            regimenIntermitente: regimenInterm.valor,
             saldoVacacionesInicial: vac.valor,
             regaliaPagadaEsteAnio: reg.valor,
             salarioHistoricoReferencia: histRef.valor,
+            saldoISRFavor: isr.valor,
             accion,
             empleadoExistenteId: existente?.id,
             error,
@@ -269,7 +418,8 @@ export function ImportadorExcel({ onFinish }: Props) {
       setErrorArchivo('No se pudo leer el archivo.')
       setProcesando(false)
     }
-    reader.readAsBinaryString(file)
+    if (esCSV) reader.readAsText(file, 'UTF-8')
+    else reader.readAsArrayBuffer(file)
   }
 
   const filasValidas = filas.filter(f => !f.error)
@@ -277,31 +427,74 @@ export function ImportadorExcel({ onFinish }: Props) {
 
   function confirmarImportacion() {
     for (const f of filasValidas) {
+      let empleadoId: string
       if (f.accion === 'actualizar' && f.empleadoExistenteId) {
+        // No-destructivo: en blanco significa "no tocar" — nunca sobreescribe
+        // un dato bueno ya cargado con vacío, igual que el Asistente Guiado.
         const cambios: Partial<Empleado> = { saldosInicialesRevisado: true }
         if (f.saldoVacacionesInicial !== null) cambios.saldoVacacionesInicial = f.saldoVacacionesInicial
-        if (f.regaliaPagadaEsteAnio !== null) cambios.regaliaPagadaEsteAnio = f.regaliaPagadaEsteAnio
+        if (f.regaliaPagadaEsteAnio !== null) {
+          cambios.regaliaPagadaEsteAnio = f.regaliaPagadaEsteAnio
+          // Sin esto, regaliaPagadaVigente() (dominican-labor.ts) compara
+          // "año actual === año actual" en cada llamada — el descuento
+          // migrado nunca expiraría por sí solo al año siguiente.
+          cambios.regaliaPagadaAnio = new Date().getFullYear()
+        }
         if (f.salarioHistoricoReferencia !== null) cambios.salarioHistoricoReferencia = f.salarioHistoricoReferencia
+        if (f.tipoDocumento !== null) cambios.tipoDocumento = f.tipoDocumento
+        if (f.nacionalidad !== null) cambios.nacionalidad = f.nacionalidad
+        if (f.fechaNacimiento !== null) cambios.fechaNacimiento = f.fechaNacimiento
+        if (f.tipoContrato !== null) cambios.tipoContrato = f.tipoContrato
+        if (f.email !== null) cambios.email = f.email
+        if (f.telefono !== null) cambios.telefono = f.telefono
+        if (f.banco !== null) cambios.banco = f.banco
+        if (f.numeroCuenta !== null) cambios.numeroCuenta = f.numeroCuenta
+        if (f.regimenIntermitente !== null) cambios.regimenIntermitente = f.regimenIntermitente
         update(f.empleadoExistenteId, cambios)
+        empleadoId = f.empleadoExistenteId
       } else {
         const nuevo: Omit<Empleado, 'id'> = {
           nombre: f.nombre.trim(),
           apellido: f.apellido.trim(),
-          cedula: f.cedula.trim(),
-          tipoDocumento: 'cedula',
+          // Misma normalización que formToEmpleado() (empleado-form.ts) —
+          // el resto de la app siempre guarda la cédula como solo dígitos
+          // (sin guiones/espacios), nunca como texto libre.
+          cedula: (f.tipoDocumento ?? 'cedula') === 'cedula' ? f.cedula.replace(/\D/g, '') : f.cedula.trim().toUpperCase(),
+          tipoDocumento: f.tipoDocumento ?? 'cedula',
+          nacionalidad: f.nacionalidad ?? undefined,
+          fechaNacimiento: f.fechaNacimiento ?? undefined,
           cargo: f.cargo.trim(),
           departamento: f.departamento.trim(),
           fechaIngreso: f.fechaIngreso,
           salarioBase: f.salarioBase ?? 0,
-          tipoContrato: 'fijo',
+          tipoContrato: f.tipoContrato ?? 'fijo',
           activo: true,
+          email: f.email ?? undefined,
+          telefono: f.telefono ?? undefined,
+          banco: f.banco ?? undefined,
+          numeroCuenta: f.numeroCuenta ?? undefined,
           categoriaRiesgo: getCategoriaSRLPorSector(empresa.sectorEmpresa),
+          regimenIntermitente: f.regimenIntermitente ?? undefined,
           saldoVacacionesInicial: f.saldoVacacionesInicial ?? undefined,
           regaliaPagadaEsteAnio: f.regaliaPagadaEsteAnio ?? undefined,
+          regaliaPagadaAnio: f.regaliaPagadaEsteAnio !== null ? new Date().getFullYear() : undefined,
           salarioHistoricoReferencia: f.salarioHistoricoReferencia ?? undefined,
           saldosInicialesRevisado: true,
         }
-        add(nuevo)
+        empleadoId = add(nuevo).id
+      }
+      // Saldo ISR a Favor no es un campo de Empleado — crea un SaldoISRFavor
+      // real vía registrarSaldoISR(), igual que registrarlo desde la ficha
+      // del empleado, para que se aplique automáticamente en su próxima nómina.
+      if (f.saldoISRFavor !== null && f.saldoISRFavor > 0) {
+        registrarSaldoISR({
+          empleadoId,
+          monto: f.saldoISRFavor,
+          motivo: 'Saldo migrado en Carga Inicial (Importador Excel)',
+          tipo: 'retencion_excesiva',
+          anio: new Date().getFullYear(),
+          fechaRegistro: hoyLocalISO(),
+        })
       }
     }
     setImportados(filasValidas.length)
@@ -331,10 +524,11 @@ export function ImportadorExcel({ onFinish }: Props) {
             <div className="space-y-1">
               <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Descarga la plantilla Excel</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                Contiene las columnas exactas que necesitamos, con 2 filas de ejemplo. Bórralas antes de
-                llenar los datos reales de tus empleados. Si la cédula de una fila ya existe en el
-                sistema, solo se actualizarán sus saldos iniciales — si no existe, se creará un empleado
-                nuevo con los datos de esa fila.
+                Contiene las columnas exactas que necesitamos — identidad, contacto y datos bancarios,
+                además de los saldos migrados — con 2 filas de ejemplo. Bórralas antes de llenar los datos
+                reales de tus empleados. Si la cédula de una fila ya existe en el sistema, solo se
+                actualizan los campos que llenaste (lo que dejes en blanco no se toca) — si no existe, se
+                crea un empleado nuevo con los datos de esa fila.
               </p>
             </div>
           </div>
@@ -448,10 +642,11 @@ export function ImportadorExcel({ onFinish }: Props) {
                   <th className="px-4 py-2.5 font-medium">Vacaciones</th>
                   <th className="px-4 py-2.5 font-medium">Regalía Pagada</th>
                   <th className="px-4 py-2.5 font-medium">Salario Histórico</th>
+                  <th className="px-4 py-2.5 font-medium">Saldo ISR</th>
                   <th className="px-4 py-2.5 font-medium">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-[#1a1d2e]">
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {filas.map(f => (
                   <tr key={f.fila}>
                     <td className="px-4 py-2.5 text-zinc-400 tabular-nums">{f.fila}</td>
@@ -471,6 +666,7 @@ export function ImportadorExcel({ onFinish }: Props) {
                     <td className="px-4 py-2.5 text-zinc-500 tabular-nums">{f.saldoVacacionesInicial ?? '—'}</td>
                     <td className="px-4 py-2.5 text-zinc-500 tabular-nums">{f.regaliaPagadaEsteAnio !== null ? formatRD(f.regaliaPagadaEsteAnio) : '—'}</td>
                     <td className="px-4 py-2.5 text-zinc-500 tabular-nums">{f.salarioHistoricoReferencia !== null ? formatRD(f.salarioHistoricoReferencia) : '—'}</td>
+                    <td className="px-4 py-2.5 text-zinc-500 tabular-nums">{f.saldoISRFavor !== null ? formatRD(f.saldoISRFavor) : '—'}</td>
                     <td className="px-4 py-2.5">
                       {f.error ? (
                         <span className="inline-flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400">
@@ -486,7 +682,7 @@ export function ImportadorExcel({ onFinish }: Props) {
                 ))}
                 {filas.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-xs text-zinc-400">
+                    <td colSpan={8} className="px-4 py-6 text-center text-xs text-zinc-400">
                       No se encontraron filas con datos en el archivo.
                     </td>
                   </tr>
@@ -535,7 +731,7 @@ export function ImportadorExcel({ onFinish }: Props) {
             Se importaron/actualizaron {importados} empleado{importados === 1 ? '' : 's'}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm">
-            Los saldos iniciales ya quedaron guardados. Puedes revisarlos en la ficha de cada empleado.
+            Sus datos ya quedaron guardados. Puedes revisarlos en la ficha de cada empleado.
           </p>
           <button
             onClick={() => { resetArchivo(); onFinish() }}

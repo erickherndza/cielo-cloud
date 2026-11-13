@@ -22,7 +22,7 @@ import { ConfiguracionInicialFlow } from '@/components/carga-inicial/Configuraci
 import { PLACEHOLDERS_COMPROBANTE, plantillaComprobanteDefault } from '@/lib/comprobante-email'
 import {
   UMBRAL_ENDEUDAMIENTO_DEFAULT, UMBRAL_VARIACION_BRUTO_DEFAULT,
-  type Empresa, type CategoriaEmpresa, type SectorEmpresa, type RolUsuario, type ConceptoPersonalizado,
+  type Empresa, type CategoriaEmpresa, type SectorEmpresa, type RolUsuario, type ConceptoPersonalizado, type CierreFiscal,
 } from '@/types'
 
 // ─── Parámetros legales de referencia (solo lectura) ───────────────────────
@@ -44,9 +44,9 @@ const PARAMS_TSS: ParamRow[] = [
   { label: 'SRL Categoría III', value: `${(TASAS_TSS.srlCategoriaIII * 100).toFixed(2)}%`, descripcion: 'Seguro de Riesgos Laborales — industria pesada (solo empleador)', fuente: 'CNSS — Ley 87-01' },
   { label: 'SRL Categoría IV', value: `${(TASAS_TSS.srlCategoriaIV * 100).toFixed(2)}%`, descripcion: 'Seguro de Riesgos Laborales — construcción y minería, alto riesgo (solo empleador)', fuente: 'CNSS — Ley 87-01' },
   { label: 'Infotep', value: `${(TASAS_TSS.infotepEmpleador * 100).toFixed(2)}%`, descripcion: 'Aporte obligatorio del empleador para formación técnico-profesional', fuente: 'INFOTEP — Ley 116-80' },
-  { label: 'Tope Cotizable AFP', value: formatRD(TOPE_COTIZABLE_AFP, 0), descripcion: '20 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
-  { label: 'Tope Cotizable SFS', value: formatRD(TOPE_COTIZABLE_SFS, 0), descripcion: '10 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
-  { label: 'Tope Cotizable SRL', value: formatRD(TOPE_COTIZABLE_SRL, 0), descripcion: '4 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
+  { label: 'Tope Cotizable AFP', value: formatRD(TOPE_COTIZABLE_AFP), descripcion: '20 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
+  { label: 'Tope Cotizable SFS', value: formatRD(TOPE_COTIZABLE_SFS), descripcion: '10 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
+  { label: 'Tope Cotizable SRL', value: formatRD(TOPE_COTIZABLE_SRL), descripcion: '4 veces el salario mínimo cotizable TSS', fuente: 'CNSS — Resolución 079-2025' },
 ]
 
 const PARAMS_ISR: ParamRow[] = [
@@ -57,11 +57,11 @@ const PARAMS_ISR: ParamRow[] = [
 ]
 
 const PARAMS_SALARIOS: ParamRow[] = [
-  { label: 'Grandes Empresas', value: formatRD(SALARIO_MINIMO.grandesEmpresas, 0), descripcion: 'Más de 50 trabajadores o capital > RD$ 2M', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
-  { label: 'Mediana Empresa', value: formatRD(SALARIO_MINIMO.medianaEmpresa, 0), descripcion: '20 a 49 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
-  { label: 'Pequeñas Empresas', value: formatRD(SALARIO_MINIMO.pequeñasEmpresas, 0), descripcion: '10 a 19 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
-  { label: 'Microempresas', value: formatRD(SALARIO_MINIMO.microempresas, 0), descripcion: 'Menos de 10 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
-  { label: 'Zona Franca', value: formatRD(SALARIO_MINIMO.zonaFranca, 0), descripcion: 'Trabajadores en zonas francas industriales', fuente: 'Comité Nac. de Salarios' },
+  { label: 'Grandes Empresas', value: formatRD(SALARIO_MINIMO.grandesEmpresas), descripcion: 'Más de 50 trabajadores o capital > RD$ 2M', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
+  { label: 'Mediana Empresa', value: formatRD(SALARIO_MINIMO.medianaEmpresa), descripcion: '20 a 49 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
+  { label: 'Pequeñas Empresas', value: formatRD(SALARIO_MINIMO.pequeñasEmpresas), descripcion: '10 a 19 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
+  { label: 'Microempresas', value: formatRD(SALARIO_MINIMO.microempresas), descripcion: 'Menos de 10 trabajadores', fuente: 'Res. 079-2025 — vigente desde 01-feb-2026' },
+  { label: 'Zona Franca', value: formatRD(SALARIO_MINIMO.zonaFranca), descripcion: 'Trabajadores en zonas francas industriales', fuente: 'Comité Nac. de Salarios' },
 ]
 
 function ParamTable({ rows }: { rows: ParamRow[] }) {
@@ -76,7 +76,7 @@ function ParamTable({ rows }: { rows: ParamRow[] }) {
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Fuente</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035] bg-white dark:bg-[#141722]">
+        <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
           {rows.map(row => (
             <tr key={row.label} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
               <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{row.label}</td>
@@ -122,7 +122,7 @@ function ConceptosLeyTable() {
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Base legal</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035] bg-white dark:bg-[#141722]">
+        <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
           {CONCEPTOS_LEY.map(c => (
             <tr key={c.concepto} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
               <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{c.nombre}</td>
@@ -164,6 +164,13 @@ const SECTORES_EMPRESA: { value: SectorEmpresa; label: string; descripcion: stri
   { value: 'industria_liviana',    label: 'Industria Liviana',      descripcion: 'SRL Cat. II — 1.15%' },
   { value: 'industria_pesada',     label: 'Industria Pesada',       descripcion: 'SRL Cat. III — 1.20%' },
   { value: 'construccion_mineria', label: 'Construcción y Minería', descripcion: 'SRL Cat. IV — 1.30%' },
+]
+
+const CIERRES_FISCALES: { value: CierreFiscal; label: string; descripcion: string }[] = [
+  { value: 'diciembre',  label: '31 de diciembre', descripcion: 'Año calendario — el más común' },
+  { value: 'marzo',      label: '31 de marzo',      descripcion: 'Ejercicio abril–marzo' },
+  { value: 'junio',      label: '30 de junio',      descripcion: 'Ejercicio julio–junio' },
+  { value: 'septiembre', label: '30 de septiembre', descripcion: 'Ejercicio octubre–septiembre' },
 ]
 
 const ROLES_USUARIO: { value: RolUsuario; label: string }[] = [
@@ -220,7 +227,7 @@ const SECCIONES: Seccion[] = [
     titulo: 'Reglas de Negocio',
     descripcion: 'Umbrales de alerta y plantilla de correo',
     grupo: 'negocio',
-    keywords: ['umbral', 'endeudamiento', 'variacion', 'correo', 'plantilla', 'comprobante', 'alerta'],
+    keywords: ['umbral', 'endeudamiento', 'variacion', 'correo', 'plantilla', 'comprobante', 'alerta', 'tasa', 'interes', 'prestamo', 'referencia', 'retribucion'],
   },
   {
     id: 'datos',
@@ -379,15 +386,16 @@ function FieldInput({ icon: Icon, className, ...props }: { icon?: LucideIcon } &
   )
 }
 
-function ThresholdSlider({ id, label, value, onChange, hint, min = 1, max = 100 }: {
+function ThresholdSlider({ id, label, value, onChange, hint, min = 1, max = 100, step = 1, display }: {
   id: string; label: string; value: number; onChange: (n: number) => void; hint: string; min?: number; max?: number
+  step?: number; display?: string
 }) {
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
         <label htmlFor={id} className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</label>
         <span className="rounded-md bg-[#eef0fb] dark:bg-indigo-950/40 px-2 py-0.5 text-xs font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">
-          {value}%
+          {display ?? `${value}%`}
         </span>
       </div>
       <input
@@ -395,7 +403,7 @@ function ThresholdSlider({ id, label, value, onChange, hint, min = 1, max = 100 
         type="range"
         min={min}
         max={max}
-        step={1}
+        step={step}
         value={value}
         onChange={e => onChange(Number(e.target.value))}
         className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 dark:bg-[#252840] accent-[#1B2980]
@@ -774,7 +782,7 @@ export default function ConfiguracionPage() {
                         Tu configuración está al día — no hay ningún pendiente activo.
                       </p>
                     ) : (
-                      <ul className="divide-y divide-zinc-100 dark:divide-[#1d2035] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                      <ul className="divide-y divide-zinc-200 dark:divide-[#252840] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
                         {pendientes.map(item => (
                           <li key={item.label}>
                             <button
@@ -1025,6 +1033,34 @@ export default function ConfiguracionPage() {
                                 Define la categoría de riesgo laboral (SRL) sugerida por defecto para los nuevos empleados que agregues.
                               </p>
                             </div>
+
+                            <div>
+                              <label className={LABEL_CLASS}>Cierre de ejercicio fiscal</label>
+                              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                {CIERRES_FISCALES.map(c => (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    onClick={() => setForm(prev => ({ ...prev, cierreFiscal: c.value }))}
+                                    className={cn(
+                                      'rounded-lg border px-3 py-2 text-left transition-colors',
+                                      (form.cierreFiscal ?? 'diciembre') === c.value
+                                        ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
+                                        : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
+                                    )}
+                                  >
+                                    <p className={cn('text-xs font-semibold', (form.cierreFiscal ?? 'diciembre') === c.value ? 'text-[#1B2980] dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300')}>
+                                      {c.label}
+                                    </p>
+                                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{c.descripcion}</p>
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+                                Determina la ventana de la Bonificación por Utilidades (Art. 223) y su plazo legal
+                                de pago — 90 a 120 días después del cierre (Art. 224).
+                              </p>
+                            </div>
                           </div>
                         </SettingsCard>
 
@@ -1150,7 +1186,7 @@ export default function ConfiguracionPage() {
                               Aún no has confirmado ningún feriado para {anioActual}.
                             </p>
                           ) : (
-                            <ul className="divide-y divide-zinc-100 dark:divide-[#1d2035] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                            <ul className="divide-y divide-zinc-200 dark:divide-[#252840] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
                               {feriados.map(f => (
                                 <li key={f.id} className="flex items-center justify-between gap-3 bg-white dark:bg-[#141722] px-3 py-2.5">
                                   <div className="flex min-w-0 items-center gap-3">
@@ -1216,7 +1252,7 @@ export default function ConfiguracionPage() {
                                     <th className="px-4 py-3" />
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035] bg-white dark:bg-[#141722]">
+                                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
                                   {conceptosPersonalizados.map(c => (
                                     <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
                                       <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{c.nombre}</td>
@@ -1367,6 +1403,31 @@ export default function ConfiguracionPage() {
                                 hint="Avisa en la auditoría pre-cierre cuando el bruto de un empleado varía más de este %."
                               />
                             </div>
+                          </div>
+                        </SettingsCard>
+
+                        <SettingsCard icon={Landmark} title="Préstamos a Tasa Preferencial (Art. 318)" description="Detecta el diferencial de interés no cobrado como retribución complementaria.">
+                          <div className="space-y-4">
+                            <ThresholdSlider
+                              id="tasaInteresReferenciaPrestamos"
+                              label="Tasa de interés de mercado de referencia (% anual)"
+                              value={form.tasaInteresReferenciaPrestamos ?? 0}
+                              min={0}
+                              max={40}
+                              step={0.5}
+                              display={(form.tasaInteresReferenciaPrestamos ?? 0) > 0 ? `${form.tasaInteresReferenciaPrestamos}% anual` : 'Sin configurar'}
+                              onChange={n => setForm(prev => ({ ...prev, tasaInteresReferenciaPrestamos: n > 0 ? n : undefined }))}
+                              hint="En 0 la detección queda desactivada. Se compara contra la tasa de cada préstamo anualizada (tasa mensual × 12); los avances de salario no se evalúan."
+                            />
+                            <p className="flex items-start gap-1.5 rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30 px-3 py-2.5 text-[11px] leading-relaxed text-[#151f66] dark:text-indigo-200">
+                              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                              <span>
+                                Tasa de interés de mercado de referencia — usada para detectar préstamos a tasa preferencial
+                                sujetos al Impuesto Sustitutivo de Retribuciones Complementarias (Art. 318, Código de Trabajo).
+                                El sistema no tiene forma de consultar una tasa de mercado real (sin backend ni feed del Banco
+                                Central) — configúrala manualmente según el criterio de tu asesor fiscal.
+                              </span>
+                            </p>
                           </div>
                         </SettingsCard>
 

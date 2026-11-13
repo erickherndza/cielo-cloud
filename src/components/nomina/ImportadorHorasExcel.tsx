@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { fullName, formatCedula } from '@/lib/utils'
+import { cedulasCoinciden } from '@/lib/empleado-form'
 import type { AjusteLinea, ConceptoAjuste, Empleado } from '@/types'
 
 interface Props {
@@ -56,20 +57,6 @@ function normalizarConcepto(v: unknown): ConceptoAjuste | null {
 function celdaTexto(v: unknown): string {
   if (v === null || v === undefined) return ''
   return String(v).trim()
-}
-
-// Muchas cédulas dominicanas empiezan en "00…" — si Excel interpretó la
-// columna como número (típico al escribir dígitos puros sin formatear la
-// celda como Texto), esos ceros a la izquierda se pierden al guardar el
-// archivo. Comparamos primero exacto y, si falla, comparamos ignorando
-// ceros a la izquierda en ambos lados antes de descartar la fila.
-function cedulasCoinciden(cedulaArchivo: string, cedulaEmpleado: string): boolean {
-  const a = cedulaArchivo.replace(/\D/g, '')
-  const b = cedulaEmpleado.replace(/\D/g, '')
-  if (a === b) return true
-  const aSinCeros = a.replace(/^0+/, '')
-  const bSinCeros = b.replace(/^0+/, '')
-  return aSinCeros !== '' && aSinCeros === bSinCeros
 }
 
 function parsearHoras(v: unknown): number | null {
@@ -440,7 +427,7 @@ export function ImportadorHorasExcel({ empleados, empleadosElegibles, ajustesPor
                     <th className="px-4 py-2.5 font-medium">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-[#1a1d2e]">
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                   {filas.map(f => (
                     <tr key={f.fila}>
                       <td className="px-4 py-2.5 text-zinc-400 tabular-nums">{f.fila}</td>

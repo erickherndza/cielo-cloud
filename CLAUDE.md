@@ -1821,6 +1821,2790 @@ colapsarse — patrón "hover-to-peek" (VS Code, Notion).
   ítem de navegación durante el flyout navega correctamente (confirmado
   con `waitForURL`). `tsc --noEmit` y `npm run build` limpios (19 rutas).
 
+## Fix — jank al pasar el mouse por la sidebar
+
+Reporte directo del usuario: "al mover el mouse hasta la sidebar y luego
+sacarlo se glitchea, hay un laggeo, el movimiento no se ve natural". Dos
+causas distintas encontradas y corregidas, verificadas por separado contra
+el build de producción real (`next build` con export estático):
+
+1. **Prefetch de `next/link` disparando descargas masivas al pasar el
+   mouse.** Cada uno de los ~14 links de la sidebar (más los 5 de
+   `BottomNav`) prefetchea por defecto — tanto al montar (viewport) como al
+   hacer hover — el JS + RSC payload completo de esa ruta. Con páginas
+   pesadas (`/nomina` 435 kB, `/reportes` 451 kB), barrer el mouse por la
+   sidebar disparaba una ráfaga de ~20 descargas/compilaciones JS
+   concurrentes. Instrumentando la red contra el build real: antes del fix,
+   el barrido disparaba ~10 pares `index.txt` + bundle JS; después, cero
+   requests durante todo el barrido. Fix: `prefetch={false}` en todos los
+   `<Link>` de `Sidebar.tsx` y `BottomNav.tsx` — no hay beneficio real de
+   precarga en una app 100% client-side con `output: 'export'`.
+2. **La causa real del "salto":** el flyout (ver sección anterior) cambiaba
+   `position` de `relative` a `fixed` en el mismo render que el cambio de
+   ancho (`w-[68px]` → `w-60`), tanto al entrar como al salir con el mouse.
+   Un cambio de `position` no es animable — rompe la interpolación continua
+   de `transition-[width]`, así que en vez de crecer/encogerse suavemente
+   el riel "saltaba" de golpe entre los dos anchos. Fix: el `<aside>` se
+   mantiene `fixed` todo el tiempo que está colapsado (`c`), sin importar
+   si `hovering` es true o false — solo el ancho (`w-60` ↔ `w-[68px]`)
+   cambia con el hover, nunca `position`. El div espaciador de 68px sigue
+   el mismo criterio (montado mientras `c` es true, no solo durante el
+   flyout) para que el contenido de la página nunca se desplace. Verificado
+   midiendo `getBoundingClientRect().width` cada ~15ms durante la
+   transición: antes hubiera saltado directo entre 68 y 240; después
+   interpola de forma continua (68→71→146→179→216→...→240 al entrar,
+   240→237→226→200→...→68 al salir) con `position: fixed` constante en
+   todo momento.
+
+**Ronda 2 — residual reportado por el usuario tras el fix anterior**: "salta
+un poco, casi no se nota porque es un salto rápido" al acercar el mouse.
+Causa: aunque el ANCHO del riel ya no saltaba, el LAYOUT interno sí —
+`wide` (que decide si el logo se muestra en fila u apilado, si los ítems de
+nav tienen `justify-center` o `gap-3 px-4`, etc.) cambiaba en el mismo
+render que empezaba `flyout`, y `justify-content`/`flex-direction` no son
+animables por CSS, así que el ícono del logo y los íconos de nav saltaban a
+su posición final de un solo golpe. Primer intento (retrasar `wide` con un
+`setTimeout` para que el cambio de layout ocurriera con el riel ya más
+ancho) resultó CONTRAPRODUCENTE — medido con `boundingBox()` cuadro a
+cuadro: cuanto más ancho está el riel cuando el ícono pasa de "centrado" a
+"alineado a la izquierda", más lejos tiene que saltar (el centrado se aleja
+del borde a medida que crece el contenedor) — con 150ms de retraso el salto
+del ícono de un ítem de nav medía ~103px; sin retraso, ~26px. Fix real: se
+revirtió el retraso (`wide` vuelve a seguir a `flyout` de inmediato, salto
+temprano y pequeño) y en su lugar se agregó `transition-[padding,gap]` /
+`transition-[width,height]` / `transition-all` a cada elemento cuyo layout
+depende de `wide` (contenedor del logo, ícono SVG del logo, botón de
+colapsar, `CuentaSwitcher`, ítems de nav, link de Configuración, bloque de
+usuario del footer) — antes NINGUNO de ellos tenía una clase `transition-*`
+declarada, así que su padding/gap/tamaño (propiedades sí animables)
+saltaban en seco por pura omisión, no por limitación de CSS. Con la
+transición agregada, tras el salto inicial (pequeño, con el riel recién
+empezando a crecer) el resto de la posición del ícono interpola suave hasta
+su lugar final. Verificado midiendo la posición del ícono "Empleados"
+cuadro a cuadro: sin saltos grandes, solo un pequeño desplazamiento inicial
+seguido de una interpolación continua (x: 3→3→4→4→7→10→13→...→19).
+
+**Ronda 3 — el usuario seguía viendo el salto tras la ronda 2.** Las
+mediciones numéricas (`getBoundingClientRect()`) de la ronda 2 no mentían,
+pero no capturaban el problema real: se grabó un video real de la
+interacción (cursor sintético inyectado + `page.mouse.move` lento,
+extraído cuadro a cuadro a 25fps nativos, NO resampleado — un resampleo a
+15fps escondía por completo la transición real) y ahí se vio con claridad
+el verdadero bug: los labels de los ítems de nav (`item.label`,
+"Configuración", el subtítulo del `CuentaSwitcher` — "Cambiar de empresa" /
+"X empresas") no tenían `truncate`/`whitespace-nowrap`. Mientras el riel
+crecía por los anchos intermedios (ej. ~85px), textos largos como
+"Retribuciones Complementarias" o "Bonificación Utilidades" se ENVOLVÍAN a
+2 líneas porque todavía no cabían en una — eso engordaba esas filas de
+alto temporalmente y empujaba todo lo de abajo, un reflow feo y visible
+durante los ~150-200ms de la transición (visualmente mucho peor que
+cualquier salto de posición de ícono). Fix: `truncate` (+ `min-w-0` en el
+`<span className="flex-1">` padre, requerido para que `truncate` funcione
+dentro de un flex item) en los 3 labels afectados — ahora, mientras el
+riel todavía es angosto, el texto se corta con "…" en una sola línea en
+vez de envolverse, igual que ya hacía el nombre de la cuenta activa (que sí
+tenía `truncate` desde el principio). De paso se corrigió que la sombra
+(`shadow-2xl`) solo aparecía durante el flyout (`flyout &&`) — apareciendo
+de golpe sin transición justo al empezar el hover — ahora vive con `c`
+(colapsado, sin importar si hay hover) ya que el riel está `fixed`/
+flotando sobre el contenido en ambos casos, así que la sombra está
+presente desde el reposo sin aparición súbita. Verificado con el mismo
+método de video cuadro a cuadro: ya no hay envoltura de texto ni reflow
+visible en ningún punto de la transición, en ninguna de las dos
+direcciones (entrada y salida).
+
+## QA de consistencia numérica — decimales y bordes de tabla
+
+Auditoría dirigida por el usuario: varias tablas del sistema mostraban montos
+como números enteros (`formatRD(x, 0)`, override puntual sobre el default de
+2 decimales) en vez de los centavos reales, inconsistente entre módulos —
+222+ call-sites afectados en 16 archivos. Se eliminaron todos los overrides a
+0 decimales, dejando el default de `formatRD`/`formatNum` (2 decimales,
+`tabular-nums`) como única fuente de verdad salvo casos genuinamente enteros
+(días, meses, conteos). De paso, los bordes entre filas de tabla
+(`divide-zinc-50`, casi invisibles en la práctica) se oscurecieron a
+`divide-zinc-200 dark:divide-[#252840]` de forma sistemática en todas las
+tablas de negocio, mejorando la legibilidad de escaneo horizontal sin tocar
+la regla de mínimo color. `tsc --noEmit`/`npm run build` limpios.
+
+## Salida pendiente de empleados + pago de días trabajados al terminar
+
+Hallazgo del usuario: "Dar de baja" en Empleados desactivaba (`activo:
+false`) al empleado de inmediato, ANTES de calcular sus prestaciones en
+Liquidación — un empleado dado de baja por error de flujo quedaba huérfano,
+imposible de liquidar correctamente porque ya no aparecía como candidato
+activo. Fix arquitectónico: nuevo estado intermedio `Empleado.salidaPendiente`
+(`fechaSalidaPendiente`, `motivoSalidaPendiente`) — "Dar de baja" ahora solo
+marca esta bandera; `activo` se mantiene `true` hasta que Liquidación
+finalice el cálculo real. Mientras `salidaPendiente` es `true`, el empleado
+sigue en `empleadosActivos` (visible/seleccionable en Liquidación, conserva
+roster e historial) pero sale de `empleadosEnNomina` (ya no acumula nómina
+nueva).
+
+Como la mayoría de las salidas ocurren a mitad de período (no justo al
+cierre de una quincena/mes), se agregó `Empleado.pagoDiasTrabajadosPendiente:
+'nomina' | 'liquidacion'` — capturado al marcar la baja, decide cómo se paga
+el tramo de días ya trabajados que ningún período cerrado cubre todavía:
+`'nomina'` los prorratea en el próximo período de Nómina que cubra la fecha
+de salida (mismo mecanismo de prorrateo ya usado para suspensiones);
+`'liquidacion'` los agrega como línea aparte en Liquidación, **con AFP/SFS/
+ISR calculados** (confirmado explícitamente por el usuario: "debe de tener
+las deducciones de lugar esos días trabajados") vía el motor real de
+`calcularNomina`, a diferencia de las indemnizaciones exentas. `Empleados`
+gana `cancelarSalidaPendiente` para deshacer una baja marcada por error antes
+de liquidar.
+
+## Exportación a Excel con estilo real (exceljs) en todos los módulos
+
+Pedido explícito del usuario: "es muy importante que el contenido que llegue
+a excel tenga todo el detalle de las transacciones... y deben de contener
+los encabezados con su nombre correcto", con exigencia adicional de que se
+vea "moderno y entendible y fidedigno". El sistema exportaba CSV plano
+(`xlsx`/SheetJS, sin estilos reales) — se migró `src/lib/excel-export.ts` a
+`exceljs`, con encabezados en negrita/fondo de marca, anchos de columna por
+hoja, fila de totales resaltada, y formato numérico real (no texto) para que
+Excel reconozca los montos como números. API pública sin cambios
+(`exportarExcel(opciones)`), así que la migración fue transparente para los
+12 módulos de negocio + Reportería que ya la consumían — cada uno se
+revisó individualmente para asegurar que el detalle transaccional completo
+(no solo totales agregados) llegara a una hoja separada donde aplicara (ej.
+"Detalle de Ajustes" en Nómina, separado del "Resumen por Empleado").
+
+## Rediseño de Liquidación — asistente de 3 pasos, cálculo transparente
+
+Feedback directo del usuario sobre el módulo de Liquidación (desvinculación
+de empleados): "lo primero es que ciertamente uno a simple vista ve lo que
+hay que pagar de liquidación al empleado pero no se puede ver el proceso del
+calculo... tampoco se ve el desgloce de donde vino el calculo de los días
+trabajados... es necesario que exista la posibilidad que sea editable...
+seria bueno agregar el medio de pago antes de disparar el documento... esa
+barra negra está horrible". Reescritura completa como asistente de 3 pasos
+(Datos de Terminación → Cálculo de Prestaciones → Confirmación y Pago):
+
+- **Paso 2** — una `ConceptoLiquidacionCard` por concepto (Cesantía,
+  Preaviso, Asistencia Económica, Vacaciones, Regalía, Días Trabajados
+  Pendientes), cada una mostrando la fórmula exacta aplicada (tramo legal,
+  días × tarifa) y un ícono de lápiz que permite **editar manualmente el
+  monto final** con motivo obligatorio — el cálculo automático
+  (`montoAuto`) nunca se pierde, queda como referencia junto al ajuste.
+- **Paso 3** — captura de método de pago (cheque/efectivo/transferencia) +
+  referencia, antes de finalizar — impreso luego en el documento formal.
+- **Planilla en PDF** (`descargarPlanillaLiquidacionPDF`) — el "Recibo de
+  Descargo" que empleado y empleador firman, con el desglose completo por
+  concepto y línea de firma, generado a partir de
+  `RegistroLiquidacion.desgloseCalculo` (snapshot inmutable al finalizar,
+  nunca recalculado después — mismo principio que
+  `PeriodoNomina.resultadosPorEmpleado`).
+- Nuevos tipos: `ConceptoLiquidacion`, `DesgloseConceptoLiquidacion`,
+  `RegistroLiquidacion.metodoPago/referenciaPago/desgloseCalculo`.
+
+Bug encontrado y corregido durante la construcción: el `useEffect` de reseteo
+de formulario (atado a `[empleadoId]`) pisaba `setPaso('exito')` porque
+`handleFinalizarLiquidacion` limpiaba `empleadoId` en el mismo ciclo — se
+resolvió separando el reseteo a una función `handleRegistrarOtra()` explícita,
+invocada solo desde el botón correspondiente de la pantalla de éxito.
+
+## Identidad visual propia para Liquidación
+
+El usuario probó el rediseño anterior y pidió más: "El estilo visual de las
+tarjetas no se siente premium, se siente como un formulario cualquiera...
+puedes hacer el mejor entorno de salidas de empleados y cálculo de
+prestaciones más hermoso que exista" — explícitamente sin imitar Préstamos
+ni Reportería, que ya le gustaban visualmente pero no quería replicados.
+Segunda pasada centrada en las `ConceptoLiquidacionCard`: gradiente de marca
+propio por concepto (rosa/cesantía, ámbar/preaviso, violeta/asistencia,
+cielo/vacaciones, esmeralda/regalía, índigo/días trabajados) con halo
+`blur-md` detrás del ícono, `hover:-translate-y-0.5` + sombra tintada del
+color del concepto, y transiciones de paso con el mismo lenguaje ya
+establecido en el resto de la app. Usuario confirmó satisfacción: "Wao
+realmente se ve mucho mejor ahora".
+
+## Regalía Pascual — liquidación vía período especial en Nómina
+
+Pedido del usuario: que Regalía Pascual deje de ser solo un visor de
+acumulación y permita "solicitar liquidación de regalía", viajando el
+acumulado a un período especial en Nómina para el pago, con reinicio a cero
+tras procesarlo y acumulación continua hacia el siguiente diciembre —
+planteado explícitamente como pregunta de factibilidad ("¿Consideras que es
+factible? ¿Tiene sentido?"), confirmada antes de implementar.
+
+**Arquitectura:**
+- Nuevo valor `TipoPeriodo = 'regalia'` (además de `'mensual'`/`'quincenal'`) y
+  `PeriodoNomina.montosRegalia`/`motivosAjusteRegalia` — el período nace con
+  el monto de cada empleado ya congelado, no con `ajustesPorEmpleado` ni el
+  motor normal de `calcularNomina`.
+- **Tratamiento fiscal — decisión propia justificada**: el pago de Regalía
+  Pascual vía este período es **bruto, sin AFP/SFS/ISR**, replicando el
+  precedente ya existente para Vacaciones/Regalía dentro de Liquidación (no
+  es salario cotizable). `resultadoRegalia()` en `nomina/page.tsx` construye
+  un `ResultadoNomina` sintético con todo en cero salvo lo pagado, para
+  reutilizar tal cual el modal de comprobante, el PDF y el envío por correo
+  ya existentes.
+- **Reset del acumulado**: `Empleado.regaliaPagadaAnio` (nuevo) ancla
+  `regaliaPagadaEsteAnio` a un año fiscal específico —
+  `regaliaPagadaVigente(empleado, año)` en `dominican-labor.ts` solo lo
+  aplica si el año coincide; sin este campo (registros previos) se asume
+  vigente solo para el año calendario actual, así el descuento deja de
+  aplicar por sí solo al año siguiente sin necesidad de migrar datos. Esto
+  corrige de paso un bug latente: el offset de migración se restaba
+  indefinidamente en vez de solo el año en que se capturó. Al procesar cada
+  empleado en el período de regalía (`handleProcesarRegalia`), se estampan
+  `regaliaPagadaEsteAnio`/`regaliaPagadaAnio`, "reiniciando" su acumulado.
+- **`regalia-pascual/page.tsx`** — botón "Solicitar Liquidación de Regalía"
+  abre un modal con el acumulado de cada empleado, editable manualmente
+  (lápiz + motivo obligatorio) antes de confirmar — cubre el pedido de
+  "editar la acumulación... por si hay que hacer un ajuste manual". Guard
+  contra floating-point: el acumulado se redondea a centavos antes de
+  compararlo contra 0, sin esto un empleado recién liquidado en su totalidad
+  arrastraba un residuo de fracciones de centavo que lo colaba de vuelta a
+  la siguiente solicitud.
+- **`nomina/page.tsx`** — vista de detalle dedicada y más simple para
+  períodos tipo `'regalia'` (sin ajustes editables, préstamos, filtros ni
+  auditoría pre-cierre), reutilizando `Cerrar`/`Reabrir`/`Marcar Pagada`/
+  `Comprobantes` genéricos de la lista de períodos sin cambios.
+
+Verificado en navegador con Playwright: solicitud con ajuste manual → período
+"Regalía Pascual 2026" creado en Nómina con 4 empleados por RD$101,500.00 →
+procesado → acumulado exacto en RD$0.00 tras el pago para los 4 empleados,
+botón de solicitud correctamente deshabilitado hasta que vuelva a acumularse.
+
+## Vacaciones no gozadas llevan AFP/SFS/ISR — no son indemnización exenta
+
+Corrección de ley señalada por el usuario, quien inicialmente había
+confirmado el tratamiento contrario y luego se corrigió explícitamente:
+"las vacaciones pagadas tanto en la liquidación como en nómina están
+sujetas a TSS e ISR, y deben de ser deducidas... si hay que pagarle 40,000
+pesos a un empleado por concepto de vacaciones, hay que retener tanto TSS
+como ISR porque el salario excedía la exención del ISR". A diferencia de
+cesantía/preaviso/asistencia económica (indemnizaciones exentas por Ley
+16-92) y de la Regalía Pascual (100% exenta, confirmado explícitamente),
+las vacaciones son salario ordinario continuado (Art. 178, Código de
+Trabajo) — llevan retención normal cuando el monto, evaluado como si fuera
+el salario del mes, supera la exención del ISR al anualizarlo.
+
+Implementación: reutiliza exactamente el mecanismo ya validado para "días
+trabajados pendientes" en Liquidación — `calcularNomina({ ...empleado,
+salarioBase: montoVacaciones })` trata el bruto como si fuera el salario
+del mes, topando AFP/SFS en sus respectivos topes cotizables y evaluando
+ISR contra los tramos anuales normales sobre el monto anualizado ×12.
+
+- **Liquidación**: "Vacaciones No Gozadas" pasa de pagar el bruto a pagar
+  el neto (bruto − AFP − SFS − ISR), con el desglose visible en la tarjeta
+  (mismo patrón que "Días Trabajados Pendientes"), el PDF y el Excel.
+  Nuevos campos `RegistroLiquidacion.vacacionesBruto/afpVacaciones/
+  sfsVacaciones/isrVacaciones` (auditoría; `vacaciones` sigue siendo el
+  neto que entra a `totalPagado`).
+- **Vacaciones** (provisión, sin pago real todavía en el sistema): nueva
+  columna/stat "Neto Estimado" junto al "Valor Bruto", para que la
+  provisión muestre honestamente lo que el empleado recibiría si se pagara
+  hoy — usa el mismo `calcularNomina({...empleado, salarioBase: valor})`.
+- Reportería (Proyección Anual) y el comprobante de Nómina se revisaron y
+  se dejaron sin cambios — solo muestran provisión/días informativos (el
+  costo proyectado de la empresa sí debe seguir siendo el bruto, ya que la
+  porción retenida igual la desembolsa el empleador, solo que a TSS/DGII en
+  vez de al empleado).
+
+Verificado en navegador: María González (bruto RD$13,734.35 en vacaciones)
+→ neto exacto RD$12,922.65 (AFP RD$394.18, SFS RD$417.52, ISR RD$0.00 por no
+cruzar el tramo anualizado); Regalía Proporcional en la misma liquidación
+sin cambios, confirmando que su exención total no se tocó.
+
+## Regalía Pascual — banner de ciclo pendiente no distinguía período cerrado
+
+Reporte del usuario tras probar el flujo completo: pagó el período de
+Regalía Pascual 2026 en Nómina, pero el módulo de Regalía Pascual seguía
+mostrando "ya se solicitó la liquidación, continúa el pago desde Nómina"
+como si nada hubiera cambiado — además pidió un indicador explícito de
+sobre qué año/ciclo está trabajando el módulo, filtros por nombre/cédula/
+departamento, y una ficha de empleado de solo lectura al hacer clic en su
+nombre.
+
+**Investigación**: se reprodujo el flujo completo con Playwright (navegación
+por sidebar, procesar empleados uno a uno, cerrar el período, volver a
+Regalía Pascual) — el acumulado sí volvía a RD$0.00 correctamente en todos
+los casos. El bug real: `periodoRegaliaExistente = periodos.find(p => p.tipo
+=== 'regalia' && p.anio === anioActual)` no distinguía un período todavía
+`en_proceso`/`procesada` de uno ya `cerrada` (pagado) — el banner y el botón
+"Liquidación {año} en Nómina" se quedaban visibles todo el año aunque el
+acumulado ya estuviera en cero por debajo, dando la falsa impresión de que
+nada había cambiado.
+
+- **Fix**: el banner/botón de "pendiente" ahora solo se muestra mientras el
+  período del año en curso NO está `cerrada`. Una vez cerrado, se reemplaza
+  por una sección "Ciclos Liquidados y Pagados" (`historialRegalia` —
+  períodos `regalia` con `estado === 'cerrada'`, más recientes primero) que
+  deja constancia de qué años ya se pagaron.
+- **Indicador de ciclo**: el subtítulo del header ahora dice explícitamente
+  "Ciclo en acumulación: {año}" — como `anioActual` se deriva de la fecha
+  real, apenas empiece 2027 el módulo lo reflejará solo, sin código nuevo.
+- **Filtros**: buscador por nombre/cédula + `<select>` de departamento sobre
+  la tabla de empleados, con botón "Ver todos" para limpiar ambos y un
+  contador "X de Y empleado(s)"; el TOTAL del pie de tabla refleja el
+  subconjunto filtrado (rotulado "TOTAL (filtrado)"), mientras las stat
+  cards del encabezado se mantienen a nivel de toda la empresa.
+- **Ficha de solo lectura** — nuevo componente compartido
+  `src/components/empleados/EmpleadoInfoReadOnly.tsx`: mismas secciones
+  informativas que el tab "Información" del drawer de Empleados (Datos
+  Personales, Documentos, Datos Laborales, Derechos estimados), pero sin
+  ninguna de las acciones que mutan datos (suspender, dar de baja, saldo
+  ISR, dependientes) — se construyó como componente nuevo en vez de
+  parametrizar el drawer existente, que mezcla visualización con mutación
+  en el mismo árbol de JSX. Se abre al hacer clic en el nombre de cualquier
+  empleado en la tabla de Regalía Pascual.
+
+Verificado en navegador con Playwright: tras cerrar el período 2026, el
+banner desaparece y el historial muestra "2026 · 7 empleado(s) · pagada ·
+RD$187,541.66"; filtro por departamento "Administración" reduce la tabla a
+1 fila con el total recalculado; búsqueda "María" aísla correctamente a
+María González Pérez; clic en su nombre abre la ficha de solo lectura con
+sus datos reales y ningún control de edición visible.
+
+## Bug hunt de Regalía Pascual (3 años simulados) + rediseño con prepantalla
+
+El usuario reportó, con capturas de pantalla, que los "Ciclos Liquidados y
+Pagados" no se veían premium en la parte de arriba de Regalía Pascual y que
+"esos acumulados abajo no me cuadran" — pidiendo explícitamente simular 3
+años de Regalía Pascual + Nómina en busca de bugs, y una prepantalla al
+estilo Alegra (captura de referencia: pantalla "Calcular nómina" con un
+período sugerido y una tabla de períodos históricos) que pregunte si se
+quiere ver un período histórico o la acumulación actual.
+
+**Investigación**: se inyectaron 2 períodos `regalia` sintéticos (2024 y
+2025, `cerrada`, con `resultadosPorEmpleado` reales) directo en
+`localStorage` vía Playwright para simular 3 ciclos completos sin depender
+de que pasara tiempo real. Se encontraron 3 bugs reales de contaminación
+cruzada — el tipo `'regalia'` (agregado en la sesión anterior) nunca se
+excluyó de código que asumía implícitamente solo `'mensual'`/`'quincenal'`:
+
+1. **`calcularSalarioPromedioUltimos12Meses`** (dominican-labor.ts) — el
+   más grave: sumaba el pago de Regalía Pascual como si fuera salario
+   ordinario de ese mes al promediar los últimos 12 meses, usado por
+   Liquidación para Cesantía/Preaviso/Asistencia Económica. Un empleado
+   despedido dentro de los 12 meses posteriores a cobrar su regalía veía su
+   indemnización inflada artificialmente. Fix: excluir `tipo === 'regalia'`
+   del filtro `relevantes` — la Regalía Pascual nunca es "salario
+   ordinario".
+2. **Los 6 selectores de "Período" en Reportería** (Resumen Gerencial,
+   Nómina por Período, Cumplimiento Fiscal, Costo por Departamento,
+   Planilla ACH, Empleados Sin Ingresos) no excluían `tipo === 'regalia'` —
+   aparecía en el dropdown como **"Diciembre {año}"** (`periodoLabel` no
+   tenía rama para ese tipo), indistinguible de un mes real. Si se
+   seleccionaba, `calcularConPeriodo` caía al motor normal de nómina y
+   fabricaba un salario mensual completo inexistente bajo esa etiqueta.
+   Fix: excluido de los 6 selectores; `calcularConPeriodo`/`periodoLabel`
+   también reciben manejo explícito de `'regalia'` como defensa adicional
+   (`calcularConPeriodo` devuelve un `ResultadoNomina` en cero en vez de
+   recalcular).
+3. **Historial Nómina del empleado** (`empleados/page.tsx`) tenía el mismo
+   patrón: un período de regalía sin snapshot para un empleado (nunca
+   formó parte de ese pago) fabricaba un salario mensual bajo esa etiqueta.
+   Fix: se filtra antes de construir el historial; `labelPeriodoHist`
+   etiqueta "Regalía Pascual {año}" en vez de "Diciembre {año}".
+
+Verificado en navegador: tras inyectar los 2 ciclos sintéticos, la
+acumulación 2026 en vivo se mantuvo exacta (RD$187,541.66, idéntica a
+antes de inyectar — sin fuga entre años); el dropdown de "Nómina por
+Período" dejó de listar los ciclos de regalía; el Historial Nómina de
+Carlos Rodríguez muestra "Regalía Pascual 2025"/"2024" correctamente
+etiquetados (RD$88,000 bruto=neto, sin AFP/SFS/ISR); y su Cesantía
+(con una regalía de diciembre 2025 dentro de los últimos 12 meses)
+calculó exacto sobre su salario base real — RD$594,544.69 = 23 días ×
+7 años × RD$3,692.82/día — sin ningún rastro de inflación.
+
+**Rediseño — prepantalla "¿Qué quieres ver?"**: con historial existente,
+el módulo ya no amontona la tabla de ciclos cerrados sobre la acumulación
+en vivo. Ahora abre en una pantalla de elección (patrón "Calcular Nómina"
+de Alegra) con dos tarjetas grandes — "Acumulación Actual" (ciclo en curso
++ cifra acumulada) y "Historial de Liquidaciones" (conteo de ciclos +
+cifra del más reciente) — cada una con degradado navy/esmeralda, halo y
+hover lift, mismo lenguaje visual ya usado en Configuración Inicial. El
+Historial pasa a su propia pantalla con una tabla densa (Ciclo, Empleados,
+Total Pagado, Fecha de Pago, Estado, "Ver en Nómina"), sin mezclarse con
+la acumulación. Un botón "Cambiar de vista" en el header de cualquiera de
+las dos pantallas regresa al selector sin recargar el módulo. Sin
+historial (primer año de la empresa), se salta la prepantalla y va directo
+a la acumulación — no hay nada que elegir todavía.
+
+## Nómina dividida en Cálculo de Nómina y Gestión de Envíos
+
+Pedido del usuario, con Alegra como referencia visual explícita pero "no es
+hacerlo imitando a Alegra haciendo un copy paste, es tener una referencia":
+en Alegra, el historial de nóminas procesadas no vive en la misma pantalla
+que el período actual (tabla densa con período sugerido arriba), y "Nómina"
+se compone de "Cálculo de nómina" y "Gestión de envíos" (donde se marca el
+pago y se envían los comprobantes) como dos secciones separadas.
+
+Antes de implementar se acordaron 3 decisiones con el usuario: (1) dos
+accesos independientes en el sidebar, no un grupo desplegable; (2) reparto
+de funciones = Cálculo (crear/procesar/cerrar) vs. Envíos (marcar pagada +
+enviar comprobantes); (3) reemplazar las tarjetas de período por la tabla
+densa.
+
+- **`/nomina` → "Cálculo de Nómina"** — las tarjetas de período se
+  reemplazan por un banner de "Período sugerido" (calculado con
+  `sugerirProximoPeriodo()`, que continúa la serie existente de ese
+  tipo/quincena o usa el mes actual si es el primero) + una tabla con
+  buscador, filtro de estado y de año (columnas Período/S. Bruto/Total
+  Neto/Costo Total/Estado/acciones). Ya no tiene ninguna acción de pago o
+  envío de comprobantes.
+- **`/nomina/envios` → "Gestión de Envíos"** (ruta nueva) — lista solo los
+  períodos `cerrada`, con badge de estado de pago (Pendiente/Pagada) y la
+  acción correspondiente: "Marcar como Pagada" abre automáticamente el
+  modal de comprobantes; si ya está pagada, un botón "Comprobantes" lo
+  reabre para reenviar.
+
+**Infraestructura para soportar la separación:**
+- `src/lib/nomina-shared.ts` (nuevo) — `labelPeriodo`/`resultadoRegalia`/
+  `descargarComprobantePDF` se movieron aquí desde `nomina/page.tsx`.
+  Motivo: Next.js prohíbe exports adicionales en un archivo `page.tsx`
+  ("X is not a valid Page export field") — error que solo aparece en
+  `next build`, no en `tsc --noEmit` — y ahora tres archivos distintos
+  (Cálculo, Envíos, el modal) necesitan estas funciones.
+- `src/components/nomina/EnvioComprobantesModal.tsx` (nuevo) — el modal de
+  envío de comprobantes (plantilla editable + envío individual/masivo) se
+  extrajo del bloque que antes vivía inline en `nomina/page.tsx`, para
+  poder reutilizarlo desde Gestión de Envíos. Bug encontrado y corregido
+  durante la extracción: la primera versión solo confiaba en
+  `resultadosPorEmpleado` (el snapshot congelado al procesar); para
+  períodos que no lo tienen (datos demo sembrados directo en localStorage,
+  o períodos anteriores a la existencia de ese campo) la tabla de
+  empleados salía completamente vacía. Fix: fallback que recalcula en vivo
+  con `calcularConPeriodo` (dominican-labor.ts), usando
+  `empleadosProcesados` como membresía si existe o `empleadosEnNomina`
+  como respaldo — mismo criterio ya usado en
+  `calcularSalarioPromedioUltimos12Meses`.
+- `src/components/layout/Sidebar.tsx` — `isActive()` ahora elige el href
+  MÁS ESPECÍFICO (más largo) que hace match con la ruta actual, en vez de
+  simplemente `pathname.startsWith(href)`. Sin este fix, "Cálculo de
+  Nómina" (`/nomina`) quedaba resaltado también estando en
+  `/nomina/envios`, por compartir el mismo prefijo de ruta.
+- `src/lib/nav-items.ts` — "Procesar Nómina" se divide en "Cálculo de
+  Nómina" y "Gestión de Envíos" como dos entradas planas del mismo array
+  (no un grupo anidado) — se propaga solo con este cambio a Sidebar,
+  BottomNav (que tiene su propia lista curada y no se vio afectado) y
+  CommandPalette (Cmd+K), sin tocar esos archivos.
+
+Verificado en navegador con Playwright: cada ítem del sidebar resalta
+únicamente su propia página (antes ambos se resaltaban a la vez estando en
+Envíos); crear un período desde "Período sugerido" sigue abriendo
+directo el detalle con los 7 empleados y las cuotas de préstamos
+pre-cargadas; Gestión de Envíos lista los 4 períodos cerrados de la demo,
+"Marcar como Pagada" mueve el badge a "Pagada" y abre el modal con los 7
+empleados y sus montos netos reales (RD$49,189.83 para María González,
+etc.) — confirmando que el fix del fallback funciona con datos demo
+sembrados sin `resultadosPorEmpleado`.
+
+## Fix — Cálculo de Nómina necesitaba selección manual de período
+
+El rediseño anterior había reemplazado los selects de Mes/Año/Quincena por
+un badge de "Período sugerido" de solo lectura — el usuario señaló
+explícitamente que no quería una sugerencia fija, sino poder **seleccionar**
+el período a calcular. Se restauraron los selects editables (Mes/Año/
+Quincena), pre-llenados con `sugerirProximoPeriodo()` como punto de partida
+cómodo pero totalmente editables.
+
+De paso se corrigió un bug relacionado: el `useEffect` que aplica la
+sugerencia dependía de `periodos` — cualquier actualización de fondo a la
+lista de períodos (ej. otro efecto recalculando totales) le pisaba la
+selección manual del usuario a mitad de edición. Ahora solo se recalcula al
+cambiar la frecuencia (Mensual/Quincenal), nunca mientras el usuario ya está
+eligiendo un período.
+
+Verificado en navegador: cambiar a Quincenal muestra el selector de
+Quincena; seleccionar manualmente "Diciembre" se mantiene sin que ningún
+efecto en segundo plano lo revierta.
+
+## Ningún historial se oculta por antigüedad + creación retroactiva de períodos
+
+El usuario preguntó cuántos "períodos fiscales" quedarían habilitados,
+preocupado por si una empresa con varios años usando Cielo Cloud perdería
+acceso a su historial más antiguo. Se auditaron todos los selectores de año
+del sistema (Cálculo de Nómina, Gestión de Envíos, y los reportes de
+Reportería con filtro de año — Horas Extras, Salario vs. Licencias) — todos
+ya se arman dinámicamente a partir de `Array.from(new Set(periodos.map(p =>
+p.anio)))` (o el equivalente para licencias), sin ningún tope: si hay datos
+de 2025, aparecerán en el filtro sin importar cuántos años pasen. Los datos
+en `localStorage` tampoco tienen expiración — un período solo desaparece si
+se elimina manualmente.
+
+La única excepción real (no afecta historial, solo creación) era el
+selector de "Año" al crear un período nuevo en Cálculo de Nómina, limitado a
+año actual ±1 — sin forma de registrar retroactivamente un período de una
+empresa con historial previo a Cielo Cloud. Ampliado a 10 años atrás hasta 1
+año adelante del año calendario real (fijo — no se mueve si el usuario
+cambia el año seleccionado en el propio formulario, para evitar que el
+rango de opciones "se corra" cada vez que se elige un año distinto).
+
+## Favicon
+
+Pedido explícito del usuario: "hazle el Favicon al sistema". Nuevo
+`src/app/icon.svg` — usa la convención de archivo estático de Next.js App
+Router (`icon.svg` en `src/app/` se detecta automáticamente y genera el
+`<link rel="icon">` correcto con el `basePath` ya aplicado, sin tocar
+`metadata` en `layout.tsx`). Diseño: mismo isotipo del wordmark del Sidebar
+(arco de 300° + punto interior) pero con la paleta invertida — trazo/punto
+blancos sobre un cuadrado redondeado `#1B2980` (brand navy) en vez de trazo
+navy sobre fondo transparente — para que se lea bien como ícono pequeño de
+pestaña de navegador sin depender de si el fondo del navegador es claro u
+oscuro (el trazo transparente del sidebar original solo funciona porque ahí
+vive sobre el fondo blanco/oscuro ya controlado de la propia app).
+Verificado: `next build` incluye `/icon.svg` como ruta estática (0 B, sin
+JS), el HTML servido en dev trae
+`<link rel="icon" href="/tyui/icon.svg?..." type="image/svg+xml" sizes="any"/>`
+con el `basePath` correcto, y `out/icon.svg` existe en el export estático
+con el markup esperado. `tsc --noEmit` y `npm run build` limpios (19 rutas,
+sin cambio de conteo — `/icon.svg` es una ruta de asset estático, no una
+página).
+
+## Disfrute de Vacaciones — registro de toma de vacaciones + puente a Nómina
+
+Pedido explícito del usuario: hasta ahora `/vacaciones` solo proyectaba la
+acumulación (14/18 días laborables/año) sin ninguna forma de registrar que un
+empleado REALMENTE tomó un tramo de sus vacaciones ya acumuladas, restarlo del
+disponible, y que el período de Nómina que se solape con esas fechas pague
+esos días como vacaciones (con AFP/SFS/ISR, Art. 178) en vez de como sueldo
+normal. El usuario planteó el ejemplo concreto de un empleado que sale el 20
+de julio y regresa el 27 (trabajó 16–19, vacacionó 20–26 dentro de la misma
+quincena) — confirmó dos decisiones antes de implementar: (1) los días se
+cuentan en **días laborables** (excluye domingo, consistente con cómo ya se
+acumulan los 14/18 días anuales), y (2) el período de Nómina **pre-carga
+automático** el prorrateo, sin requerir un ajuste manual.
+
+**Arquitectura:**
+- Nuevo tipo `DisfruteVacaciones` (empleadoId, fechaInicio/fechaFin,
+  `diasLaborables` congelado al registrar, notas) — un empleado puede
+  fraccionar sus vacaciones en varios tramos a lo largo del año, así que es
+  una lista, no un campo único. Nuevo `src/lib/vacaciones-context.tsx`
+  (mismo patrón que `licencias-context.tsx`): `registrarDisfrute`/
+  `eliminarDisfrute`/`diasTomados(empId)` (suma de días laborables de todos
+  los tramos, lo que se resta del acumulado disponible)/`estaDeVacaciones`.
+- `contarDiasLaborables(inicio, fin)` (nuevo helper en `dominican-labor.ts`)
+  — excluye domingos, reutilizado tanto para restar del acumulado como para
+  valorar el goce a pagar.
+- **Nuevo campo `ParametrosNomina.vacacionesGoce`** — se suma a
+  `totalBrutoLegado` en `calcularNomina` exactamente igual que
+  bonificaciones/comisiones (cotizable TSS, gravable ISR — salario
+  ordinario, Art. 178), con el mismo "halving" automático en
+  `calcularNominaQuincenal`.
+- **`diasVacacionEnPeriodo()`** (nuevo, `nomina/page.tsx`, junto a
+  `diasSuspensionEnPeriodo`) — calcula, para el rango de fechas de UN
+  período específico: (a) los días CALENDARIO de vacación que caen dentro
+  del período, para reducir `diasTrabajados` (mismo mecanismo ya usado para
+  prorratear por suspensión) y (b) los días LABORABLES tomados en ese mismo
+  rango, valorados a tarifa diaria (salario ÷ 23.83/26) para el monto de
+  goce — la misma convención que ya usa `/vacaciones` y Liquidación para
+  "Vacaciones No Gozadas", no la fracción calendario. **Detalle clave de
+  precisión**: si el período es quincenal, el monto de goce se PRE-DOBLA
+  antes de pasarlo a `calcularNomina` — el sistema ya divide TODO el bruto
+  (incluidas bonificaciones/comisiones) entre 2 en `calcularNominaQuincenal`
+  (ver sección "Quincenal" arriba), así que duplicarlo aquí hace que, tras
+  esa división automática, el resultado sea el monto real correspondiente a
+  esa quincena específica — mismo truco implícito que ya "sobrevive" el
+  prorrateo de días vía `diasCorteEnPeriodo`. `calcularParaPeriodo` (único
+  choke point, ya usado por suspensión/salida) ahora también recibe la
+  lista de disfrutes y aplica automáticamente esta lógica en sus 6 call
+  sites — sin necesidad de un `AjusteLinea` manual, es 100% automático como
+  suspensión/salida pendiente.
+- **UI Nómina**: línea "Vacaciones (Goce)" en Devengos del modal
+  `DetalleNomina` y del PDF de comprobante, con nota "Incluye días de
+  disfrute de vacaciones — salario ordinario, con AFP/SFS/ISR normales
+  (Art. 178)". El toast al crear un período menciona cuántos empleados
+  tienen vacaciones dentro de ese período.
+- **`/vacaciones`**: nueva columna "Días Disponibles" (acumulados − ya
+  tomados), botón "Registrar Disfrute" (modal con preview en vivo de días
+  laborables y aviso no bloqueante si supera lo disponible), badge "De
+  Vacaciones" cuando la fecha de hoy cae dentro de un tramo registrado, y
+  tabla "Disfrutes Registrados" (todos los tramos, con acción eliminar).
+  Nueva stat card "De Vacaciones Ahora".
+- **Liquidación**: `diasVacAcum` ahora resta `diasTomados(emp.id)` antes de
+  calcular "Vacaciones No Gozadas" — evita pagar dos veces los días que el
+  empleado ya disfrutó (una vez en Nómina al gozarlos, otra al liquidar). El
+  detalle de la tarjeta muestra "− N días ya disfrutados" cuando aplica.
+
+Verificado en navegador con Playwright, datos demo reales: registro de un
+disfrute de 6 días calendario (incluye 1 domingo → 5 días laborables) para
+María González Pérez (salarioBase RD$55,000) → Días Disponibles baja exacto
+de 6.10 a 1.10, badge "De Vacaciones" visible. Período mensual Julio 2026 →
+toast "1 empleado(s) con vacaciones en este período" → comprobante de María
+muestra Salario Básico RD$44,354.84 (=55,000×25/31 días trabajados) +
+Vacaciones (Goce) RD$11,540.08 (=5 días × RD$2,308.02/día), con AFP/SFS/ISR
+calculados sobre el total combinado. 2ª Quincena de Julio 2026 (16–31, el
+disfrute solapa 16–20 → 4 días laborables) → Salario Básico RD$18,906.25
+(=55,000×11/16/2, matemática exacta tras el halving quincenal) + Vacaciones
+(Goce) RD$9,232.06 — ambos números exactos confirmando que el pre-doblado
+sobrevive la división quincenal automática sin desajustes. Liquidación de
+María (Mutuo Acuerdo) → tarjeta "Vacaciones No Gozadas" muestra "− 5 días ya
+disfrutados" en la fórmula, confirmando que no se paga doble. Sin errores de
+consola en ningún paso. `tsc --noEmit` y `npm run build` limpios (19 rutas).
+
+## Vacaciones — acumulación multi-año compuesta + venta de vacaciones
+
+El usuario describió dos escenarios reales de su experiencia laboral: (1)
+empleados con 1-3 períodos de vacaciones pendientes acumulados (nunca
+disfrutadas, la empresa nunca los obliga a tomarlas) y una liquidación con
+saldo pendiente de 2 años distintos (ej. 9 días de 2023 + 7 de 2024); (2)
+"venta de vacaciones" — el empleado sigue trabajando en su período de
+vacaciones y prefiere que el valor de esos días se le añada como pago extra
+en la nómina, en vez de disfrutarlos.
+
+**Bug real encontrado en el escenario 1 — confirmado, no solo hipotético.**
+La fórmula de acumulación que ya existía (antes de esta sesión) en
+`/vacaciones` y Liquidación usaba `(años % 1) × 12` para los meses del
+"ciclo actual" — el residuo de la división, que **descarta por completo
+cualquier año COMPLETO ya transcurrido sin disfrutar**. Un empleado con 1
+año 5 meses sin tomar vacaciones acumulaba ~5.8 días en vez de los ~19.8
+reales (14 del primer año + la fracción del segundo). Fix: nueva función
+`calcularDiasVacacionesAcumulados(añosServicio, saldoInicial)` en
+`dominican-labor.ts` que COMPONE cada año completo (a la tasa vigente EN
+ESE año — 14 los primeros 5 años, 18 después) + la fracción del año en
+curso, sin resetear nunca — reemplaza la fórmula duplicada y buggy en
+`vacaciones/page.tsx` y `liquidacion/page.tsx`. Con `diasTomados` (ya
+existente) restando lo realmente disfrutado/vendido, el escenario de "9
+días de 2023 + 7 de 2024" ahora sale correcto automáticamente sin necesidad
+de trackear "por año calendario" — el acumulado compuesto total menos lo
+tomado ya refleja el saldo real, sin importar cuántos años lleve.
+
+**Venta de vacaciones — nuevo `tipo?: 'disfrute' | 'venta'` en
+`DisfruteVacaciones`** (default `'disfrute'`, retrocompatible). A
+diferencia de un disfrute (el empleado deja de trabajar esos días, se
+prorratea el salario normal), una venta:
+- **No reduce días trabajados** — el empleado sigue cobrando el salario
+  completo del período, `diasVacacionEnPeriodo()` (`nomina/page.tsx`) separa
+  internamente los registros por `tipo`: solo los de `'disfrute'` restan de
+  `diasVacCalendario`/`diasTrabajados`, los de `'venta'` nunca.
+- **Se paga aparte, no en lugar de** — nuevo campo `vacacionesVendidas` en
+  `ParametrosNomina`/`ResultadoNomina` (paralelo a `vacacionesGoce`, mismo
+  tratamiento fiscal: cotizable TSS, gravable ISR, mismo "halving"
+  quincenal), para no confundir "goce" (sustituye el salario) con "venta"
+  (pago extra sobre el salario completo) en el comprobante.
+- **Se registra con una fecha efectiva** (`fechaInicio === fechaFin`,
+  reutilizando el mismo mecanismo de solape por fecha ya usado para
+  disfrute) — el período de Nómina que la cubra la aplica automáticamente,
+  sin necesidad de elegir el período a mano.
+- `diasTomados`/`Días Disponibles` en `/vacaciones` no distinguen tipo —
+  una venta resta del acumulado exactamente igual que un disfrute (ambas
+  formas consumen el derecho). `disfruteActivo`/`estaDeVacaciones` SÍ
+  filtran tipo `'venta'` — nunca debe verse el badge "De Vacaciones" para
+  alguien que sigue trabajando.
+
+**UI**: botón "Vender Vacaciones" en `/vacaciones` (modal: empleado, días a
+vender, fecha efectiva, notas, preview en vivo del monto con aviso no
+bloqueante si excede lo disponible). La tabla de registros se renombra
+"Disfrutes y Ventas Registradas" con columna "Tipo" (badge Disfrute/Venta).
+Línea "Vacaciones Vendidas" en Devengos del modal `DetalleNomina` y del PDF
+de comprobante, con nota "pago extra sobre el salario normal completo".
+
+Verificado en navegador con Playwright, datos demo reales: José Hernández
+Cruz (3 años 9 meses) pasó de ~11.51 días acumulados (fórmula buggy, sesión
+anterior) a 53.51 días (fórmula compuesta) — confirma que ya no se descartan
+años completos. Venta de 14 días para Carlos Rodríguez Méndez (fecha
+efectiva dentro de un período ya abierto) → Días Disponibles baja exacto de
+110.80 a 96.80, sin badge "De Vacaciones" (sigue "Puede gozar", confirmando
+que no se le marca como ausente). En el comprobante de esa quincena: Salario
+Básico RD$44,000.00 (completo, SIN prorratear — a diferencia de un
+disfrute) + Vacaciones Vendidas RD$51,699.54 (14 días × tarifa diaria,
+matemática exacta tras el pre-doblado/halving quincenal) + nota "Incluye
+venta de vacaciones — pago extra sobre el salario normal completo, con
+AFP/SFS/ISR". Sin errores de consola en ningún paso. `tsc --noEmit` y
+`npm run build` limpios (19 rutas).
+
+## Saldo ISR a Favor migrado — Carga Inicial deja de ser decorativa
+
+El usuario pidió explícitamente que los datos de Carga Inicial "pasen por
+el flujo del sistema y no sean decorativos", usando el Saldo ISR a Favor
+como ejemplo. Antes de tocar código se auditó el estado real (vía agente,
+no solo CLAUDE.md): el mecanismo de Saldo ISR a Favor YA estaba 100%
+conectado a Nómina (reduce el ISR calculado, sube el neto, nunca cuenta
+como base cotizable de TSS ni gravable de ISR — confirmado rastreando
+`aplicarSaldoISRFavor` línea por línea) — el hueco real era que solo se
+podía **registrar** desde el drawer de Empleados, uno por uno, nunca desde
+el Asistente Guiado ni el Importador Excel de Carga Inicial.
+
+**Fix — ambos flujos de Carga Inicial ahora crean un `SaldoISRFavor` real:**
+- `AsistenteGuiado.tsx`: nuevo campo "Saldo ISR a Favor migrado (RD$)" en el
+  paso por-empleado (separado visualmente de los 3 campos de `Empleado` con
+  un `border-t`, porque esto NO es un campo de `Empleado` — crea un registro
+  aparte). Al "Guardar y Continuar", si el monto es > 0, llama
+  `registrarSaldoISR()` del mismo `saldo-isr-context.tsx` que ya usa el
+  drawer — mismo motivo por defecto ("Saldo migrado en Carga Inicial"),
+  tipo `'retencion_excesiva'`, año fiscal actual.
+- `ImportadorExcel.tsx`: nueva 11ª columna "Saldo ISR a Favor (RD$)" en la
+  plantilla/`ENCABEZADOS`/`FilaImportacion`, con su propia validación
+  (número ≥ 0) y columna en la tabla de vista previa. Funciona tanto para
+  filas que actualizan un empleado existente como para filas que crean uno
+  nuevo — este segundo caso requirió un cambio de contrato: `add()` en
+  `empleados-context.tsx` antes devolvía `void`, ahora devuelve el
+  `Empleado` recién creado (con su `id` generado) para poder asociarle el
+  `SaldoISRFavor` en el mismo `confirmarImportacion()`. Cambio aditivo — los
+  demás call sites de `add()` que ignoraban el valor de retorno no se ven
+  afectados.
+- Deliberadamente NO se agregó al sub-flujo "Registrar empleado nuevo desde
+  el asistente" (`modoAlta`, que reutiliza `EmpleadoFormFields`) ni al
+  formulario "Nuevo Empleado" de `/empleados` — ambos son para contrataciones
+  genuinamente nuevas, sin retención previa que reembolsar; el pedido del
+  usuario aplicaba específicamente a empleados con historial migrando desde
+  otro sistema.
+
+Verificado en navegador con Playwright: Asistente Guiado con María González
+Pérez → RD$4,200 en el nuevo campo → Guardar y Continuar → su drawer en
+Empleados muestra la sección "Saldo ISR a Favor" con "Saldo migrado en Carga
+Inicial · Año 2026 · original RD$4,200.00" — mismo componente visual que
+usa el registro manual. Importador Excel con un CSV de un empleado nuevo
+("Roberto Testigo", cédula no existente) y RD$2,500 en la columna 11 → vista
+previa muestra "RD$2,500" en la columna "Saldo ISR" con acción "Crear
+empleado nuevo" → tras confirmar, su drawer real (verificado con el
+`id` generado, no un placeholder) muestra el saldo con motivo "Saldo
+migrado en Carga Inicial (Importador Excel)". Sin errores de consola en
+ningún paso. `tsc --noEmit` y `npm run build` limpios (19 rutas).
+
+## Plantilla de Carga Inicial ampliada — identidad, contacto y datos bancarios
+
+Pedido explícito del usuario: "actualizar la plantilla de carga inicial con
+todos los datos que entiendas que son necesarios, tomando en consideración
+todo lo que se ha hecho porque después de esa plantilla vamos lejos". Antes
+de tocar código se auditó (vía agente) el tipo `Empleado` completo y las
+entidades relacionadas (`Prestamo`, `Dependiente`, `DisfruteVacaciones`,
+`BandaSalarial`) para armar una propuesta de alcance, confirmada con el
+usuario: **excluir préstamos activos** (es una entidad completa con su
+propia lógica de amortización, no un campo — queda como tarea aparte) y
+**excluir categoría de riesgo SRL** (se define a nivel de empresa al crear
+la cuenta, vía sector, no por empleado). Se agregaron exactamente 9 campos:
+`tipoDocumento`, `nacionalidad`, `fechaNacimiento`, `tipoContrato`, `email`,
+`telefono`, `banco`, `numeroCuenta`, `regimenIntermitente`.
+
+- **`empleado-form.ts`** — nueva constante compartida `TIPO_CONTRATO_OPTIONS`
+  (antes las 7 opciones vivían duplicadas inline 2 veces dentro de
+  `EmpleadoFormFields.tsx`), reutilizada junto con los catálogos ya
+  existentes `DOC_TIPOS`/`PAISES`/`BANCOS` en los dos flujos de Carga
+  Inicial — una sola fuente de verdad para las etiquetas exactas.
+- **Asistente Guiado** — nueva sección "Identidad y Contacto" con los 9
+  campos, mismo patrón no-destructivo que ya usan los saldos: en blanco
+  significa "no tocar" (nunca sobreescribe un dato bueno ya cargado con
+  vacío), no "borrar" — coherente porque este paso es para empleados que
+  YA existen en el sistema.
+- **Importador Excel** — 9 columnas nuevas insertadas entre los datos base
+  (Cédula...Salario Base) y los de migración (Vacaciones...Saldo ISR), con
+  parsers tolerantes: aceptan tanto el valor exacto en inglés (`cedula`)
+  como la etiqueta en español que ve el usuario en el Excel (`Cédula`),
+  comparando normalizado (sin acentos, sin mayúsculas) contra los mismos
+  catálogos compartidos — igual para país (nombre o código ISO, ej. "DO"),
+  banco, tipo de contrato. Mensajes de error específicos en español cuando
+  el valor no se reconoce. Para filas que actualizan un empleado existente,
+  mismo criterio no-destructivo del Asistente; para filas que crean uno
+  nuevo, valores por defecto sensatos (`tipoDocumento: 'cedula'`,
+  `tipoContrato: 'fijo'`) si la columna viene vacía.
+- **Bug real encontrado durante la verificación (no relacionado con la
+  lógica de parseo en sí)**: los archivos `.csv` se leían con
+  `reader.readAsBinaryString()` + `XLSX.read(..., {type: 'binary'})` —
+  correcto para `.xlsx`/`.xls` (formato binario ZIP), pero corrompe
+  cualquier acento en un `.csv` de texto plano UTF-8 (cada byte multi-byte
+  se lee como un carácter latin1 aparte, ej. "Cédula" → "CÃ©dula"). Nunca se
+  había notado porque ningún campo anterior necesitaba coincidencia EXACTA
+  contra un catálogo (nombres/cédulas no se comparan por igualdad, solo se
+  guardan tal cual). Fix: `.csv` ahora se lee con `readAsText(file, 'UTF-8')`
+  + `XLSX.read(texto, {type: 'string'})`; `.xlsx`/`.xls` siguen usando
+  `readAsArrayBuffer()` + `{type: 'array'}` (más robusto que `'binary'`
+  para archivos realmente binarios). Verificado con un CSV real conteniendo
+  "Cédula" en una celda de datos (no solo en el encabezado) — antes del fix
+  fallaba con "Tipo de Documento no reconocido" para TODAS las filas
+  (incluidas las válidas); después del fix, exacto.
+
+Verificado en navegador con Playwright, datos demo reales: Asistente Guiado
+con Carlos Rodríguez Méndez → llenar Tipo de Documento/Nacionalidad/Tipo de
+Contrato/Banco/Email/Teléfono/Cuenta/Régimen Intermitente → Guardar y
+Continuar → su drawer en Empleados muestra los 9 valores exactos guardados.
+Importador Excel con un CSV de 2 filas nuevas: Laura Campos (todos los
+catálogos válidos, incluido "Cédula" con acento) → "OK", importada con
+Nacionalidad/Banco/Email correctos en su drawer; Pedro Nunez (banco
+inventado "BancoInventado") → error "Banco no reconocido — usa Banco
+Popular/BanReservas/Scotiabank/BHD León/Banistmo/Otro", NO se creó su
+registro. Sin errores de consola en ningún paso. `tsc --noEmit` y
+`npm run build` limpios (19 rutas).
+
+## Bonificación por Utilidades — liquidación vía período especial en Nómina
+
+Pedido del usuario: "una vez toque liquidar la bonificación debe de crearse
+un periodo de cálculo de nomina especial, es algo muy parecido a lo que
+hicimos en regalía pascual". Antes de construirlo se confirmó con el
+usuario la decisión legal que más cambia el cálculo: a diferencia de la
+Regalía Pascual (100% exenta), la Bonificación por Participación en
+Utilidades (Art. 223) **sí lleva AFP/SFS/ISR** — igual tratamiento que
+Vacaciones.
+
+**Arquitectura — mismo patrón que Regalía Pascual, con la retención real:**
+- Nuevo valor `TipoPeriodo = 'bonificacion'` y `PeriodoNomina.montosBonificacion`/
+  `motivosAjusteBonificacion` (monto BRUTO por empleado, con el tope de
+  45/60 días de Art. 223 ya aplicado desde `/bonificacion`).
+- **`resultadoBonificacion(empleado, montoBruto)`** (nuevo, `nomina-shared.ts`)
+  — a diferencia de `resultadoRegalia()` (objeto sintético en cero), este
+  reutiliza el motor real: `calcularNomina({ ...empleado, salarioBase:
+  montoBruto })`, el mismo mecanismo ya usado para "Vacaciones No Gozadas"
+  en Liquidación y "Vacaciones (Goce)/Vendidas" en Nómina — trata el monto
+  como si fuera el salario del mes para calcular AFP/SFS/ISR normales.
+- **Excluido de los mismos lugares donde ya se excluye `'regalia'`** (mismo
+  bug class ya cazado en la sesión de Regalía Pascual, evitado desde el
+  inicio esta vez): `calcularSalarioPromedioUltimos12Meses` (no infla el
+  promedio de Cesantía/Preaviso), `calcularConPeriodo` (fallback en cero),
+  los 6 selectores de período de Reportería, y el filtro de snapshot en
+  Historial Nómina de Empleados.
+- **`nomina/page.tsx`**: vista de detalle dedicada para `tipo ===
+  'bonificacion'` (sin ajustes, préstamos, filtros ni auditoría pre-cierre,
+  igual que Regalía) — pero a diferencia de esa, la tabla muestra "Monto
+  Bruto" y "Neto a Pagar" por separado, y cada fila abre el mismo modal
+  `DetalleNomina` con el desglose completo de AFP/SFS/ISR/aportes, en vez
+  de un monto plano. `handleProcesarBonificacion()` no tiene ningún efecto
+  de "reinicio de acumulado" (a diferencia de Regalía) — la Bonificación no
+  se acumula mes a mes, se calcula una sola vez al año desde la utilidad
+  neta capturada en `/bonificacion`.
+- **`/bonificacion`**: nuevo selector de "Año Fiscal" (10 años atrás a 1
+  adelante), botón "Solicitar Liquidación" que abre un modal con ajuste
+  manual por empleado (motivo obligatorio, mismo patrón que Regalía),
+  bloqueo de una segunda solicitud mientras el período del año elegido siga
+  `en_proceso`/`procesada` (mismo guard que Regalía — banner "ya se
+  solicitó" + link a Nómina), y una tabla "Bonificaciones Liquidadas" con
+  el historial de años ya cerrados.
+
+Verificado en navegador con Playwright, datos demo reales: utilidad neta
+RD$5,000,000 → 10% distribuible RD$500,000 → "Solicitar Liquidación" (año
+fiscal 2026, sin ajustes manuales) → período "Bonificación Utilidades 2026"
+creado en Nómina con 8 empleados. Detalle de Ana Martínez Santos: bruto
+RD$37,303.66 → AFP RD$1,070.62 (2.87%) + SFS RD$1,134.03 (3.04%) + ISR
+RD$62.10 (sobre base anualizada tras exceder el tramo exento) = descuentos
+RD$2,266.75 → neto RD$35,036.91, matemática exacta. Total del período:
+RD$500,000.00 bruto → RD$435,602.78 neto. Procesado y cerrado sin
+problema — no aparece en el selector "Nómina por Período" de Reportería
+(mismo comportamiento ya confirmado para Regalía Pascual). De vuelta en
+`/bonificacion`, el banner "ya se solicitó" desaparece, "Solicitar
+Liquidación" vuelve a estar disponible, y aparece en "Bonificaciones
+Liquidadas" con el total bruto/neto correctos y link "Ver en Nómina". Sin
+errores de consola en ningún paso. `tsc --noEmit` y `npm run build`
+limpios (19 rutas).
+
+## Bonificación por Utilidades — cierre fiscal configurable + prorrateo de empleados liquidados (Art. 223-227)
+
+El usuario señaló un hueco legal real en la liquidación de Bonificación
+recién construida: un empleado liquidado a mitad de año (ej. entra en enero,
+lo despiden en julio) sigue teniendo derecho a su bonificación proporcional
+— pagadera junto con la del resto de la plantilla una vez cierra el
+ejercicio económico de la empresa, no antes. El módulo anterior solo
+consideraba `empleadosActivos`, excluyendo por completo a cualquier
+liquidado. Se pidió explícitamente leer los Arts. 223-227, Título VIII del
+Código de Trabajo antes de implementar — confirmado vía fetch del texto
+literal:
+- **Art. 223**: reparto del 10% de utilidades netas, tope 45/60 días según
+  antigüedad; "cuando el trabajador no preste servicios durante todo el año...
+  la participación individual será proporcional al salario del tiempo
+  trabajado" — la ley no fija la fórmula exacta de esa proporción.
+- **Art. 224**: pago obligatorio **entre 90 y 120 días después del cierre
+  del ejercicio económico** — se usa el límite superior (120 días) como
+  fecha de vencimiento para la alerta.
+- **Art. 226**: exenciones (agrícolas/industriales/mineras en sus primeros 3
+  años, agrícolas pequeñas ≤RD$1,000,000 de capital, zona franca) — citadas
+  en la nota legal de la UI, no automatizadas (demasiado riesgo de
+  determinar mal una exención automáticamente).
+
+**Cierre de ejercicio fiscal configurable** — nuevo campo
+`Empresa.cierreFiscal?: CierreFiscal` (`'diciembre' | 'marzo' | 'junio' |
+'septiembre'`, los 4 cierres reconocidos por la DGII en RD), sin configurar
+se asume `'diciembre'` (año calendario, comportamiento idéntico al que ya
+existía, cero migración necesaria). Selector de 4 opciones (mismo patrón
+visual de tarjetas que `CATEGORIAS_EMPRESA`) agregado en dos superficies:
+`OnboardingWizard.tsx` (Paso 1, junto a zona franca) para que quede definido
+desde la creación de la cuenta, y Configuración → Empresa → Clasificación
+para Nómina (editable después).
+
+**Motor — 3 funciones puras nuevas en `dominican-labor.ts`**:
+- `rangoEjercicioFiscal(anioFiscal, cierreFiscal)` — el "año fiscal" se
+  nombra por su año de CIERRE (ej. con `cierreFiscal='junio'`, el año fiscal
+  2026 es el ejercicio del 01-jul-2025 al 30-jun-2026). Con `'diciembre'`
+  (default), año fiscal N = año calendario N exacto.
+- `fechaLimitePagoBonificacion(finEjercicio)` — fin + 120 días (Art. 224).
+- `mesesEnEjercicioFiscal(fechaIngreso, fechaSalida, inicioEjercicio,
+  finEjercicio)` — meses fraccionales (sin truncar) que un empleado trabajó
+  DENTRO de un ejercicio específico; cubre tanto ingreso a mitad de ejercicio
+  como salida a mitad de ejercicio (`fechaSalida = null` para un empleado
+  que sigue activo, tratado como si trabajara hasta el cierre).
+
+**`bonificacion/page.tsx` — reescritura de la elegibilidad**: en vez de
+`empleadosActivos.filter(tipoContrato==='fijo')`, ahora parte de `empleados`
+(roster completo, incluye inactivos — un liquidado nunca se borra) +
+`useLiquidaciones()` para obtener la `fechaTerminacion` real de cada
+inactivo. Un empleado liquidado sin registro de liquidación (dato
+inconsistente) se excluye por seguridad. Diseño de la fórmula (interpretación
+propia de Cielo Cloud, ya que el Art. 223 no la especifica):
+- **Peso proporcional = salario × (mesesTrabajados/12)** — un empleado con
+  solo 7 de 12 meses pesa 7/12 de su salario en el reparto total, en vez de
+  competir con el mismo peso que uno de año completo. Con `meses=12` para
+  todos (caso de siempre), la fórmula es matemáticamente idéntica a la
+  anterior — sin regresión para el caso ya verificado en la sesión previa.
+- **Tope individual también prorrateado**: `45/60 días × salarioDiario ×
+  (mesesTrabajados/12)` — un empleado de medio año no puede alcanzar el tope
+  completo.
+- **Antigüedad evaluada a la fecha de salida** (o al cierre del ejercicio
+  para un activo), no "a hoy" — irrelevante para un ejercicio ya pasado.
+- Nueva columna "Meses Trabaj." + badge "Liquidado" junto al nombre, tanto en
+  la tabla en pantalla como en el modal de Solicitar Liquidación y la
+  exportación a Excel (columnas "Estado"/"Meses Trabajados" nuevas).
+
+**Alerta 🔔 de vencimiento (Art. 224)** — `pendientesPago`: ejercicios
+fiscales ya cerrados (`fin <= hoy`) sin un período `tipo:'bonificacion'
+estado:'cerrada'` para ese año, ordenados por urgencia (más vencido primero).
+**Acotado a ejercicios que se solapan con la antigüedad del empleado más
+antiguo conocido** (`primerIngresoConocido`) — sin este límite, una empresa
+recién migrada a Cielo Cloud sin historial cargado vería "vencido hace miles
+de días" para ejercicios anteriores a que la empresa tuviera empleados, un
+falso positivo absurdo. Banner rojo/ámbar (🔔, con botón "Calcular ahora" que
+salta directo al año fiscal en cuestión) visible solo si `diasRestantes <=
+45` — evita alarmar antes de que el vencimiento se acerque de verdad; fuera
+de esa ventana, una StatCard "Próximo Vencimiento" siempre visible (verde
+"Al día" si no hay pendientes, ámbar/rojo/celeste según urgencia) mantiene
+la información disponible sin alarmar.
+
+**Redesign — prepantalla "¿Qué quieres ver?"**, mismo patrón exacto ya
+construido para Regalía Pascual (`pantalla: 'elegir'|'actual'|'historial'`,
+se salta la elección si no hay historial): 2 tarjetas grandes ("Cálculo de
+Bonificación" navy, "Historial de Liquidaciones" esmeralda) con degradado +
+halo + hover-lift; el historial de liquidaciones pasa a su propia pantalla
+con tabla dedicada (Ejercicio/Empleados/Total Bruto/Total Neto/Fecha de
+Pago/Estado/"Ver en Nómina"), separado de la calculadora.
+
+**Verificado con 3 escenarios simulados vía Playwright** (localStorage
+sembrado directo, empresa+4 empleados+2 liquidaciones+9 períodos de
+bonificación ya pagados 2016-2024, dejando 2025 deliberadamente sin pagar):
+1. **FY2026 (cierre diciembre, ejercicio en curso)**: Ana (activa todo el
+   año) → 12.0/12; Beto (entró 2026-01-01, liquidado 2026-07-15 — el
+   ejemplo exacto planteado por el usuario) → aparece con badge "Liquidado"
+   y 6.4/12 meses, RD$30,049.83 (vs. RD$69,950.17 de Ana); Cathy (se fue en
+   2025) correctamente ausente; banner 🔔 rojo "venció hace 79 día(s)" para
+   el ejercicio 2025 pendiente. Click "Calcular ahora" salta a FY2025 →
+   Cathy reaparece prorrateada (~2.0/12, se fue el 2025-03-01), Beto
+   ausente (aún no existía).
+2. **FY2027 (año siguiente a la salida de Beto)**: Beto ya NO reaparece
+   (su prorrateo fue exclusivo del ejercicio en que trabajó) — confirma que
+   la ventana de 12 meses no arrastra empleados de ejercicios ya cerrados.
+3. **Cambio de cierre fiscal a 'junio' vía Configuración (UI real, no
+   localStorage)**: persistencia confirmada; `/bonificacion` recalcula el
+   rango a "01 jul de 2025 – 30 jun de 2026"; Beto (mismo empleado) ahora
+   prorratea distinto (6.0/12, porque el ejercicio junio cierra ANTES de su
+   fecha de salida real) — confirma que el mismo empleado da un resultado
+   distinto según el cierre fiscal configurado; Cathy ausente en FY2026-junio
+   pero SÍ aparece en FY2025-junio (jul24-jun25, su salida de marzo 2025 cae
+   dentro de esa ventana) — confirma el desplazamiento correcto de la
+   ventana fiscal; el banner de vencimiento recalculó automáticamente contra
+   las nuevas fechas de cierre sin ninguna acción adicional.
+
+Sin errores de consola en ningún escenario. `tsc --noEmit` y `npm run build`
+limpios (19 rutas, sin cambio de conteo).
+
+## Dashboard — Centro de Alertas consolidado + gráficos con historial real
+
+Feedback directo del usuario: las alertas de vencimiento/cumplimiento que
+hoy viven dispersas módulo por módulo deberían "pasar por el Dashboard, en
+otro orden" (priorizadas, no solo la única alerta de salario mínimo que ya
+existía ahí); y los gráficos del Dashboard "solo se muestra el mes actual y
+anterior" — pidió hacerlos más funcionales.
+
+**Investigación del segundo punto — dos causas reales, no una sola:**
+1. `periodosReales` filtraba únicamente `tipo === 'mensual'`. Una empresa en
+   `modalidadNomina: 'quincenal'` (`Empresa`) nunca genera períodos de ese
+   tipo, así que sus gráficos SIEMPRE caían al relleno sintético sin importar
+   cuántas quincenas reales tuviera procesadas — un bug real, no solo
+   percepción.
+2. El botón "Este mes ⋯" en cada chart card no tenía `onClick` — era
+   puramente decorativo, sin ninguna forma real de ver más historial. El cap
+   de `.slice(-5)` tampoco era ajustable.
+
+**Fix de gráficos (`src/app/page.tsx`):**
+- `periodosPorMes` (nuevo `useMemo`) agrega tipo `'mensual'` Y `'quincenal'`
+  (sumando ambas quincenas de un mismo mes en un solo total), reemplazando
+  el filtro que solo consideraba mensual.
+- `RangoSelector` (3M/6M/12M) — nuevo control real y funcional, compartido
+  entre las 3 chart cards, reemplaza el botón decorativo sin `onClick`
+  (también removido el ícono `MoreHorizontal` sin acción de la card
+  "Retenciones" — mismo principio ya aplicado en la sesión de "affordance de
+  hover": ningún control debe aparentar ser clickeable sin serlo).
+- Umbral de datos reales bajado de `>= 2` a `>= 1` — antes, con solo 1
+  período real procesado, se descartaba por completo en favor de 5 meses
+  100% inventados; ahora se muestra ese único período real (honesto, aunque
+  disperso) en vez de fabricar datos.
+- Relleno sintético (solo cuando NO hay ningún período real) ahora se genera
+  dinámicamente según `rangoMeses` en vez de un array fijo de 5, y una nota
+  visible ("Datos ilustrativos — aún no hay períodos procesados" vs. "N
+  período(s) real(es) procesado(s)") aclara honestamente cuál es cuál — antes
+  no había forma de distinguir un gráfico con datos reales de uno inventado.
+- Etiquetas de mes incluyen el año ("Ene 25") solo cuando el rango visible
+  cruza más de un año calendario — evita ambigüedad en rangos de 12 meses
+  sin ensuciar la etiqueta en el caso común.
+
+**Centro de Alertas (`src/components/dashboard/CentroAlertas.tsx`, nuevo):**
+reemplaza el banner de salario mínimo (única alerta que existía en el
+Dashboard) por una lista consolidada y **ordenada por severidad**
+(danger → warning → info, no por orden de llegada) de 5 fuentes reales del
+sistema, cada una reutilizando la lógica de negocio ya existente en su
+módulo (sin duplicar reglas):
+- **Salario mínimo bajo** (`getSalarioMinimoAplicable`) — danger.
+- **Bonificación por Utilidades vencida/por vencer** (Art. 224) — reutiliza
+  `getBonificacionesPendientes()`, recién extraído de `/bonificacion` a
+  `dominican-labor.ts` para que ambas superficies (el módulo y el Dashboard)
+  compartan exactamente la misma regla de ventana fiscal — danger si ya
+  venció, warning si vence en ≤45 días.
+- **Regalía Pascual próxima a vencer** (20 de diciembre, Art. 219) — mismo
+  umbral de 30 días ya usado en `/regalia-pascual` — danger/warning.
+- **Préstamos que requieren gestión de cobro** (`Prestamo.requiereGestionCobro`,
+  3+ cuotas omitidas consecutivas) — warning.
+- **Empleados fuera de banda salarial** (`useBandasSalariales` +
+  `normalizarPosicion`) — info.
+Cada fila es un `Link` que navega directo al módulo correspondiente (el
+detalle completo vive ahí, el Centro de Alertas es un resumen priorizado,
+no un duplicado) — las dos alertas con más valor a simple vista (salario
+mínimo, préstamos) muestran además hasta 3 nombres de empleados afectados
+inline. Colapsable (`ChevronDown`), con badge de conteo total. Sin ninguna
+alerta aplicable, un estado positivo verde "Todo en orden" reemplaza la
+lista — mismo patrón ya establecido en el Resumen de Configuración.
+
+**Verificado en navegador con Playwright, 3 escenarios sembrados directo en
+localStorage:**
+1. Empresa con empleado bajo el mínimo, préstamo con gestión de cobro,
+   empleado fuera de banda, y 5 períodos mensuales reales → las 4 alertas
+   aparecen en el orden correcto (2 danger primero, luego warning, luego
+   info), cada click navega al módulo correcto; selector 3M/6M/12M cambia
+   la nota de "5 períodos reales" a "3 períodos reales" y viceversa sin
+   inventar los que faltan.
+2. Misma empresa en `modalidadNomina: 'quincenal'` con 3 meses × 2 quincenas
+   cada uno → nota confirma "3 períodos reales procesados" (agregados
+   correctamente), donde antes del fix habría caído sin remedio al relleno
+   sintético.
+3. Cuenta nueva sin ningún período ni préstamo ni banda, empleado con
+   antigüedad reciente (sin ejercicios fiscales pasados que reclamar) →
+   "Todo en orden" y "Datos ilustrativos — aún no hay períodos procesados",
+   confirmando que el estado vacío no fabrica una falsa sensación de alerta
+   ni de historial real.
+Verificado también en modo oscuro y viewport móvil (390×844) sin errores de
+consola. `tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de
+conteo).
+
+## Centro de Alertas — pulido visual premium
+
+Feedback directo del usuario tras ver el Centro de Alertas recién agregado:
+"me gustaría que el centro de alerta se ve más profesional". Rediseño del
+componente (`src/components/dashboard/CentroAlertas.tsx`), mismo contenido y
+lógica, tratamiento visual acorde al resto del sistema:
+- Ícono de cada fila en badge `rounded-xl` con degradado por severidad
+  (rose/amber/sky) + halo `blur-md` detrás — mismo lenguaje ya usado en
+  Configuración Inicial y las tarjetas de Regalía Pascual/Bonificación,
+  aplicado aquí por primera vez a una lista de alertas en vez de tarjetas
+  grandes.
+- Franja izquierda de color (`border-l-2`) por severidad — patrón estándar
+  de listas de alertas en dashboards profesionales (Linear, Vercel), permite
+  escanear la urgencia sin leer el texto.
+- Etiqueta de severidad explícita ("URGENTE"/"ADVERTENCIA"/"INFORMATIVO") en
+  mayúsculas junto al título — antes la severidad solo se comunicaba por
+  color, ahora también por texto (accesibilidad, no depender solo del color).
+- Header con ícono navy degradado + resumen de conteos por severidad con
+  puntos de color inline ("2 urgentes · 1 advertencia · 1 informativo") en
+  vez de solo el badge de conteo total — comunica la composición de un
+  vistazo antes de expandir.
+- Detalle de empleados/préstamos afectados como chips `rounded-full` en vez
+  de líneas de texto plano, con "+N más" cuando hay más de 3.
+- Estado positivo "Todo en orden" también recibe el mismo tratamiento de
+  ícono degradado (esmeralda) + halo, en vez del banner plano anterior.
+- Micro-interacción: el ícono de cada fila escala levemente (`scale-105`) y
+  su halo aparece al hover, junto con la flecha del CTA desplazándose — ya
+  no es una fila estática.
+
+Verificado en navegador con Playwright, mismo dataset multi-alerta de la
+sesión anterior, en modo claro y oscuro — contraste correcto en ambos,
+franjas de severidad y chips de detalle legibles, sin errores de consola.
+`tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de conteo).
+
+## Centro de Alertas → campanita de notificaciones en el Header
+
+El usuario, tras ver el Centro de Alertas recién pulido, propuso un cambio
+de forma explícito: no un banner grande fijo en el Dashboard, sino una
+campanita 🔔 (patrón Gmail/Slack/Linear) que solo ocupe espacio cuando hay
+algo pendiente, y que cada notificación lleve directo a donde hay que
+accionar. Se confirmó el enfoque con el usuario antes de implementar
+(ubicarla en el `Header` compartido, visible en TODA la app y no solo en el
+Dashboard, ya que las alertas son relevantes sin importar en qué módulo se
+esté) y luego se implementó.
+
+- **`src/lib/alertas.ts`** (nuevo) — la lógica de negocio de
+  `CentroAlertas.tsx` (salario mínimo, vencimiento de Bonificación/Regalía,
+  préstamos con gestión de cobro, empleados fuera de banda) se extrajo a un
+  hook `useAlertas()` reutilizable, desacoplado de cualquier presentación
+  visual — necesario porque ahora la consume un componente del `Header`
+  (montado en cada página) en vez de una sola página del Dashboard.
+- **`src/components/layout/NotificationBell.tsx`** (nuevo) — ícono de
+  campana con badge de conteo (color según la severidad más alta presente:
+  rojo si hay alguna urgente, ámbar si solo advertencias, celeste si solo
+  informativas; sin badge cuando no hay ninguna). Al hacer click abre un
+  popover (mismo patrón de click-outside-to-close que `UserMenu` en
+  `Header.tsx`) con la lista completa — mismo tratamiento visual premium ya
+  usado en el Centro de Alertas (íconos con degradado por severidad, franja
+  de color lateral, etiqueta de severidad, chips de detalle) pero en formato
+  compacto de dropdown. Cada fila es un `Link` que navega Y cierra el
+  popover (`onClick={() => setOpen(false)}`).
+- **`Header.tsx`** — se agregó `<NotificationBell />` junto a
+  `ThemeToggle`/`UserMenu`, así que la campana aparece en la barra superior
+  de cada página de la app (no solo el Dashboard) sin necesidad de que cada
+  página la registre individualmente.
+- **`src/app/page.tsx`** (Dashboard) — se retiró `<CentroAlertas />` del
+  cuerpo de la página; el componente `CentroAlertas.tsx` se eliminó por
+  completo (reemplazado, no duplicado — toda su lógica vive ahora en
+  `useAlertas()`).
+- **Bug real encontrado y corregido durante la verificación en móvil**: el
+  popover usaba `absolute right-0` (posicionado relativo al botón de la
+  campana) con un ancho fijo de `22rem` — en un viewport angosto, con la
+  campana cerca del borde derecho, el popover se salía por el borde
+  IZQUIERDO de la pantalla, cortando el texto ("Notificaciones" se veía como
+  "icaciones"). Fix: por debajo de `sm:` el popover usa `fixed inset-x-4
+  top-14` (anclado al viewport con margen a los lados, no al botón),
+  volviendo a `sm:absolute sm:right-0 sm:top-10 sm:w-[22rem]` en pantallas
+  más anchas donde sí cabe anclado al botón sin desbordarse.
+
+Verificado en navegador con Playwright: badge muestra el conteo correcto y
+el color de la severidad más alta; el popover lista las alertas con el
+mismo detalle que antes tenía el banner; click en una fila navega al módulo
+Y cierra el popover; click afuera también lo cierra; la campana está
+presente y funcional en `/empleados` (no solo en `/`), confirmando que es
+verdaderamente global; sin alertas, el badge desaparece y el popover muestra
+"Todo en orden"; verificado también en modo oscuro y en viewport móvil
+(390×844, incluyendo el fix del desbordamiento). `tsc --noEmit` y
+`npm run build` limpios (19 rutas, sin cambio de conteo).
+
+**Pregunta directa del usuario, respondida y verificada en vivo**: si se
+resuelve el problema que originó una alerta, ¿la notificación desaparece
+sola? Sí — `useAlertas()` no persiste ningún estado de "leído/pendiente",
+recalcula las alertas en cada render a partir de los datos reales
+(`useMemo` sobre `empleados`/`periodos`/`prestamos`/`bandas`), así que en
+cuanto deja de cumplirse la condición, la alerta deja de existir. Probado
+end-to-end sin recargar la página: se sembró un empleado con salario bajo
+el mínimo (aparece el badge + la alerta), se navegó a Empleados vía el
+propio link de la alerta, se subió el salario por encima del mínimo desde
+el formulario real de edición, y al reabrir la campana el badge ya había
+desaparecido y el popover mostraba "Todo en orden" — sin ningún refresh de
+por medio. Mismo mecanismo reactivo aplica a las demás alertas (Bonificación/
+Regalía se resuelven al cerrar el período de pago en Nómina; préstamos con
+gestión de cobro se resetean solos en `registrarPago()` en cuanto vuelve a
+cobrarse una cuota con normalidad; bandas salariales al ajustar el sueldo
+dentro del rango).
+
+## Filtros de búsqueda (nombre/cédula/departamento) en Nómina, Vacaciones y Bonificación
+
+Pedido explícito del usuario: poder filtrar la tabla de empleados por
+nombre, cédula o departamento al abrir un período de nómina, y llevar lo
+mismo a Vacaciones y Bonificación. El patrón (buscador + `<select>` de
+departamento + botón "Ver todos" + contador "X de Y empleado(s)") ya
+existía en Regalía Pascual desde una sesión anterior — se replicó tal cual
+en las 3 páginas para mantener consistencia visual y de comportamiento en
+toda la app.
+
+- **`nomina/page.tsx`** — el período abierto YA tenía un panel de "Filtros"
+  (Departamento + rango de Fecha de Ingreso), pero solo alimentaba
+  "Seleccionar Coincidencias" (selección masiva para procesar) — la tabla
+  visible siempre mostraba TODOS los empleados sin filtrar. Se agregó una
+  barra de búsqueda/filtro **independiente y siempre visible** (nuevo estado
+  `busquedaEmpleado`/`filtroDeptoTabla`, separado de `filtroDepto` que sigue
+  siendo exclusivo del panel de selección masiva en_proceso) que si filtra
+  las filas realmente renderizadas (`nominasVisibles`), sin importar el
+  estado del período (en_proceso/procesada/cerrada) — a diferencia del panel
+  de selección, que sigue restringido a en_proceso porque procesar solo
+  aplica ahí.
+- **`vacaciones/page.tsx`** y **`bonificacion/page.tsx`** — no tenían ningún
+  filtro; se agregó el mismo patrón desde cero (`busqueda`/`filtroDepto`/
+  `filasVisibles`/`hayFiltrosActivos`), insertado entre el encabezado de la
+  tabla y el `<table>`.
+- **Totales del pie de tabla siguen el filtro, las StatCards de arriba NO**
+  — mismo criterio ya usado en Regalía Pascual: cuando hay un filtro activo,
+  el footer de la tabla se relabela "TOTAL (filtrado)" y suma solo las filas
+  visibles; las tarjetas de resumen al inicio de cada página siguen
+  mostrando el total real e íntegro del período/planilla, para que nunca
+  parezca que el filtro cambió cuánto hay que pagar de verdad.
+- Estado vacío nuevo ("Ningún empleado coincide con el filtro") distinto del
+  estado vacío ya existente ("Sin empleados activos"/"Sin empleados
+  elegibles") — se muestra solo cuando SÍ hay empleados pero ninguno
+  coincide con la búsqueda actual.
+
+Verificado en navegador con Playwright, 4 empleados sembrados en 3
+departamentos distintos: en Nómina (período `en_proceso` real), la búsqueda
+por nombre ("Beto") y por cédula (número exacto) aíslan correctamente a un
+solo empleado con contador "1 de 4"; el filtro de departamento
+"Administración" muestra 2 de 4 con el footer "TOTAL (filtrado)" reflejando
+solo esos 2, mientras los StatCards de arriba (Total Bruto, etc.) se
+mantienen con el total real de los 4; "Ver todos" restaura la lista
+completa. Mismo comportamiento confirmado en Vacaciones y Bonificación.
+Verificado también en modo oscuro. `tsc --noEmit` y `npm run build`
+limpios (19 rutas, sin cambio de conteo).
+
+## Fix — falsa alerta "Bonificación 2016 vencida" en cuenta nueva sin empleados
+
+El usuario reportó (con captura de pantalla) que una cuenta recién creada,
+sin ningún dato cargado, mostraba en la campanita de notificaciones "1
+alerta" — "Bonificación 2016 vencida hace 3366 día(s) — URGENTE". Antes de
+diagnosticar se confirmó primero que el patrón general de la prepantalla
+"¿Qué quieres ver?" (Regalía Pascual/Bonificación) seguía intacto —
+verificado en navegador con Playwright que aparece correctamente cuando SÍ
+hay historial y se salta a la calculadora cuando NO lo hay, descartando esa
+hipótesis inicial del usuario. El bug real estaba un nivel más abajo, en la
+propia alerta de vencimiento.
+
+**Causa raíz**: `getBonificacionesPendientes()` (`dominican-labor.ts`) ya
+tenía un guard para no alertar sobre ejercicios fiscales anteriores a la
+antigüedad del empleado más viejo conocido (`primerIngresoConocido`,
+agregado en la sesión del fix de prorrateo) — pero ese guard calculaba
+`primerIngresoConocido` como `null` cuando `empleados.length === 0` (cuenta
+recién creada, sin ningún empleado todavía). Con `primerIngresoConocido`
+en `null`, la condición `if (primerIngresoConocido && fin < primerIngresoConocido)
+return null` nunca se cumple — el guard queda **desactivado por completo**
+en vez de bloquear todo, dejando pasar los 12 años del rango
+`ANIOS_FISCALES` (10 atrás a 1 adelante) como "pendientes", con el más
+antiguo (2016) apareciendo como el más urgente por ser el más vencido.
+
+**Fix**: `if (empleados.length === 0) return []` al inicio de la función —
+sin ningún empleado conocido, no hay absolutamente nada que la empresa
+pudiera deberle a nadie por Bonificación, así que la lista de pendientes
+debe estar vacía, no sin acotar.
+
+Verificado en navegador con Playwright, simulando exactamente el escenario
+del usuario (empresa recién creada, `cielo-empleados: []`,
+`cielo-periodos: []`): la campanita ya no muestra badge, el popover
+muestra "Todo en orden", y `/bonificacion` ya no muestra ningún banner de
+vencimiento falso. `tsc --noEmit` y `npm run build` limpios (19 rutas, sin
+cambio de conteo).
+
+## Integración Licencias ↔ Nómina — evita doble pago en enfermedad/accidente sin disfrute de sueldo
+
+El usuario pidió analizar si el módulo de Licencias se podía hacer "mejor y
+más productivo". Antes de tocar código se auditó el motor completo (qué
+pasa hoy con cada uno de los 6 tipos de licencia al calcular nómina) y se
+descubrió que el pedido original ("reflejar `montoPagado` como un ajuste de
+nómina, igual que vacaciones") **no aplicaba a la mayoría de los casos**:
+
+- **Matrimonial/fallecimiento/alumbramiento, maternidad, y enfermedad/
+  accidente CON disfrute de sueldo**: el salario del empleado sigue
+  corriendo sin interrupción (por ley o por decisión de la empresa) — el
+  sueldo mensual normal, sin prorratear, YA cubre esos días. No hay nada
+  que sumar ni que tocar; así ya funcionaba correctamente.
+- **Enfermedad común / accidente laboral SIN disfrute de sueldo** (el
+  default): aquí sí había un hueco real. La empresa no paga nada por esos
+  días (el subsidio de SISALRIL/ARL se paga directo al empleado, fuera de
+  nómina) — pero el motor nunca reducía los días trabajados del período,
+  así que el empleado recibía su sueldo completo por nómina **y** el
+  subsidio de TSS por los mismos días de ausencia — un doble pago
+  silencioso que la empresa ni se enteraba.
+
+**Fix — `nomina/page.tsx`**: nueva función `diasLicenciaSinSueldoEnPeriodo()`,
+mismo mecanismo exacto de solape/clamp que `diasVacacionEnPeriodo()` (clampa
+`fechaInicio`/`fechaFin` de cada licencia contra el rango del período,
+`rangoPeriodo()`), pero sin monto que calcular — solo reduce
+`diasTrabajados`, igual que `diasCorteEnPeriodo()` ya hace para suspensión.
+Filtra únicamente licencias `enfermedad_comun`/`accidente_laboral` con
+`disfruteSueldo !== true`.
+
+Wireado en `calcularParaPeriodo()` (el choke point usado en los 6 call
+sites ya documentados para vacaciones) con la misma precedencia que
+suspensión/salida — antes de vacaciones:
+```
+diasSuspensionEnPeriodo() ?? diasSalidaEnPeriodo() ?? diasLicenciaSinSueldoEnPeriodo()
+```
+`useLicencias()` se agregó junto a `useVacaciones()` y el array `licencias`
+se propagó por los 6 call sites existentes (`resultadoDePeriodo`, el
+`useEffect` de recálculo de totales, `calcularTotalesRapido`,
+`congelarYCalcular`, y los 2 cálculos de `manejarInsuficienciaFondos`).
+
+El toast al crear un período ahora también menciona licencias sin sueldo
+detectadas, mismo patrón ya usado para vacaciones ("N empleado(s) con
+vacaciones · N empleado(s) con licencia sin sueldo en este período").
+
+**Verificado en navegador con Playwright, matemática exacta** (salario base
+RD$46,000, julio 2026 = 31 días):
+1. Empleado con enfermedad común 10 días (10-19 jul) **sin** disfrute →
+   S. Bruto exacto RD$31,161.29 (=46,000 × 21/31, prorrateado).
+2. Mismo caso pero **con** disfrute de sueldo activado → S. Bruto
+   RD$46,000.00 completo, sin prorratear.
+3. Licencia matrimonial (fija) → S. Bruto completo, sin cambios.
+4. Maternidad → S. Bruto completo, sin cambios (empresa paga 100% y
+   reclama a SISALRIL por separado).
+5. Empleado control sin ninguna licencia → sin cambios.
+6. **2ª quincena de julio** (16-31, 16 días) con 5 días de enfermedad común
+   sin disfrute (20-24 jul) → S. Bruto exacto RD$15,812.50
+   (=46,000 × 11/16 ÷ 2), confirmando que el halving quincenal no se aplica
+   dos veces sobre el mismo prorrateo.
+7. Toast al crear un período nuevo con una licencia sin sueldo pendiente
+   menciona correctamente "1 empleado(s) con licencia sin sueldo en este
+   período".
+
+`tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de conteo).
+
+**No implementado en esta pasada** (quedó fuera de alcance, priorizado
+como próximo paso por el propio usuario): filtros de búsqueda en
+`/licencias` (mismo patrón ya usado en Nómina/Vacaciones/Bonificación),
+subida de documento de soporte (certificado médico/acta), y trazabilidad
+de reclamos de subsidio ante SISALRIL/ARL (estado "por reclamar/reclamado/
+reembolsado").
+
+## Badge "De Licencia" en Empleados — estado derivado, sin campo persistido
+
+Dos preguntas de seguimiento del usuario tras la integración Licencias-
+Nómina: (1) ¿se retienen AFP/SFS/ISR normalmente durante una licencia (ej.
+maternidad), como le pasó a su esposa? — confirmado que sí, ya funcionaba
+así antes de esta sesión: la maternidad (y el resto de licencias salvo
+enfermedad/accidente sin disfrute) no toca `diasTrabajados`, así que el
+salario bruto completo fluye por `calcularNomina` sin ninguna excepción,
+con AFP/SFS/ISR normales. (2) Sugirió que el estado del empleado debería
+reflejar visualmente que está de licencia — implementado.
+
+**`licencias-context.tsx`**: nuevas `licenciaActiva(empleadoId, fecha?)` /
+`estaDeLicencia(empleadoId, fecha?)`, mismo patrón exacto que
+`disfruteActivo`/`estaDeVacaciones` en `vacaciones-context.tsx` — puramente
+derivado de `fechaInicio`/`fechaFin` contra la fecha actual, **sin ningún
+campo persistido en `Empleado`** (a diferencia de `suspendido`/
+`salidaPendiente`, que sí son campos reales) — se actualiza solo con el
+paso del tiempo, sin necesidad de una acción manual de "cerrar" la licencia.
+
+**`empleados/page.tsx`**: badge "De Licencia" (`variant="info"`, celeste)
+en la tabla y en el header del drawer, junto a Activo/Suspendido/Salida
+Pendiente — con precedencia explícita: si el empleado está suspendido o
+con salida pendiente, esos badges priman y "De Licencia" no se muestra
+(mismo criterio de precedencia ya aplicado en el motor de nómina). En el
+drawer, un subtexto muestra el tipo de licencia (`labelLicencia`) + fecha
+de fin + link "Ver en Licencias". `estadoEmpleadoLabel()` (usado en la
+exportación a Excel) ahora recibe `estaDeLicencia(e.id)` como segundo
+parámetro para incluir "De Licencia" en el estado exportado.
+
+Verificado en navegador con Playwright, 4 escenarios: empleado con licencia
+de maternidad vigente hoy → badge visible en tabla y drawer, subtexto
+"Maternidad — hasta el [fecha] — Ver en Licencias" (el link navega
+correctamente a `/licencias`); empleado sin ninguna licencia → sin badge;
+empleado con una licencia YA terminada (fechaFin en el pasado) → sin badge,
+confirmando que es puramente derivado de la fecha actual; empleado
+suspendido que además tiene una licencia activa → solo muestra
+"Suspendido", confirmando la precedencia. `tsc --noEmit` y `npm run build`
+limpios (19 rutas, sin cambio de conteo).
+
+## Prorrateo por reajuste salarial a mitad de período + alerta de pago retroactivo pendiente
+
+Pedido del usuario ("Dale", aprobando la opción que yo mismo recomendé al
+preguntar "¿con qué seguimos?"), retomando el último ítem pendiente de
+🔴 Alta prioridad del backlog SPN: "Prorrateo por reajuste salarial a mitad
+de período + retroactivo por ingreso tardío" — dos huecos del mismo tipo
+(algo con fecha de efectividad cae dentro de un período ya abierto) que se
+resolvieron con dos mecanismos independientes.
+
+**Reajuste salarial a mitad de período — salario ponderado por días:**
+- Nuevo campo opcional `RegistroAumento.fechaEfectiva` (fecha ISO, distinta
+  de `fechaSolicitud`/`fechaAprobacion`/`fechaAplicacion`, que solo registran
+  CUÁNDO ocurrió cada paso del workflow, nunca desde cuándo debería regir el
+  nuevo salario). Capturado en `aumentos/page.tsx` como un campo de fecha
+  opcional en el formulario de solicitud, con nota inline explicando el
+  mecanismo. Sin este campo, el comportamiento es 100% idéntico al anterior
+  (retrocompatible).
+- **`salarioEfectivoEnPeriodo()`** (nuevo, `nomina/page.tsx`) — para un
+  empleado con un `RegistroAumento` `estado: 'aplicado'` cuya `fechaEfectiva`
+  cae dentro del rango de fechas de un período todavía `en_proceso`, calcula
+  un **salario base ponderado por días** (`(díasAntesDelCambio ×
+  salarioAnterior + díasDesdeElCambio × salarioNuevo) / díasDelPeriodo`) y lo
+  inyecta como si fuera `Empleado.salarioBase` antes de llamar a
+  `calcularNomina` — reutiliza exactamente el mismo truco ya validado para
+  Vacaciones Goce/Vendidas y Bonificación ("tratar un monto calculado como si
+  fuera el salario del mes"), en vez de sumar dos llamadas separadas a
+  `calcularNomina` (que arriesgaría toparse dos veces contra los topes
+  cotizables de TSS o cruzar tramos de ISR de forma incorrecta).
+- **Deliberadamente NO retroactivo**: solo aplica mientras el período sigue
+  `en_proceso` — un período ya `cerrada` con un reajuste posterior no se
+  corrige solo (requeriría "Reabrir"/desposteo explícito, ya existente para
+  otros casos). Mismo criterio que ya rige el resto del sistema (snapshot
+  histórico inmutable salvo desposteo).
+- Wireado en el mismo choke point `calcularParaPeriodo()` que ya centraliza
+  suspensión/salida/licencia-sin-sueldo/vacaciones (precedencia: suspensión →
+  salida → licencia sin sueldo → **reajuste salarial ya aplicado sobre el
+  empleado antes de vacaciones** → vacaciones) — propagado por los mismos 6
+  call sites ya documentados para licencias. Toast al crear un período ahora
+  también menciona "N empleado(s) con reajuste salarial en este período".
+  Sin nota dedicada en el modal `DetalleNomina` — mismo criterio ya usado
+  para el prorrateo de suspensión (silencioso, solo se refleja en el propio
+  número de S. Bruto).
+
+**Alerta de posible pago retroactivo pendiente (ingreso tardío):**
+- Nueva señal en `useAlertas()` (`src/lib/alertas.ts`), reutilizando la
+  misma lógica de "candidatos" que ya usa el reporte "Empleados Sin
+  Ingresos" de Reportería (fecha de ingreso dentro del mes de un período ya
+  `cerrada`, cruzando `RegistroLiquidacion.fechaTerminacion` para no excluir
+  a alguien desvinculado después de ese mes) — aplicada aquí de forma
+  proactiva sobre TODOS los períodos cerrados, no solo el que el usuario
+  elija revisar manualmente. Severidad `warning`, enlaza a `/reportes` (sin
+  deep-link a la pestaña específica — `output: 'export'` exige envolver
+  `useSearchParams` en Suspense, fuera de alcance de esta pasada).
+
+**Bug real encontrado durante la verificación (no relacionado con la lógica
+de negocio en sí): la campanita de notificaciones nunca mostraba
+`detalle`/`detalleTotal`.** Al extraer `NotificationBell.tsx` del extinto
+`CentroAlertas.tsx` (sesión anterior), el JSX del popover se quedó solo con
+`titulo`/`descripcion`/`linkLabel` — los chips de detalle (nombres de
+empleados afectados) que la documentación de esa sesión decía haber
+preservado en realidad nunca se migraron al nuevo componente. Esto afectaba
+silenciosamente TODAS las alertas con `detalle` (salario mínimo, préstamos
+con gestión de cobro, y ahora pago retroactivo), no solo la nueva — un
+usuario nunca podía ver DESDE la campanita a qué empleado se refería una
+alerta, solo el conteo total en el título. Encontrado porque el propio test
+de esta feature esperaba ver "Jun 2026" en el popover y no aparecía en
+ningún lado de la página. Fix: `NotificationBell.tsx` ahora renderiza
+`item.detalle` como chips `rounded-full` (mismo lenguaje visual ya usado en
+el resto de la app para chips de detalle) con "+N más" cuando
+`detalleTotal` excede lo mostrado.
+
+Verificado en navegador con Playwright, matemática exacta: empleado con
+salario RD$50,000→RD$55,000 efectivo el 16 de julio (mes de 31 días) → S.
+Bruto exacto RD$52,580.65 (=(15×50,000+16×55,000)/31); empleado control sin
+reajuste sin cambios. Misma prueba en 2ª quincena (16-31, reajuste efectivo
+el 24, RD$44,000→RD$50,000) → S. Bruto exacto RD$23,500.00
+(=((8×44,000+8×50,000)/16)/2), confirmando que el halving quincenal no se
+aplica dos veces sobre el salario ya ponderado. Toast al crear un período de
+agosto con un reajuste efectivo el 10 → menciona "reajuste salarial"
+correctamente. Alerta de pago retroactivo: empleado con `fechaIngreso`
+2026-06-10 ausente de `empleadosProcesados` de un período de junio ya
+cerrado → badge de la campana aparece, popover muestra "1 caso de posible
+pago retroactivo pendiente" con el chip "Nuevo IngresoTardio — Jun 2026"
+visible (confirmando el fix del bug de chips faltantes). `tsc --noEmit` y
+`npm run build` limpios (19 rutas, sin cambio de conteo).
+
+## Licencias — filtros, documento de soporte, trazabilidad de reclamo SISALRIL/ARL
+
+Cierre de las 3 mejoras que habían quedado deliberadamente fuera de alcance
+en la sesión de integración Licencias-Nómina, ahora priorizadas por el
+usuario ("Filtros de búsqueda... Adjuntar certificado médico/acta...
+Trazabilidad de reclamos SISALRIL/ARL").
+
+- **Filtros de búsqueda** — mismo patrón exacto ya usado en Nómina/
+  Vacaciones/Bonificación: buscador por nombre/cédula + `<select>` de
+  departamento + botón "Ver todos" + contador "X de Y licencia(s)". El
+  footer de totales se relabela "TOTAL (filtrado)" y suma solo las filas
+  visibles; las StatCards del encabezado (incluida la nueva "Pendiente de
+  Reclamar") se mantienen a nivel de toda la empresa, mismo criterio ya
+  establecido en Regalía Pascual/Bonificación.
+- **Documento de soporte** — nuevos campos `Licencia.documentoSoporte`
+  (base64) / `documentoNombre`, mismo mecanismo que
+  `Prestamo.documentoSolicitud`/`documentoNombre`. A diferencia de
+  Préstamos (que solo acepta PDF de la solicitud aprobada), aquí el
+  documento puede ser certificado médico O acta (matrimonio/defunción/
+  nacimiento, según el tipo de licencia) — el selector de archivo acepta
+  PDF e imágenes (`.pdf,.jpg,.jpeg,.png,image/*`), y la descarga reutiliza
+  `downloadBase64()`/`getMime()` de `empleado-form.ts` (detecta el MIME
+  real por extensión) en vez del helper de Préstamos que asume
+  `application/pdf` fijo. Columna "Doc." en la tabla con ícono descargable.
+- **Trazabilidad de reclamo SISALRIL/ARL** — nuevo tipo
+  `EstadoReclamoSubsidio = 'por_reclamar' | 'reclamado' | 'reembolsado'` +
+  `Licencia.fechaReclamo`/`fechaReembolso`/`montoReembolsado`. Se aplica a
+  **cualquier licencia con `montoSubsidioEstimado`** (enfermedad_comun,
+  accidente_laboral, maternidad) — decisión deliberada de alcance, no solo
+  a maternidad: aunque el subsidio de enfermedad/accidente lo recibe el
+  empleado directo (no la empresa, según el modelo ya documentado), en la
+  práctica RRHH suele gestionar/dar seguimiento al reclamo en nombre del
+  empleado, así que vale la pena rastrear si ya se sometió/resolvió aunque
+  el dinero no entre a la cuenta de la empresa. Nueva columna "Reclamo" en
+  la tabla — el propio `Badge` de estado es un botón que avanza al
+  siguiente paso con un solo click (`por_reclamar → reclamado →
+  reembolsado`, estampando la fecha de hoy automáticamente y, al
+  reembolsar, el monto estimado como default), más un link "deshacer" para
+  revertir un paso a la vez. Nueva StatCard "Pendiente de Reclamar" (suma
+  de `montoSubsidioEstimado` de todas las licencias `por_reclamar`,
+  histórico completo, no solo el mes actual) — es el número más accionable
+  ("no perder de vista dinero que la empresa puede recuperar", como lo
+  planteó el usuario). Export a Excel ganó las columnas "Estado Reclamo" y
+  "Doc. Adjunto".
+
+Verificado en navegador con Playwright: licencia matrimonial con PDF
+adjunto (`acta-matrimonio.pdf`) → ícono de documento descargable aparece en
+la fila; licencia de enfermedad común registrada → badge "Por Reclamar" por
+defecto y StatCard "Pendiente de Reclamar" refleja el monto; click en el
+badge avanza correctamente a "Reclamado" y luego a "Reembolsado", "deshacer"
+revierte un paso; filtro por nombre y por departamento aíslan la fila
+correcta con el contador y el footer "TOTAL (filtrado)" exactos. Sin errores
+de consola. `tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio
+de conteo).
+
+## Retribuciones Complementarias — persistencia real + recordatorio de vencimiento IR-17
+
+El usuario pidió analizar si el módulo (hasta entonces una calculadora
+efímera de una sola sesión, sin persistencia) se podía hacer "mejor y más
+productivo" — se propusieron 3 mejoras por prioridad; el usuario aprobó
+explícitamente **A (persistencia real + historial mensual)** y **B
+(recordatorio de vencimiento)**, descartando **C (integración con
+Préstamos vía diferencial de tasa de interés)** por ahora, y adjuntó la
+"Guía del Contribuyente No.14" oficial de la DGII sobre este impuesto para
+confirmar los datos legales exactos antes de codificarlos (evita el riesgo,
+ya identificado en el análisis previo, de afirmar una fecha límite sin
+verificar).
+
+**Datos legales confirmados por la guía adjunta** (antes solo se sospechaban,
+ahora vienen de la fuente oficial): el impuesto se declara mensualmente vía
+**Formulario IR-17** ("Otras Retenciones y Retribuciones Complementarias")
+en la Oficina Virtual DGII, **vence el día 10 de cada mes** junto con las
+demás retenciones (si cae fin de semana, se traslada al siguiente día
+hábil — la guía no detalla feriados, así que la función solo ajusta
+sábado/domingo, no feriados nacionales); declarar tarde genera 10% de
+recargo el primer mes/fracción + 4% progresivo por mes adicional + 1.10%
+de interés indemnizatorio acumulativo. Base legal: Código Tributario Ley
+11-92, modificada por las Leyes 557-05/139-11/253-12.
+
+**A — Persistencia real + historial mensual:**
+- Nuevo tipo `RetribucionComplementaria` (mes/año/concepto/valorMensual/
+  empleadoId opcional/`declarada`/`fechaDeclaracion`) + `src/lib/
+  retribuciones-context.tsx` (mismo patrón que `licencias-context.tsx`,
+  `useUserScopedKey('cielo-retribuciones-complementarias')`), registrado en
+  `layout.tsx`. Antes, refrescar la página perdía todo lo registrado — ahora
+  cada línea persiste con su mes/año, permitiendo comparar meses.
+- **`/retribuciones-complementarias`** rediseñado: selector de mes/año con
+  flechas ‹ › en vez de un formulario de una sola sesión; el "Empleado
+  beneficiario" pasó de ser un dato global del batch a un campo por línea
+  (con columna "Empleado" en la tabla), ya que ahora distintos meses/líneas
+  pueden tener beneficiarios distintos. Nueva sección "Historial de
+  Declaraciones IR-17" — tabla de todos los meses con líneas registradas
+  (total, impuesto, estado Declarado/Pendiente), con acción "Ver" que salta
+  directo a ese mes.
+- **Declaración IR-17** — `marcarDeclarado(mes, año, fecha)`/
+  `desmarcarDeclarado(mes, año)` en el contexto: una sola declaración
+  mensual cubre TODOS los conceptos de ese mes, así que el estado se marca
+  a nivel de mes (todas sus líneas), no por línea individual — botón
+  "Marcar como Declarado (IR-17)" + "deshacer", mismo patrón ya usado en
+  Licencias (trazabilidad de reclamo) y Nómina (marcar pagada).
+
+**B — Recordatorio de vencimiento:**
+- `fechaLimiteIR17(mes, anio)` + `getRetribucionesPendientes()` (nuevos,
+  `dominican-labor.ts`, mismo patrón que `getBonificacionesPendientes`) —
+  agrupa por mes/año, un mes cuenta como pendiente solo si NINGUNA de sus
+  líneas está declarada. Wireado en `useAlertas()` (`src/lib/alertas.ts`) y
+  visible en la campanita de notificaciones — a diferencia de Bonificación/
+  Regalía (cadencia anual, ventana de aviso de 30-45 días), aquí la ventana
+  es de solo **10 días** porque el vencimiento es mensual — con una ventana
+  larga la alerta estaría "siempre encendida" desde el día 1 de cada mes,
+  sin aportar urgencia real.
+- `TASA_IMPUESTO_SUSTITUTIVO_RETRIBUCIONES` (27%) se movió de una constante
+  local en la página a `dominican-labor.ts`, para que el helper de alertas
+  y la página compartan la misma fuente de verdad.
+
+**C — explícitamente diferido** (no implementado esta sesión, por decisión
+del usuario): detectar préstamos/avances con tasa de interés preferencial
+como retribución complementaria automática (Art. 318 CT — el diferencial de
+interés no cobrado es en sí mismo una retribución complementaria gravable).
+Sigue siendo una integración real pendiente para una sesión futura.
+
+**Hallazgo adicional de la guía, no implementado por estar fuera del
+alcance A+B acordado**: la guía especifica bases de cálculo mucho más
+detalladas que el "valor mensual" plano que usa hoy el módulo — vivienda se
+calcula por la SUMA de gastos reales imputados (depreciación/alquiler +
+mantenimiento + servicios), y vehículos llevan un % de uso personal
+presunto (40%/20% según si el empleado es de oficina y si el vehículo es
+propiedad de la empresa o del empleado, con una regla especial: si se
+asignan varios vehículos de la empresa a un mismo funcionario, solo el
+menos costoso recibe la proporcionalidad). Quedó registrado aquí para una
+futura sesión si el usuario decide refinar la base de cálculo por
+categoría — no se tocó la categorización ni las fórmulas existentes en esta
+pasada, solo persistencia (A) y vencimiento (B).
+
+Verificado en navegador con Playwright: línea de RD$20,000 (Vehículo de la
+empresa) → Impuesto Sustitutivo exacto RD$5,400.00; navegar al mes anterior
+y volver confirma el aislamiento real entre meses (antes todo vivía en un
+solo `useState` compartido); reload completo de página confirma persistencia
+real (ya no es efímera); "Marcar como Declarado" cambia el badge y aparece
+en el Historial; "deshacer" revierte; una línea de enero 2026 sin declarar
+sembrada directo en localStorage dispara el badge de la campana con "IR-17
+vencido hace N día(s)" y el link correcto. Sin errores de consola. `tsc
+--noEmit` y `npm run build` limpios (19 rutas, sin cambio de conteo).
+
+## Retribuciones Complementarias — prioridad media (D+E+F)
+
+Cierre de las 3 mejoras de prioridad media que habían quedado pendientes
+tras A+B (persistencia + recordatorio IR-17): **D** (acumulado por
+empleado), **E** (exportación a PDF) y **F** (bloque en Cumplimiento
+Fiscal de Reportería), a pedido explícito del usuario ("Vamos con
+prioridad media").
+
+**D — Acumulado por Empleado**: nueva sección en `/retribuciones-
+complementarias` que agrupa TODAS las líneas registradas (sin importar el
+mes) por `empleadoId`, mostrando total histórico, impuesto sustitutivo
+total, y cantidad de meses/conceptos — RRHH puede ver de un vistazo quién
+ha recibido más beneficios en especie a lo largo del tiempo sin revisar
+mes por mes. Las líneas sin empleado asignado se agrupan aparte como
+"General / sin asignar". Incluida también como tercera hoja en la
+exportación a Excel.
+
+**E — Exportación a PDF**: el módulo solo tenía Excel — se agregó
+`handleExportarPDF()` con el mismo lenguaje visual navy/`autoTable` ya
+usado en los reportes de Reportería (investigado primero vía agente: hay
+dos estilos de PDF en la app — "recibo individual" dibujado a mano en
+`nomina-shared.ts`/`liquidacion/page.tsx`, y "reporte tabular" con
+`jspdf-autotable` en `reportes/page.tsx` — se eligió el segundo por ser
+tabular). El header/tabla/tabla de historial/footer se escriben
+directamente en este archivo (no se extrajo a un lib compartido porque
+Next.js prohíbe exports adicionales desde un `page.tsx` y ningún otro
+módulo necesita esta función todavía — mismo problema ya documentado y
+resuelto de otra forma para `nomina-shared.ts`). El PDF se centra en el
+mes en vista + estado de declaración + historial (no incluye "Acumulado
+por Empleado", que ya vive en el Excel) — es un documento de soporte para
+la declaración de ESE mes, no un reporte gerencial completo.
+
+**F — Bloque en Cumplimiento Fiscal**: `ReporteTSS` en `reportes/page.tsx`
+ahora también lee `useRetribuciones()` y filtra por `mes`/`anio` del
+`PeriodoNomina` seleccionado (cruce simple, ya que `RetribucionComplementaria`
+no referencia un período de nómina — mismo criterio usado en
+`getRetribucionesPendientes`). Nueva franja "Impuesto Sustitutivo —
+Retribuciones Complementarias (IR-17)" debajo de la franja existente
+"Retención ISR — DGII" (mismo componente visual, condicional a que existan
+líneas ese mes — nunca aparece vacía). Se agregó también al PDF (tercer
+`autoTable` encadenado con `lastAutoTable.finalY`, mismo patrón que la
+franja de ISR) y al Excel (tercera hoja condicional "IR-17") de ese
+reporte. Es información de solo lectura — el checkbox de declarado/
+pendiente sigue viviendo exclusivamente en `/retribuciones-
+complementarias`, evitando duplicar el estado en dos lugares.
+
+Verificado en navegador con Playwright: acumulado de Carlos Ejecutivo
+(RD$20,000 Vehículo en julio + RD$15,000 Vivienda en junio) → total
+histórico exacto RD$35,000.00, impuesto RD$9,450.00, "2" meses/"2"
+conceptos; "Exportar PDF" descarga un archivo `.pdf` real sin errores;
+período mensual cerrado de julio con esa misma línea de RD$20,000 →
+Cumplimiento Fiscal muestra el bloque IR-17 con el monto exacto
+RD$5,400.00 (27% de 20,000), debajo del bloque de ISR existente. Sin
+errores de consola. `tsc --noEmit` y `npm run build` limpios (19 rutas,
+sin cambio de conteo).
+
+## QA de comercialización — simulación de 7 años, 7 agentes en paralelo
+
+Directiva explícita del usuario, de cara a empezar a comercializar el
+producto: "Quiero que hagas QA a fondo de cada uno de los módulos del
+sistema... Quiero estar seguro de que todo está funcionando correctamente
+porque nuestro objetivo es comenzar a comercializar y todo debe estar bien.
+Simula 7 años." Autorización explícita para usar agentes en paralelo y
+capacidad máxima del modelo.
+
+**Metodología**: 7 agentes independientes (Agent tool, no Workflow — el
+pedido del usuario no cumplía la barra de "palabras propias del usuario"
+que exige el Workflow tool para orquestación multiagente), cada uno
+responsable de un grupo de módulos relacionados, construyendo su **propio**
+dataset sintético de 7 años (2019-2026) vía Playwright + `localStorage`
+directo contra un servidor de desarrollo compartido, usando perfiles de
+navegador persistentes independientes (`profile_qaA`...`profile_qaG`) para
+no chocar entre sí:
+
+| Agente | Módulos |
+|---|---|
+| A | Motor de Nómina + Cálculo/Envíos + Aumentos Salariales |
+| B | Empleados + Carga Inicial + Bandas Salariales |
+| C | Vacaciones + Liquidación |
+| D | Licencias + Préstamos |
+| E | Regalía Pascual + Bonificación + Retribuciones Complementarias |
+| F | Reportería (15+ reportes) |
+| G | Dashboard + Alertas + Configuración + Auth |
+
+**Resultado**: 27 hallazgos totales (13 críticos, 7 medios, 7 bajos). Los 13
+críticos y 6 de los 7 medios se corrigieron en esta sesión; los 2 medios/bajos
+restantes quedaron documentados como limitaciones arquitectónicas honestas
+(no bugs con fix simple), consistente con el criterio ya usado en el resto
+de este documento para casos similares.
+
+### 🔴 Hallazgos críticos corregidos (13)
+
+1. **Vacaciones — sobre-acumulación por umbral off-by-one.**
+   `calcularDiasVacacionesAcumulados` usaba `i >= 5`/`(aniosCompletos+1) >= 5`
+   para decidir 14 vs. 18 días/año — el año exactamente en el umbral (año 5)
+   ya contaba a 18 en vez de 14, adelantando el cambio de tasa un año antes
+   de lo que exige el Art. 177 ("más de cinco años"). Fix: `>= 5` → `> 5` en
+   ambos puntos. Verificado: 7 años exactos ahora acumulan 106 días
+   (5×14 + 2×18), no 108.
+2. **Cesantía/Preaviso — el promedio de 12 meses se distorsionaba con
+   historial incompleto.** `calcularSalarioPromedioUltimos12Meses` dividía
+   la suma real entre la CANTIDAD de meses encontrados (no siempre 12) —
+   un empleado con solo 2-3 meses de historial en Cielo Cloud (típico de
+   una empresa recién migrada) veía su indemnización basada en el promedio
+   de esos pocos meses, ignorando por completo
+   `Empleado.salarioHistoricoReferencia` (el campo diseñado exactamente
+   para este caso). Fix: divisor fijo de 12 meses, rellenando los meses sin
+   registro real con `salarioHistoricoReferencia ?? salarioBase`.
+3. **Reajuste salarial a mitad de período — el prorrateo ponderado solo
+   cubría el período donde ocurría el cambio.** Un período posterior (sin
+   ningún aumento efectivo DENTRO de su rango) seguía usando
+   `Empleado.salarioBase` en vivo en vez de reconstruir cuál era el salario
+   vigente al final de ese período específico — un período histórico
+   reabierto/recalculado después de un aumento posterior podía mostrar el
+   salario incorrecto. Fix: `salarioEfectivoEnPeriodo` ahora, cuando ningún
+   aumento cae dentro del rango, recorre la línea de tiempo completa de
+   `RegistroAumento[]` para reconstruir el salario vigente al cierre del
+   período (histórico si el período es anterior a todos los aumentos,
+   futuro-anterior si es posterior).
+4. **Saldo ISR a Favor — solo consumía el registro más antiguo, dejando
+   crédito real sin aplicar.** Un empleado con 2+ créditos ISR activos
+   simultáneos (ej. uno viejo parcialmente consumido + uno nuevo) solo veía
+   descontado el ISR contra el primero — si no alcanzaba, el resto del ISR
+   se retenía normal aunque hubiera más crédito disponible en el segundo
+   registro. Fix: `conSaldoISR`/`congelarYCalcular` ahora suman TODOS los
+   saldos activos y los encadenan FIFO tanto en la vista previa como al
+   procesar (consumo real, persistido por registro).
+5. **Modal de envío de comprobantes usaba el motor plano, sin ningún
+   prorrateo.** `EnvioComprobantesModal` calculaba con `calcularConPeriodo`
+   (dominican-labor.ts, sin conocimiento de suspensión/salida/licencia sin
+   sueldo/vacaciones/reajuste salarial) en vez de `calcularParaPeriodo`
+   (nomina-shared.ts, el chokepoint real) — el comprobante enviado por
+   correo podía mostrar un monto distinto al que realmente se procesó y
+   cerró. Fix: reemplazado el import y threading de `disfrutes`/
+   `licencias`/`aumentos`.
+6. **Duplicación de período especial al reseleccionar un año ya pagado.**
+   En Bonificación y Regalía Pascual, seleccionar un año fiscal cuyo
+   período ya estaba `cerrada` (pagado) seguía permitiendo "Solicitar
+   Liquidación" — creaba un SEGUNDO período especial para el mismo año,
+   duplicando el pago en los números agregados. Fix: guard explícito en
+   `confirmarSolicitud()` de ambos módulos + banner gris "ya pagada — ver
+   en Nómina" en vez del botón de solicitud cuando el período del año
+   elegido ya está cerrado.
+7. **Planilla Bancaria/ACH ignoraba el período seleccionado, usaba
+   plantilla siempre viva.** El reporte armaba el roster con
+   `empleados.filter(e => e.activo)` (estado ACTUAL) en vez del snapshot
+   histórico del período elegido — un período de 2019 mostraba empleados
+   contratados en 2026 y excluía a los ya desvinculados de esa época. Fix:
+   roster ahora se construye preferentemente desde
+   `periodo.resultadosPorEmpleado` (snapshot), con el mismo fallback ya
+   establecido para períodos anteriores a la existencia de ese campo.
+8. **Proyección Anual descartaba el costo YTD de empleados liquidados
+   este año.** El acumulado "Ejecutado YTD" solo sumaba `filas` (roster
+   actual), excluyendo por completo lo pagado a cualquier empleado que ya
+   no está activo — subestimaba el costo real ejecutado del año en
+   empresas con rotación. Fix: nuevo `ytdRealFueraDePlantilla` sumado al
+   total, con nota visible cuando aplica.
+9. **Alerta de Regalía Pascual solo evaluaba el año calendario actual.**
+   Un año fiscal anterior sin pagar (ej. la empresa se saltó un diciembre)
+   nunca generaba alerta una vez pasado ese año calendario — la campanita
+   solo miraba `anioActual`. Fix: nuevo `getRegaliaPendientes()` (mismo
+   patrón barrido que `getBonificacionesPendientes`) que recorre
+   `ANIOS_FISCALES` completo, acotado por `primerIngresoConocido`.
+10. **Historial Nómina fabricaba pagos fantasma.** El tab Historial Nómina
+    de Empleados no verificaba `PeriodoNomina.empleadosProcesados` —
+    mostraba un período como "pagado" para un empleado que nunca formó
+    parte de él (ej. contratado después de que ese período cerró), usando
+    su salario actual como si se le hubiera pagado ese mes. Fix: filtro
+    adicional que excluye períodos donde el empleado no está en
+    `empleadosProcesados` (cuando ese campo existe).
+11. **Importador Excel de Carga Inicial no normalizaba cédulas al hacer
+    matching.** Comparaba el string crudo de la celda contra
+    `Empleado.cedula` — variaciones de formato (guiones, ceros a la
+    izquierda perdidos por Excel) creaban empleados DUPLICADOS en vez de
+    actualizar el existente. Fix: reutiliza `cedulasCoinciden()` (ya
+    existente en `ImportadorHorasExcel.tsx`, ahora movida a
+    `empleado-form.ts` como helper compartido) + normalización de cédula
+    nueva idéntica a `formToEmpleado()` al crear un registro.
+12. **`regaliaPagadaAnio` nunca se estampaba desde Carga Inicial.** Los dos
+    flujos (Asistente Guiado, Importador Excel) seteaban
+    `regaliaPagadaEsteAnio` pero nunca el año ancla `regaliaPagadaAnio` —
+    sin él, `regaliaPagadaVigente()` asume que el descuento solo aplica al
+    año calendario ACTUAL, así que un dato migrado a mitad de año podía
+    dejar de aplicarse antes de tiempo. Fix: ambos flujos estampan también
+    `regaliaPagadaAnio: new Date().getFullYear()`.
+13. **(Combinado con #3)** — el mismo fix de `salarioEfectivoEnPeriodo`
+    cubrió tanto el caso de reajuste a mitad de período reportado por el
+    Agente A como un caso relacionado de ingreso tardío con retroactivo mal
+    calculado.
+
+### 🟡 Hallazgos medios corregidos (6 de 7)
+
+- **Préstamos — residuo de centavos nunca cerraba a "pagado".** Pagar
+  exactamente el monto de cada cuota (redondeada a centavos) casi nunca
+  cierra el saldo a 0.00 exacto por el desfase entre la cuota redondeada y
+  `cuotaBase` interno — un préstamo mostraba "100% pagado" en pantalla pero
+  seguía `estado: 'activo'` para siempre, pesando en el panel de Capacidad
+  de Pago indefinidamente. Fix: tolerancia de redondeo (`saldoBruto <= 1 ?
+  0 : saldoBruto`) en `registrarPago`.
+- **Alertas de Bonificación/Retribuciones solo mostraban el primer caso
+  pendiente, ocultando el resto.** Con 2+ años/meses vencidos
+  simultáneamente, el popover de notificaciones solo listaba `[0]` sin
+  ninguna indicación de que había más — un usuario podía creer que solo
+  debía un año cuando en realidad debía varios. Fix: `detalle`/
+  `detalleTotal` en las 3 alertas (Bonificación, Regalía, Retribuciones)
+  ahora incluyen los casos adicionales vía `.slice(1)`.
+- **Alerta de pago retroactivo — doble conteo en nómina quincenal +
+  falso positivo por suspensión histórica.** Un mes con 2 quincenas podía
+  generar 2 alertas separadas para el mismo hueco real; y un empleado
+  suspendido en el pasado (con la suspensión ya cerrada mucho antes de ese
+  mes) podía marcarse incorrectamente como "sin ingresos" en meses donde sí
+  cobró normal. Fix: agrupación por `${anio}-${mes}` antes de iterar
+  (máximo 1 alerta por mes real, sin importar cuántos períodos quincenales
+  lo componen) + chequeo de suspensión contra `historialSuspensiones` con
+  solapamiento real de fechas (en vez del estado puntual actual).
+
+**No corregidos — limitaciones documentadas, no bugs con fix simple:**
+- **Costo por Departamento usa el departamento ACTUAL del empleado, no el
+  histórico** (Agente F) — el modelo de datos no tiene un campo de
+  "departamento en la fecha X"; corregirlo requeriría el mismo tipo de
+  snapshot ya construido para salario/resultado, pero aplicado a un campo
+  que hoy no se versiona en absoluto. Queda como brecha arquitectónica real
+  para una sesión futura si se prioriza.
+- **Calendario de Feriados en Configuración solo muestra el año calendario
+  actual** (Agente G) — limitación de alcance del selector, no un defecto:
+  el usuario puede seguir registrando feriados de años pasados/futuros
+  manualmente, solo que la UI no ofrece navegación entre años todavía.
+
+**Hallazgos bajos (7)** — deliberadamente no abordados en esta pasada dado
+el alcance ya cubierto (umbrales de ISR hardcodeados en un widget de
+Cumplimiento Fiscal, inconsistencia menor en el chequeo del flag `pagada`
+de Regalía, código muerto `diasVacAnuales` en Liquidación, nota faltante de
+"venta de vacaciones" en el PDF de comprobante, wrapping de títulos largos
+en el popover de notificaciones, límite estructural de 10 años atrás en
+`ANIOS_FISCALES` para Bonificación). Uno (texto placeholder "bórrame" en
+celdas de ejemplo de la plantilla Excel) se corrigió como efecto colateral
+del fix #11.
+
+### Verificación
+
+Script Playwright con 6 escenarios dirigidos (smoke test de las 19 rutas +
+5 escenarios que reproducen exactamente el bug original de cada fix crítico
+más representativo — C1 vacaciones/7 años, A1 salario histórico en período
+retroactivo, A2 encadenamiento de saldo ISR, E1 bloqueo de período
+duplicado, F1 roster histórico de la Planilla ACH) — los 6 pasaron tras dos
+correcciones al propio script (no a la app): el flujo de "Procesar" con un
+solo empleado pendiente abre el modal de auditoría pre-cierre en vez de
+procesar directo (comportamiento correcto y ya documentado del sistema, no
+un bug), así que el script necesitó un paso adicional de confirmación.
+`npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de
+conteo) tanto antes como después de un reinicio de contenedor a mitad de
+sesión (verificado que ningún cambio se perdió comparando `git diff --stat`
+antes/después).
+
+## Fix — empleado nuevo cobraba el período completo sin prorratear por fecha de ingreso
+
+Reporte directo del usuario: creó un empleado con `fechaIngreso` 15 de julio
+y, al abrir el período de nómina de la 1ª quincena de julio (1-15), el
+sistema lo incluyó de inmediato con el cálculo de la quincena COMPLETA, en
+vez de solo el día que realmente trabajó (el 15). Confirmado como bug real,
+no limitación conocida: pese a que el motor ya tenía mecanismos de
+prorrateo simétricos para suspensión, salida pendiente, licencia sin sueldo
+y goce de vacaciones (todos vía `diasCorteEnPeriodo`/variantes en
+`nomina-shared.ts`), **ninguno cubría el caso inverso — un ingreso que cae
+a mitad de un período ya abierto**. `empleadosEnNomina`
+(`empleados-context.tsx`) nunca filtró por `fechaIngreso`, así que un
+empleado recién creado con fecha futura respecto al inicio del período
+aparecía de inmediato con el 100% del período, sin importar cuántos días
+realmente llevaba trabajando.
+
+**Fix — mismo patrón exacto que los mecanismos ya existentes:**
+- Nueva función `diasIngresoEnPeriodo(empleado, mes, anio, tipo, quincena)`
+  en `nomina-shared.ts` — si `fechaIngreso` cae DENTRO del rango del
+  período (después de que ya empezó), prorratea `diasTrabajados` desde esa
+  fecha hasta el fin del período, sobre el total de días del período
+  (`diasLaborablesMes`). Si `fechaIngreso` es anterior o igual al inicio,
+  devuelve `null` (sin prorrateo, período completo — comportamiento
+  correcto ya existente). Wireada en `calcularParaPeriodo` (el chokepoint
+  único usado por los 6+ call sites de Cálculo de Nómina y Gestión de
+  Envíos/`EnvioComprobantesModal`), en la misma cadena de prioridad que
+  suspensión/salida/licencia sin sueldo — todas comparten el criterio ya
+  documentado de "el primer corte que aplique gana", ya que en la práctica
+  no deberían coexistir dos cortes distintos en el mismo período.
+- `empleadosDelPeriodo` (`nomina/page.tsx`) ahora también EXCLUYE por
+  completo (no solo prorratea) a cualquier empleado cuya `fechaIngreso` sea
+  POSTERIOR al fin del período — un empleado contratado en agosto no debe
+  aparecer siquiera en un período de julio, ni con RD$0. Mismo criterio
+  simétrico ya usado para suspensión/salida (una fecha de corte anterior al
+  inicio del período excluye del todo, no prorratea a cero).
+- Toast al crear un período ahora también menciona "N empleado(s) con
+  ingreso a mitad de período (prorrateado)", mismo patrón ya usado para
+  vacaciones/licencia sin sueldo/reajuste salarial.
+
+Verificado en navegador con Playwright, matemática exacta (empresa
+quincenal, salarioBase RD$45,000, 1ª quincena de julio = 15 días): empleado
+con `fechaIngreso` 2026-07-15 → S. Bruto exacto RD$1,500.00
+(=(45,000/2 quincena) × 1/15 días — el 15 de julio es el único día
+trabajado de esa quincena), contra un empleado control con antigüedad
+desde 2020 que sigue mostrando la quincena completa RD$22,500.00 sin
+cambios. Segundo escenario: empleado con `fechaIngreso` 2026-08-01 (mes
+siguiente) NO aparece en absoluto en el período de julio. `npx tsc
+--noEmit` y `npm run build` limpios (19 rutas, sin cambio de conteo);
+re-ejecutado también el script de verificación de la QA de 7 años completa
+(sección anterior) sin regresiones.
+
+## Corrección — el prorrateo por días calendario NO usaba la tarifa diaria legal (÷23.83)
+
+El usuario probó el fix anterior y señaló, con la matemática en mano, que
+RD$1,500 por 1 día de trabajo no podía ser correcto: RD$45,000 ÷ 23.83 =
+RD$1,888.37. El fix anterior prorrateaba con días CALENDARIO del período
+(mismo método ya usado por suspensión/salida/licencia/"días trabajados
+pendientes" en Liquidación) en vez de con la tarifa diaria legal del Art.
+177 (`DIVISOR_DIA_ORDINARIO = 23.83`, o 26 en régimen intermitente).
+
+**Se intentó aplicar ÷23.83 directamente dentro del período parcial y se
+demostró matemáticamente que se rompe** — valorar los días PERDIDOS de una
+quincena a esa tarifa y restarlos del salario de esa quincena puede dar
+**neto negativo** en casos completamente normales, no solo extremos:
+- Quincena 1-15 de julio, ingreso el 15 → 12 días laborables perdidos ×
+  RD$1,888.38 × 2 (pre-doblado, ya que `calcularNominaQuincenal` divide
+  TODO entre 2) = RD$45,321.05, más que el salario mensual completo
+  (RD$45,000) → salario de esa quincena sale en **-RD$160.51**.
+- Mensual, ingreso el día 31 de un mes con solo 4 domingos → 26 días
+  laborables perdidos × RD$1,888.38 = RD$49,097.78, también más que el
+  salario completo → **-RD$4,097.78**.
+
+La razón: 23.83 es un PROMEDIO de días laborables por mes completo,
+diseñado para valorar vacaciones/cesantía/preaviso (pagos siempre contra
+el salario íntegro) — un mes o quincena real con pocos domingos tiene MÁS
+días laborables reales que ese promedio, así que "días reales × tarifa
+promedio" puede superar el propio salario del período. La tarifa diaria
+legal nunca fue pensada para prorratear un período parcial por sí sola.
+
+**Decisión del usuario, con dos restricciones explícitas ("el divisor debe
+mantenerse y nunca una nómina dará negativa")**: en vez de prorratear
+DENTRO del período parcial, ese período simplemente no le paga nada al
+empleado nuevo — se excluye por completo, igual que ya se excluye a quien
+ingresa después de que el período termina — y los días que sí trabajó se
+valoran a la tarifa legal y se SUMAN, como pago extra, al período
+SIGUIENTE (mismo patrón ya usado por "días trabajados pendientes" al DAR
+DE BAJA a un empleado, aplicado aquí simétricamente al INGRESO). Ejemplos
+del propio usuario: ingreso el día 15 de una quincena 1-15 → ese día se
+paga en la 2ª quincena; ingreso el día 31 → se paga en la 1ª quincena del
+mes siguiente (o el mes siguiente completo, si la nómina es mensual). Al
+ser un monto SUMADO sobre el sueldo normal completo (nunca restado de él),
+es matemáticamente imposible que dé negativo.
+
+**Rediseño — `nomina-shared.ts`:**
+- `empleadosDelPeriodo` (`nomina/page.tsx`) vuelve a excluir por completo a
+  cualquier empleado cuya `fechaIngreso` caiga DESPUÉS del INICIO del
+  período (no solo después del fin, como en el intento anterior) — un
+  ingreso a mitad de período NUNCA se prorratea dentro de ese período.
+- Nueva `diasIngresoPendientes(empleado, periodos, mes, anio, tipo,
+  quincena)` reemplaza a `diasIngresoEnPeriodo` — calcula el hueco entre el
+  último período en que el empleado SÍ fue procesado (o su `fechaIngreso`
+  si nunca se le procesó ninguno) y el inicio del período que se está
+  calculando, en días laborables (`contarDiasLaborables`, excluye
+  domingos), valorados a `salarioBase ÷ getDivisorSalarioDiario(empleado)`.
+  **Acotado al período INMEDIATAMENTE anterior** (mismo tipo/cadencia,
+  vía `periodoAnteriorDeSerie`) — sin este límite, cualquier empleado con
+  historial (Carga Inicial, saldos migrados) generaría un "hueco pendiente"
+  de años cada vez que la empresa crea su primer período; con el límite,
+  un `fechaIngreso` anterior al inicio del período inmediato anterior se
+  trata como empleado con historial normal, sin ningún hueco fabricado.
+- Nuevo campo `diasIngresoPendientes` en `ParametrosNomina`/`ResultadoNomina`
+  — se suma a `totalBrutoLegado` en `calcularNomina` (cotizable TSS,
+  gravable ISR — salario ordinario, mismo tratamiento que
+  `vacacionesVendidas`: pago EXTRA sobre el sueldo normal completo, nunca
+  lo sustituye), con el mismo "pre-doblado" quincenal ya usado para
+  `vacacionesGoce`/`vacacionesVendidas` (`calcularNominaQuincenal` divide
+  TODO entre 2, así que el monto se dobla antes para sobrevivir esa
+  división). Nueva línea "Días Pendientes (Ingreso)" en Devengos del modal
+  `DetalleNomina` y en el PDF de comprobante.
+- Toast al crear un período distingue dos avisos: "N empleado(s) con días
+  pendientes de un ingreso reciente" (quien SÍ cobra en este período, con
+  el extra) y "N empleado(s) recién ingresados no cobran este período (sus
+  días se suman al próximo)" (quien queda excluido de este período
+  específico) — para que no parezca que un empleado recién creado
+  "desapareció" sin explicación.
+
+Verificado en navegador con Playwright, matemática exacta: empresa
+quincenal, `salarioBase` RD$45,000, ingreso 2026-07-15 (dentro de la 1ª
+quincena 1-15) → **1ª quincena NO muestra al empleado en absoluto**; **2ª
+quincena** muestra Salario Básico RD$22,500.00 (quincena completa, normal)
++ "Días Pendientes (Ingreso)" RD$1,888.38 (exacto — 1 día laborable × RD$45,000÷23.83)
+= Total Bruto RD$24,388.38, con AFP/SFS/ISR calculados sobre el total
+combinado y Salario Neto RD$21,265.67 (nunca negativo). Empleado control
+con antigüedad desde 2020 sigue mostrando la quincena completa sin
+cambios. Escenario mensual: ingreso 2026-07-31 (último día de julio,
+excluido de julio) → **agosto** muestra RD$46,000.00 + RD$1,930.34 (=
+RD$46,000÷23.83, 1 día) = RD$47,930.34. Escenario de acotamiento: empleado
+con `fechaIngreso` 2020-01-01 y la empresa creando su PRIMER período en
+julio 2026 → **sin ninguna línea de "Días Pendientes" fabricada** (el
+hueco de años queda correctamente fuera del período inmediato anterior).
+`npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de
+conteo); re-ejecutado también el script de verificación de la QA de 7 años
+completa sin regresiones.
+
+## Seguridad de períodos cerrados — inmutabilidad real, no solo de UI
+
+Pedido explícito del usuario, con contexto de práctica real de nómina: los
+departamentos de nómina cierran el período días antes de la fecha de pago
+(ej. paga el 15, corte el 12 — quien ingresa el 13 se va a la próxima
+quincena), lo cual ya coincidía con el diseño de `diasIngresoPendientes`
+de la sesión anterior (cualquier ingreso después del día 1 del período ya
+se excluye por completo de ese período, sin importar qué tan cerca esté
+del corte real — más estricto que "solo después del corte", así que ya
+cumplía esto sin cambios). El pedido central y explícito, en mayúsculas de
+énfasis: **"un periodo de nómina cerrado no lo abre nadie... el periodo
+cerrado no puede ser alterado jamás... si el periodo fue pagado, no lo
+abre nadie, solo borrando el pago de ese periodo."**
+
+**Auditoría previa a codificar**: `reabrir()` (desposteo) solo validaba
+"¿es el período más reciente de su serie?" — nunca revisaba si el período
+ya estaba `pagada`. La UI mostraba el botón "Reabrir" para CUALQUIER
+período cerrado/procesado más reciente, pagado o no. Peor aún:
+`actualizarAjustes`/`actualizarTotales`/`marcarProcesados` (las tres
+funciones que mutan los datos de un período) no tenían NINGÚN guard a
+nivel de datos — confiaban por completo en que la UI no las llamara fuera
+de contexto (`esEnProceso`), sin ninguna segunda línea de defensa. Y
+`eliminar()` no distinguía el estado del período en absoluto — se podía
+borrar un período `cerrada` y hasta pagado con un solo click + confirm.
+
+**Fix — `periodos-context.tsx`, guards a nivel de datos (no solo UI):**
+- `actualizarAjustes`, `actualizarTotales`, `marcarProcesados`: ahora
+  verifican `periodo.estado === 'en_proceso'` ANTES de mutar — si el
+  período ya es `procesada` o `cerrada`, la función es un no-op silencioso.
+  Aunque la UI de hoy ya solo ofrece estos controles durante `en_proceso`,
+  el guard vive aquí como última línea de defensa real, no dependiente de
+  que ningún futuro cambio de UI se le olvide revisar el estado.
+- `cerrar`: solo transiciona `procesada → cerrada` — no-op si el período no
+  está en `procesada`.
+- `eliminar`: ahora devuelve `boolean` y es un no-op si `estado === 'cerrada'`
+  — un período cerrado es un registro histórico, nunca se borra
+  directamente. Para poder eliminarlo hay que reabrirlo primero (con lo
+  que vuelve a `en_proceso`), igual que para poder editarlo.
+- `reabrir`: nuevo guard — `if (periodo.pagada) return false`. Un período
+  ya pagado NO se puede reabrir bajo ninguna circunstancia, sin importar
+  si es el más reciente de su serie.
+- Nueva función `desmarcarPagada(id)` — el ÚNICO camino para volver a
+  habilitar `reabrir()` en un período pagado: limpia `pagada`/`fechaPago`
+  SIN cambiar `estado` (el período sigue `cerrada`, esta acción por sí sola
+  no lo reabre — son dos pasos deliberadamente separados). No revierte
+  ninguna transferencia bancaria real, es un reconocimiento explícito en
+  el sistema de que ese registro de pago ya no aplica.
+
+**UI — `nomina/page.tsx` (lista de períodos):**
+- Botón "Reabrir": si `p.pagada` es `true`, se muestra deshabilitado
+  (`disabled`, gris, `cursor-not-allowed`) con tooltip "Período ya pagado
+  — no se puede reabrir. Deshaz el pago primero en Gestión de Envíos." —
+  visible pero inerte, no oculto (mismo principio ya usado en
+  `ReportHeader` para botones bloqueados por validación).
+- Botón "Eliminar": deshabilitado con el mismo tratamiento visual cuando
+  `p.estado === 'cerrada'`, con tooltip "Un período cerrado es un registro
+  histórico — no se puede eliminar. Reábrelo primero si necesitas
+  corregirlo."
+
+**UI — `nomina/envios/page.tsx` (Gestión de Envíos):** nuevo botón
+"Deshacer Pago" (ícono `Undo2`, ámbar) junto a "Comprobantes" para
+cualquier período ya `pagada` — con una confirmación más severa que la de
+"Marcar como Pagada" (aclara explícitamente que NO revierte ninguna
+transferencia bancaria real, solo el registro en el sistema). Tras
+deshacer, el período vuelve a "Pendiente de pago" y el botón "Reabrir" en
+Cálculo de Nómina se habilita — dos pasos deliberados, nunca uno solo.
+
+Verificado en navegador con Playwright: período cerrado y marcado como
+pagado → botones "Reabrir" y "Eliminar" ambos deshabilitados
+(`disabled === true`, no solo estilo) con sus tooltips correctos; "Deshacer
+Pago" en Gestión de Envíos → el período vuelve a "Pendiente de pago"; de
+vuelta en Cálculo de Nómina, "Reabrir" ya está habilitado → al reabrirlo,
+el período vuelve a "En Proceso" correctamente. Sin errores de consola.
+`npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de
+conteo); re-ejecutada también la suite de verificación de ingreso a mitad
+de período (sección anterior) y la de la QA de 7 años, sin regresiones.
+
+## Corrección — el corte de nómina excluía DEMASIADOS días, solo debe excluir el último día del período
+
+El usuario corrigió el diseño anterior: "cualquier ingreso después del día
+1 del período queda excluido... eso no debe ser así". El fix previo
+excluía por completo del período a CUALQUIER ingreso posterior al día 1
+(día 2, día 10, día 14…), cuando en la práctica real de nómina el corte
+administrativo ocurre solo unos días antes del pago (ej. paga el 15,
+corte el 12) — solo quien ingresa DESPUÉS de ese corte se difiere a la
+próxima quincena; alguien que entra el día 2 debe cobrar esa misma
+quincena, prorrateado.
+
+Simplificación explícita del propio usuario para no depender de un
+"corte configurable": **el corte automático son los días 15, 30 y 31** —
+es decir, exactamente el ÚLTIMO día calendario de cada período (15 en la
+1ra quincena; 30 o 31 —o 28/29 en febrero— en la 2da quincena o en
+mensual). Cualquier ingreso ANTES de ese último día sí participa del
+período, prorrateado por días calendario; solo el ingreso que cae
+EXACTAMENTE en el último día del período se excluye y se arrastra al
+siguiente a la tarifa diaria legal (mecanismo ya construido en la sesión
+anterior, sin cambios).
+
+**Fix — `nomina-shared.ts`:**
+- Restaurada `diasIngresoEnPeriodo(empleado, mes, anio, tipo, quincena)`
+  (el mecanismo de prorrateo por días calendario que existía ANTES de la
+  corrección del ÷23.83, ahora con el alcance correcto): `null` si
+  `fechaIngreso <= inicio` (período completo) o si `fechaIngreso >= fin`
+  (cae en el corte o después — se excluye del todo, no se prorratea aquí).
+  Para cualquier fecha estrictamente entre inicio y fin, prorratea
+  `diasTrabajados`/`diasLaborablesMes` en días calendario — mismo
+  mecanismo exacto que ya usan suspensión/salida/licencia
+  (`diasCorteEnPeriodo`), nunca puede dar negativo ni superar el 100% del
+  período por construcción.
+- Wireada en `calcularParaPeriodo`, en la misma cadena de prioridad que
+  suspensión/salida/licencia sin sueldo.
+- `diasIngresoPendientes` (el mecanismo de arrastre a la tarifa legal) NO
+  cambió su lógica interna — matemáticamente sigue resolviendo
+  exactamente 1 día de hueco en el caso común, porque ahora la ÚNICA
+  condición de exclusión de un período es `fechaIngreso === fin` (antes
+  cualquier `fechaIngreso > inicio` disparaba la exclusión).
+
+**Fix — `nomina/page.tsx`:** `empleadosDelPeriodo` cambia el filtro de
+"normales" de `fechaIngreso <= inicio` de vuelta a `fechaIngreso < fin`
+(estrictamente antes del corte, no solo del día 1) — un ingreso el día 2
+o el día 14 ya vuelve a incluirse en el período, prorrateado. Toast al
+crear un período distingue ahora tres avisos: "N con reajuste salarial",
+"N con ingreso a mitad de período (prorrateado)" (los que SÍ cobran este
+período, prorrateados por días calendario) y "N ingresados en el corte de
+cierre no cobran este período" (los que caen justo en 15/30/31, se
+difieren).
+
+Verificado en navegador con Playwright, matemática exacta (quincenal,
+salarioBase RD$45,000, 1ra quincena de julio = 15 días): ingreso el día 2
+→ S. Bruto exacto RD$21,000.00 (=22,500 × 14/15 días calendario, SÍ
+participa de esa quincena); ingreso el día 14 → RD$3,000.00 (=22,500 ×
+2/15); ingreso el día 15 (el corte exacto) → NO aparece en la 1ra
+quincena, aparece en la 2da con "Días Pendientes (Ingreso)" RD$1,888.38
+exacto (tarifa legal, 1 día — mismo cálculo ya verificado en la sesión
+anterior, intacto). `npx tsc --noEmit` y `npm run build` limpios (19
+rutas, sin cambio de conteo); re-ejecutadas también las suites de
+verificación de la sesión anterior (días pendientes mensual, seguridad de
+períodos cerrados, QA de 7 años) sin regresiones.
+
+## Empleado nuevo contratado DESPUÉS de un cierre anticipado — el sistema debe saberlo
+
+El usuario planteó un caso real adicional, distinto al corte de 15/30/31:
+"si hoy es día 12 de agosto y yo como departamento de nómina decido cortar
+la nómina hoy... si un empleado entra el día 13, 14 o 15 esos días
+trabajados pasarán a la próxima quincena, entonces el sistema tiene que
+estar claro que hubo un empleado que entró después que el periodo de
+nómina se cerró". Es decir: el corte real no siempre coincide con el
+último día calendario del período (15/30/31) — puede ser ANTES, porque el
+departamento decide cerrar la nómina unos días antes de la fecha de pago
+para tener tiempo de correr la transferencia.
+
+**Bug real encontrado al investigar**: `empleadosPeriodo` en
+`nomina/page.tsx` se recalculaba EN VIVO desde `empleadosEnNomina`
+sin importar el `estado` del período. Aunque el guard de datos de la
+sesión anterior ya bloqueaba que un empleado nuevo pudiera ser realmente
+PROCESADO en un período `procesada`/`cerrada` (no-op silencioso en
+`marcarProcesados`), la tabla visual seguía mostrando a ese empleado como
+si pudiera procesarse ahí — confuso e inconsistente con el principio de
+"un período cerrado es un registro histórico inmutable".
+
+**Fix — `nomina/page.tsx`**: `empleadosPeriodo` ahora solo se recalcula en
+vivo mientras `estado === 'en_proceso'`. En cuanto el período pasa a
+`procesada` o `cerrada`, el roster se congela exactamente a
+`empleadosProcesados` (con fallback a la lista en vivo solo para períodos
+sin ese campo — mismo criterio ya usado en `EnvioComprobantesModal.tsx`).
+Esto resuelve el caso de raíz: si el departamento "cierra" el período el
+día 12 (lo marca `procesada`/`cerrada` ese día) y luego contrata a alguien
+el día 13, ese empleado nunca vuelve a aparecer en ese período sin
+importar cuántas veces se reabra la vista — sus días quedan capturados
+automáticamente por `diasIngresoPendientes` (ya construido en la sesión
+anterior) en el período SIGUIENTE que se cree, sin necesidad de que el
+corte coincida con el día calendario 15/30/31 exacto — el corte real es
+"cuándo el departamento efectivamente cerró", no una fecha fija.
+
+**Señal complementaria ya existente**: la alerta `pago-retroactivo` en
+`alertas.ts` (sesión previa, "posible pago retroactivo pendiente") ya
+detecta a este mismo empleado como un caso pendiente EN CUANTO el período
+donde debería figurar queda cerrado sin él — antes incluso de que se cree
+el período siguiente que finalmente le pague sus días. Se confirmó que
+esta alerta se resuelve sola una vez el período siguiente lo procesa
+(deja de estar "ausente de TODOS los períodos cerrados de ese mes").
+
+Verificado en navegador con Playwright: período "1ª Quincena · Agosto
+2026" sembrado ya `cerrada` con un solo empleado procesado (simulando
+cierre el día 12) → se agrega un empleado nuevo con `fechaIngreso`
+2026-08-13 → al abrir el período cerrado, sigue mostrando exactamente "1
+de 1 empleado(s)" (el nuevo NUNCA aparece, sin importar que su fecha de
+ingreso caiga calendario-mente dentro del rango 1-15) → al crear la 2ª
+quincena, el empleado nuevo aparece con salario completo (RD$22,500.00) +
+"Días Pendientes (Ingreso)" RD$5,665.13 exacto (3 días — 13, 14 y 15 de
+agosto, ninguno domingo — a la tarifa legal RD$45,000÷23.83), con el toast
+"1 empleado(s) con días pendientes de un ingreso reciente en este
+período". `npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin
+cambio de conteo); re-ejecutadas las suites de verificación de sesiones
+anteriores (corte de cierre, seguridad de períodos cerrados, QA de 7 años)
+sin regresiones.
+
+## QA dirigida a estados de período (en_proceso → procesada → cerrada → pagada)
+
+A petición del usuario ("Vamos con la QA de los estados de periodo"),
+tras cerrar la seguridad de períodos cerrados de la sesión anterior — un
+barrido más chico y dirigido a la máquina de estados, en vez de otro
+barrido masivo de 7 agentes.
+
+### 🔴 Hallazgo corregido — reabrir Regalía Pascual dejaba el acumulado del empleado "atascado" en cero
+
+`handleProcesarRegalia` estampa `Empleado.regaliaPagadaEsteAnio`/
+`regaliaPagadaAnio` al procesar cada empleado (así `regalia-pascual/page.tsx`
+muestra RD$0 acumulado — "ya se pagó, empieza a acumular de nuevo"). Pero
+`reabrir()` (desposteo) solo limpiaba `PeriodoNomina.empleadosProcesados`/
+`resultadosPorEmpleado` — nunca revertía ese campo en el propio `Empleado`.
+Resultado: reabrir un período de Regalía lo dejaba vacío (0 procesados) en
+Nómina, pero `regalia-pascual/page.tsx` seguía mostrando "RD$0.00
+pendiente" para esos empleados — como si ya estuvieran pagados, aunque en
+realidad nadie recibió nada en ese período reabierto. Si el departamento no
+notaba la discrepancia y no reprocesaba, el empleado se quedaba sin cobrar
+su regalía ese año sin ninguna alerta.
+
+**Fix**: el `onClick` del botón "Reabrir" (`nomina/page.tsx`), cuando
+`p.tipo === 'regalia'` y el desposteo tiene éxito, limpia
+`regaliaPagadaEsteAnio`/`regaliaPagadaAnio` (`actualizarEmpleado`) para cada
+ID que estaba en `empleadosProcesados` ANTES de reabrir (capturado previo a
+la llamada, ya que `reabrir()` lo vacía). Siempre seguro limpiarlo sin más
+lógica: `reabrir()` ya está restringido al período MÁS RECIENTE de su
+serie, así que este campo nunca contiene el rastro de un pago histórico más
+antiguo que se esté pisando por error — solo puede reflejar el pago que se
+acaba de deshacer. Bonificación no necesitó el mismo fix — no tiene ningún
+acumulado en `Empleado` que reiniciar (se calcula una sola vez al año desde
+la utilidad neta capturada en `/bonificacion`, no se acumula mes a mes).
+
+Verificado en navegador: período de Regalía 2026 cerrado con Ana ya
+procesada (`regaliaPagadaEsteAnio: 40000`, acumulado mostrado RD$0.00) →
+Reabrir → el acumulado de Ana vuelve a un valor real y distinto de cero
+(RD$23,333.33, proporcional a sus meses de servicio) en vez de quedar
+atascado en RD$0.00.
+
+### 🟡 Hallazgo resuelto — Regalía/Bonificación ahora usan el mismo candado de dos pasos que nómina normal
+
+`regalia-pascual/page.tsx` y `bonificacion/page.tsx` trataban
+`estado === 'cerrada'` como "ya se distribuyó" (bloquean una segunda
+solicitud con el banner correspondiente), pero el guard de `reabrir()`
+("no se puede reabrir un período pagado") solo verifica el campo `pagada`
+— que Regalía/Bonificación nunca estampaban por su cuenta, ya que Gestión
+de Envíos (aunque siempre los listó, al ser un filtro genérico por
+`estado`) nunca era parte del flujo esperado para estos dos tipos. Un
+período de Regalía/Bonificación `cerrada` se podía reabrir sin ninguna
+restricción, aunque su propia página ya lo tratara como completamente
+distribuido.
+
+Presentada la disyuntiva al usuario — bloquear reabrir por completo en
+cuanto cierra, vs. extender el mecanismo de "Marcar/Deshacer Pagada" de
+Gestión de Envíos a estos dos tipos — **eligió la segunda opción**, ya
+implementada:
+
+- `regalia-pascual/page.tsx` y `bonificacion/page.tsx`: el banner/botón de
+  "ya pagada" ahora distingue el estado real vía `periodo.pagada` (no solo
+  `estado === 'cerrada'`). Sin `pagada` (cerrada pero sin confirmar en
+  Gestión de Envíos todavía) → mensaje y enlace sin cambios, apuntan a
+  "reabre el período desde Nómina" (Cálculo de Nómina, reabrir directo
+  sigue disponible — igual que un mensual/quincenal `cerrada` sin pagar
+  aún). Con `pagada` → nuevo mensaje "ya se pagó y se confirmó el envío —
+  para corregirlo, deshaz el pago primero en Gestión de Envíos", con el
+  enlace apuntando a `/nomina/envios` en vez de `/nomina` (ya que Reabrir
+  ahí estaría deshabilitado sin ese paso previo).
+- Mismo ajuste en la tabla "Historial de Liquidaciones" de ambos módulos:
+  el badge "Estado" ya no dice "Pagada" de forma incondicional para todo
+  el historial — ahora es condicional a `p.pagada` (`Badge variant="warning">Cerrada
+  — pago sin confirmar"` para los que nunca pasaron por Gestión de Envíos).
+  Este era un hallazgo real independiente: como `fechaPago` tampoco se
+  estampaba nunca para estos tipos, la columna "Fecha de Pago" del
+  historial ya mostraba correctamente "—", pero el badge de al lado
+  afirmaba "Pagada" de todas formas — inconsistencia interna en la misma
+  fila.
+- Ningún cambio necesario en `periodos-context.tsx`: `marcarPagada`/
+  `desmarcarPagada`/el guard de `reabrir()` ya eran type-agnostic desde la
+  sesión anterior — el mecanismo ya soportaba esto, solo faltaba que la UI
+  de Regalía/Bonificación reflejara correctamente el estado real en vez de
+  asumir que "cerrada" siempre implicaba "ya con el candado puesto".
+
+Verificado en navegador con Playwright, ciclo completo para ambos tipos:
+Regalía Pascual `cerrada` sin pagar → Reabrir habilitado en Cálculo de
+Nómina, banner apunta a "ver en Nómina" → "Marcar como Pagada" en Gestión
+de Envíos → banner cambia a "pagada — Gestión de Envíos", Reabrir pasa a
+deshabilitado → "Deshacer Pago" → banner vuelve a "ver en Nómina", Reabrir
+vuelve a estar habilitado. Mismo ciclo confirmado para Bonificación por
+Utilidades. `npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin
+cambio de conteo); re-ejecutada toda la suite de verificación de sesiones
+anteriores sin regresiones.
+
+## Fix — ajuste manual de RD$1,000 en período quincenal solo aplicaba RD$500
+
+Reporte directo del usuario: "Abrí un periodo de nómina y agregué a un
+empleado un ajuste por un ingreso adicional por bono de 1000 pesos y cuando
+abrí la tarjeta para ver el detalle sólo se agregaron 500 pesos al
+cálculo... lo mismo hice con un descuento... solo se descontaron 500 es
+decir la mitad." Confirmado como bug real, con causa raíz sistémica más
+amplia que los dos síntomas reportados.
+
+**Causa raíz**: `ajustesToParams()` (`dominican-labor.ts`) bucketea
+`AjusteLinea[]` en un `ParametrosNomina`, que luego pasa por
+`calcularNominaQuincenal` — función que divide TODO el bruto/descuentos
+entre 2 asumiendo que cada campo de `params` es un total MENSUAL (ver
+sección "Quincenal" arriba). Eso es correcto para valores que en efecto
+representan una cuota o monto mensual (préstamo, dependiente SFS), pero
+`ajustesToParams` no distinguía esos dos casos — cualquier ajuste manual
+(bono, otro ingreso, comisión, horas extra 35%/100%, recargo nocturno, otro
+descuento, o un concepto personalizado) que el usuario captura como EXACTAMENTE
+lo que corresponde a ESA quincena específica se dividía a la mitad sin que
+nada lo compensara, porque nunca fue pensado como un total mensual.
+
+**Fix**: `ajustesToParams(ajustes: AjusteLinea[], tipo: TipoPeriodo)` ahora
+recibe el tipo de período y pre-dobla (`factor = tipo === 'quincenal' ? 2 :
+1`) los 8 conceptos manuales afectados —`horasExtras35`, `horasExtras100`,
+`horasNocturnas`, `bonificaciones` (bono + otro ingreso), `comisiones`, y
+los 3 campos de ingresos/deducciones personalizados (catálogo configurable
+de Configuración) — mismo mecanismo ya usado y validado para
+`vacacionesGoce`/`vacacionesVendidas`/`diasIngresoPendientes`
+(`nomina-shared.ts`): el monto se dobla ANTES de entrar a
+`calcularNominaQuincenal`, así que sobrevive intacto la división automática
+que le sigue. Dos excepciones deliberadamente NO se tocan, porque ya están
+en la escala correcta por diseño:
+- `prestamo` (`cuotaBase`): es un monto MENSUAL pre-cargado íntegro en AMBAS
+  quincenas al crear cada período — la división automática es justo lo que
+  reparte la cuota mensual 50/50 entre ambas.
+- `dependiente_sfs`: ya se pre-divide en `prorratearMontoFijo` al crear el
+  período (RD$1,919.78 → RD$959.89/quincena) — doblarlo aquí lo habría
+  vuelto a partir por error.
+Los 3 call sites de `ajustesToParams` (`nomina-shared.ts`'s
+`calcularConAjustes`, `empleados/page.tsx`'s `calcNominaConAjustes` para
+Historial Nómina, y `dominican-labor.ts`'s propio `calcularConPeriodo` para
+Reportería/Liquidación) se actualizaron para pasar el `tipo` ya disponible
+en cada uno — un único fix en la fuente compartida corrige Nómina,
+Historial Nómina y Reportería a la vez, sin duplicar lógica.
+
+Verificado en navegador con Playwright, reproduciendo exacto el reporte del
+usuario (empresa quincenal, salarioBase RD$40,000, 1ª quincena): ajuste
+"Bono" de RD$1,000 → S. Bruto exacto RD$21,000.00 (RD$20,000 + RD$1,000
+completo, no RD$20,500); ajuste "Otro Desc." de RD$1,000 → S. Neto exacto
+RD$17,818.00 (RD$18,818.00 − RD$1,000 completo, no RD$500), con el modal de
+comprobante mostrando "Bonificaciones RD$1,000.00" y "Otros Descuentos
+(RD$1,000.00)" respectivamente. Confirmado sin regresión en los dos casos
+deliberadamente excluidos: préstamo con `cuotaBase` RD$1,000/mes sigue
+mostrando exacto RD$500.00/quincena (mitad, vía el halving automático que sí
+aplica ahí) y Dep. SFS sigue en RD$959.89/quincena fijo (sin doble
+división). Re-ejecutada la suite completa de regresión de sesiones
+anteriores (seguridad de períodos cerrados, días pendientes por ingreso a
+mitad de período, corte de cierre 15/30/31, cierre anticipado, y los 5
+escenarios de la QA de 7 años) sin ningún hallazgo nuevo. `npx tsc --noEmit`
+y `npm run build` limpios (19 rutas, sin cambio de conteo).
+
+## Fix — ajuste manual con concepto "Préstamo" (sin registro real) también se partía a la mitad
+
+Reporte de seguimiento del usuario, mismo día del fix anterior: "acabo de
+agregar de forma manual un descuento de préstamo a un empleado, ese
+préstamo no está registrado en el módulo de préstamo pero yo manualmente
+puse un descuento de 3000 pesos a un empleado x y en la ficha del cálculo
+solo descontó 1500." Mismo bug de fondo (halving quincenal) resurgiendo en
+un caso que el fix anterior había excluido a propósito por error de
+alcance.
+
+**Causa raíz**: el fix anterior (`a5206bc`) dejó el concepto `prestamo`
+deliberadamente FUERA de la pre-duplicación, asumiendo que todo ajuste con
+`concepto === 'prestamo'` viene del mecanismo automático de precarga de
+cuotas (`handleCrearPeriodo`, que sí es un monto mensual repartido 50/50 a
+propósito). Pero el formulario manual "+ Ajuste" también permite elegir
+"Préstamo" como concepto para un empleado SIN ningún préstamo registrado en
+el módulo de Préstamos — un uso legítimo para descuentos de préstamos
+informales/externos al sistema. Ese ajuste manual es exactamente tan
+ad-hoc y específico de esa quincena como "Otro Desc.", pero compartía el
+mismo `concepto` que la precarga automática, así que `ajustesToParams` no
+podía distinguir los dos casos y trataba ambos como "ya en escala mensual"
+(sin doblar).
+
+**La distinción real ya existía en el modelo de datos**: `AjusteLinea.prestamoId`
+(opcional) solo se estampa cuando el ajuste proviene de la precarga
+automática de un préstamo real (`handleCrearPeriodo`, línea con
+`prestamoId: p.id`) — el formulario manual `handleAgregarAjuste` nunca lo
+asigna. `ajustesToParams` ahora usa esa presencia/ausencia para decidir:
+con `prestamoId` → cuota real, mantiene el comportamiento sin doblar
+(halving automático hace su trabajo, 50/50 entre ambas quincenas); sin
+`prestamoId` → ajuste manual ad-hoc, se suma al mismo bucket que "Otro
+Desc." (`otrosDescuentosManual`), que sí se pre-dobla para sobrevivir la
+división automática.
+
+Verificado en navegador con Playwright, reproduciendo exacto el reporte del
+usuario (empresa quincenal, salarioBase RD$40,000, 1ª quincena, sin ningún
+préstamo registrado en el módulo): ajuste manual "Préstamo" de RD$3,000 →
+"Otros Descuentos (RD$3,000.00)" completo en el comprobante, S. Neto exacto
+RD$15,818.00 (no RD$17,318.00 que hubiera dado el bug de RD$1,500).
+Confirmado sin regresión en el caso real de préstamo registrado (con
+`prestamoId`): cuota RD$1,000/mes sigue mostrando exacto RD$500.00/quincena
+vía el halving automático correcto. Re-ejecutada la suite completa de
+regresión (bono/otro_descuento del fix anterior, seguridad de períodos
+cerrados, días pendientes por ingreso a mitad de período, corte de cierre
+15/30/31, cierre anticipado, y los 5 escenarios de la QA de 7 años) sin
+ningún hallazgo nuevo. `npx tsc --noEmit` y `npm run build` limpios (19
+rutas, sin cambio de conteo).
+
+## Fix — cuota de préstamo con frecuencia QUINCENAL se partía a la mitad (y el saldo no coincidía con lo realmente pagado)
+
+Aviso de seguimiento del usuario, mismo día de los dos fixes anteriores de
+`ajustesToParams`: "Recuerda que en el módulo de préstamos se le da la
+posibilidad al empleado de que el descuento por el préstamo sea quincenal
+o mensual." Señaló correctamente que el fix anterior (`prestamoId` presente
+→ nunca se dobla, siempre se asume mensual) era incompleto — `Prestamo.frecuencia`
+(`'mensual' | 'quincenal'`, elegible libremente al otorgar un préstamo en
+`/prestamos`) determina la escala real de `cuotaBase`: si la frecuencia es
+`'quincenal'`, `cuotaBase` YA es el monto de UNA quincena (`cuotas` cuenta
+quincenas, no meses — ver `cuotasFromDates`), no un total mensual.
+
+**Bug 1 — comprobante de nómina**: `handleCrearPeriodo` precarga la cuota
+de CUALQUIER préstamo activo en TODO período creado (mensual o quincenal),
+sin importar su frecuencia — y el fix anterior de `ajustesToParams` trataba
+todo ajuste con `prestamoId` como "mensual, debe repartirse 50/50 vía el
+halving automático". Para un préstamo con frecuencia quincenal, esto partía
+la cuota real a la mitad en el comprobante (ej. cuota de RD$1,000/quincena
+mostrada como solo RD$500).
+
+**Bug 2 — saldo del préstamo, más grave, preexistía incluso antes de esta
+sesión**: al cerrar un período, `handleCerrarPeriodo` registraba
+`montoPagado: ajuste.valor` (el valor CRUDO precargado, `cuotaBase`) contra
+`registrarPago()`, sin ajustar por la frecuencia real ni por si el período
+era mensual o quincenal. Para un préstamo MENSUAL (el caso más común) bajo
+nómina QUINCENAL — el escenario típico de una pyme dominicana — esto
+significaba registrar la cuota mensual COMPLETA dos veces por mes (una vez
+por cada quincena cerrada), agotando el saldo al DOBLE de la velocidad real
+de lo que el empleado efectivamente pagó (el comprobante sí mostraba solo
+la mitad por quincena, correctamente, vía el halving automático — pero el
+saldo del préstamo no coincidía con eso). Verificado empíricamente antes
+del fix: préstamo de RD$12,000/12 cuotas de RD$1,000 mensual, bajo nómina
+quincenal, cerrando ambas quincenas de un mes → saldo caía a RD$10,000
+(2×RD$1,000), cuando el empleado solo había pagado RD$1,000 real (RD$500 +
+RD$500) ese mes.
+
+**Fix — `AjusteLinea.prestamoFrecuencia`** (nuevo campo, snapshot de
+`Prestamo.frecuencia` al precargar la cuota en `handleCrearPeriodo`, igual
+patrón que otros snapshots-at-creation-time de este archivo):
+- **`ajustesToParams`** (`dominican-labor.ts`): 3 buckets para el concepto
+  `prestamo` — sin `prestamoId` (ad-hoc manual, ya cubierto por el fix
+  anterior); con `prestamoId` y `prestamoFrecuencia !== 'quincenal'`
+  (mensual, o sin el campo — retrocompatible con ajustes de sesiones
+  anteriores a su creación, comportamiento sin cambios); con `prestamoId`
+  y `prestamoFrecuencia === 'quincenal'` (nuevo bucket, se pre-dobla ×2
+  SIEMPRE — en un período quincenal el ×2 sobrevive el halving automático
+  y neta la cuota íntegra de esa quincena; en un período mensual, sin
+  ninguna división automática, el ×2 representa las 2 quincenas de cuota
+  acumuladas ese mes).
+- **`montoRealPrestamoEnPeriodo(ajuste, tipoPeriodo)`** (nuevo,
+  `nomina/page.tsx`): calcula el monto REALMENTE deducido en ESE período
+  específico (no el valor crudo) — mismo cuota si `frecuencia === tipo`;
+  `cuotaBase / 2` si es mensual bajo un período quincenal; `cuotaBase × 2`
+  si es quincenal bajo un período mensual (2 quincenas acumuladas). Usado
+  por la nueva función compartida `registrarPagosPrestamos(periodo)`, que
+  reemplaza el loop inline que antes vivía solo en `handleCerrarPeriodo` —
+  y que ahora también se invoca desde el botón de cierre rápido de la
+  LISTA de períodos (`cerrar(p.id)`), que antes NO registraba ningún pago
+  de préstamo en absoluto (bug adicional encontrado durante esta
+  investigación: cerrar un período procesada desde la lista, sin pasar por
+  la vista de detalle, dejaba el saldo del préstamo completamente
+  desactualizado) — un préstamo ahora se paga igual sin importar desde
+  cuál de los dos botones se cierre el período.
+
+Verificado en navegador con Playwright, matemática exacta en ambos
+escenarios: (1) préstamo MENSUAL (cuota RD$1,000) bajo nómina quincenal,
+cerrando 1ra y 2da quincena de julio por separado → saldo tras la 1ra
+quincena exacto RD$11,500.00 (mitad de la cuota, no RD$11,000 que hubiera
+dado el bug), saldo final tras ambas RD$11,000.00 exacto (UNA cuota mensual
+completa para el mes, 2 pagos de RD$500.00 cada uno registrados); (2)
+préstamo QUINCENAL (cuota RD$1,000/quincena) bajo la misma nómina
+quincenal → comprobante muestra la cuota íntegra RD$1,000.00 en cada
+quincena (no RD$500.00), saldo tras ambas quincenas exacto RD$22,000.00
+(DOS cuotas quincenales completas, 2 pagos de RD$1,000.00 cada uno
+registrados). Sin regresión en el caso ya cubierto por el fix anterior
+(ajuste manual "Préstamo" sin registro real, RD$3,000 completo) ni en los
+demás ajustes (bono/otro_descuento RD$1,000 completo, Dep. SFS
+RD$959.89/quincena fijo). Re-ejecutada la suite completa de regresión
+(seguridad de períodos cerrados, días pendientes por ingreso a mitad de
+período, corte de cierre 15/30/31, cierre anticipado, y los 5 escenarios
+de la QA de 7 años) sin ningún hallazgo nuevo. `npx tsc --noEmit` y
+`npm run build` limpios (19 rutas, sin cambio de conteo).
+
+## Fix sistémico — fechas solo-fecha se parseaban como UTC en vez de local (bug de un día en TODO el sistema)
+
+Reporte del usuario: "yo creé un empleado con fecha de 17 de junio y se me
+marca como que entró el 16 de junio... cada vez que creo un empleado con
+una fecha se registra en el sistema el día posterior o el anterior."
+Confirmado como el bug clásico de JavaScript con fechas solo-fecha:
+`new Date("2026-06-17")` (sin componente de hora) se interpreta como
+**medianoche UTC**, no medianoche local — en cualquier navegador con zona
+horaria detrás de UTC (Rep. Dominicana, UTC-4, siempre, sin horario de
+verano), esa medianoche UTC cae en las 8pm del día CALENDARIO ANTERIOR en
+hora local. En cuanto el código le pide cualquier componente local
+(`getDate()`, `getMonth()`, `getFullYear()`, `getDay()`, o
+`toLocaleDateString()`), devuelve el día equivocado. El sandbox de esta
+sesión corre en UTC, por lo que el bug nunca se manifestó en las pruebas
+automatizadas anteriores — se reprodujo forzando `timezoneId:
+'America/Santo_Domingo'` en el navegador de Playwright, confirmando
+exactamente el síntoma reportado (fechaIngreso guardada "2026-06-17",
+tabla y drawer mostrando "16 jun de 2026").
+
+**Alcance real, mucho más amplio que el síntoma reportado**: `fechaIngreso`
+es solo uno de ~20 campos de fecha-solo (`fechaNacimiento`,
+`fechaSuspension`, `fechaSalidaPendiente`, `fechaTerminacion`,
+`fechaNotificacionRenuncia`, `DisfruteVacaciones.fechaInicio/fechaFin`,
+`Licencia.fechaInicio/fechaFin`, `RegistroAumento.fechaEfectiva`,
+`Prestamo.fechaOtorgamiento`, `Dependiente.fechaNacimiento`, etc.) que
+vienen de un `<input type="date">` y se guardan como string "YYYY-MM-DD" en
+todo el sistema — el mismo patrón de parseo roto aparecía en **más de 40
+call-sites** a través del motor de nómina (`dominican-labor.ts`),
+`nomina-shared.ts`, `nomina/page.tsx`, `liquidacion/page.tsx`,
+`bonificacion/page.tsx`, `empleados/page.tsx`, `alertas.ts`,
+`vacaciones-context.tsx`, `licencias-context.tsx`, `prestamos/page.tsx`,
+`reportes/page.tsx`, y varios más. El impacto real no era solo visual —
+afectaba directamente cálculos legales: antigüedad (`getAnosServicio`,
+usada por Cesantía/Preaviso/tramos de vacaciones), el "corte de cierre" de
+nómina (15/30/31, construido en una sesión anterior — un empleado con
+`fechaIngreso` exactamente en la frontera de un período podía clasificarse
+en el período equivocado), `contarDiasLaborables` (usada por goce/venta de
+vacaciones — dependía de `.getDay()` para excluir domingos, que devolvía el
+día de la semana equivocado), y el reajuste salarial a mitad de período.
+
+**Fix — dos helpers nuevos en `src/lib/utils.ts`, única fuente de verdad**:
+- `parseFechaLocal(iso: string): Date` — parsea "YYYY-MM-DD" construyendo
+  `new Date(year, month-1, day)` (el constructor de 3 argumentos SIEMPRE usa
+  hora local, nunca UTC) en vez de `new Date(isoString)`. Si el string trae
+  componente de hora (`incluye 'T'` — timestamps completos reales como
+  `fechaGeneracion`, `CuotaPago.fecha`, `RegistroAumento.fechaSolicitud`,
+  todos estampados vía `new Date().toISOString()`), se deja el parseo
+  nativo intacto — esos representan un instante real, no una fecha
+  ambigua, y ya eran correctos.
+- `hoyLocalISO(): string` — "hoy" como "YYYY-MM-DD" en hora LOCAL, para
+  prellenar `<input type="date">` o comparar contra otras fechas
+  solo-fecha. Corrige un bug SIMÉTRICO encontrado durante la misma
+  investigación: `new Date().toISOString().split('T')[0]` (el patrón usado
+  en varios formularios para prellenar "hoy") convierte el instante actual
+  a UTC ANTES de cortar la fecha — en Rep. Dominicana, cualquier hora local
+  desde las 8pm en adelante ya es "mañana" en UTC, así que abrir un
+  formulario de noche prellenaba la fecha de MAÑANA. Corregido en los
+  valores por defecto que SÍ se guardan como dato real (fecha de
+  suspensión, fecha de salida, fecha de otorgamiento de préstamo, fecha de
+  terminación en Liquidación, fecha de registro de Saldo ISR, fecha de
+  pago de nómina) — no en nombres de archivo de exportación (cosmético,
+  fuera de alcance).
+- `formatDate()` (ya existente) ahora usa `parseFechaLocal` internamente —
+  corrige de un solo golpe la visualización en TODA la app, ya que es la
+  función compartida para mostrar fechas.
+
+**`ajustesToParams`-tier de importancia**: se auditaron sistemáticamente
+TODOS los `new Date(<campo>)` del código (grep exhaustivo, no muestreo) y
+se clasificó cada uno como (a) campo solo-fecha → reemplazado por
+`parseFechaLocal`, (b) timestamp completo confirmado (revisando el punto
+de estampado real, no solo el nombre del campo — algunos `fechaRegistro`
+son timestamps completos y otros son solo-fecha según el flujo que los
+crea) → sin cambios, o (c) ya usa el constructor local seguro (`new
+Date(anio, mes, dia)`) → sin cambios. Archivos corregidos: `dominican-labor.ts`
+(`getAnosServicio`, `calcularNomina` provisión de vacaciones,
+`calcularDiasTrabajadosPendientes`, `getBonificacionesPendientes`/
+`getRegaliaPendientes`), `nomina-shared.ts` (suspensión/salida/vacaciones/
+licencia sin sueldo/ingreso a mitad de período/reajuste salarial — el
+"corte de cierre" completo), `nomina/page.tsx` (`empleadosDelPeriodo`,
+auditoría pre-cierre, salientes de Liquidación), `liquidacion/page.tsx`
+(antigüedad, regalía proporcional, cumplimiento de preaviso), `alertas.ts`
+(pago retroactivo pendiente), `bonificacion/page.tsx` (prorrateo de
+ejercicio fiscal), `empleados/page.tsx`, `reportes/page.tsx` (antigüedad,
+cumplimiento de preaviso, empleados sin ingresos, filtro de años de
+licencias), `vacaciones-context.tsx`/`licencias-context.tsx`
+(`contarDiasLaborables`, licencia activa/vencida), `empleado-form.ts`
+(`calcularEdad`), `prestamos/page.tsx` (`cuotasFromDates`, préstamos
+pagados este mes), `empleados-context.tsx` (reactivar de suspensión).
+
+Verificado en navegador con Playwright forzando `timezoneId:
+'America/Santo_Domingo'` (el sandbox de esta sesión corre en UTC, así que
+sin este override el bug es invisible en las pruebas): (1) reproducción
+exacta del reporte del usuario — empleado con `fechaIngreso: "2026-06-17"`
+mostraba "16 jun de 2026" antes del fix, "17 jun de 2026" después, tanto en
+la tabla como en el drawer; (2) prorrateo de nómina por corte de cierre
+sigue exacto tras el fix — empleado con ingreso el 16 de junio (mes de 30
+días) → S. Bruto RD$22,000.00 exacto (15 de 30 días), confirmando que el
+fix no rompió el mecanismo de prorrateo ya construido en sesiones
+anteriores. Re-ejecutada la suite completa de regresión (seguridad de
+períodos cerrados, días pendientes por ingreso a mitad de período, corte de
+cierre 15/30/31, cierre anticipado, ajustes manuales quincenales, préstamos
+mensual/quincenal, y los 5 escenarios de la QA de 7 años) sin ningún
+hallazgo nuevo. `npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin
+cambio de conteo).
+
+## Cierre de 3 brechas del backlog — auditoría pre-cierre, suspensión y Retribuciones Complementarias
+
+Pedido explícito del usuario: "Vamos con la auditoría pre-cierre, suspensión
+del contrato y retribuciones complementarias" — 3 brechas que quedaban
+documentadas como "no implementado todavía" en secciones ya cerradas del
+backlog. Dado el tamaño y bajo solapamiento entre las 3, se ejecutaron en
+paralelo como 3 agentes en worktrees aislados (mismo patrón ya usado varias
+veces en este repo), cada uno implementando + verificando + commiteando en
+su propia rama sin pushear — la fusión, verificación del conjunto y
+documentación se hicieron centralizadas al final.
+
+Dos decisiones de diseño reales se confirmaron con el usuario ANTES de
+implementar (ambas con la opción recomendada):
+
+### 1. Auditoría pre-cierre — detecta cambios de cuenta bancaria
+
+Nuevo snapshot `PeriodoNomina.cuentasBancariasPorEmpleado` (paralelo a
+`resultadosPorEmpleado`, mismo criterio de inmutabilidad), capturado en el
+mismo instante que `congelarYCalcular` congela el resultado de cada
+empleado (`snapshotCuentas()` en `nomina/page.tsx`, pasado como tercer
+argumento de `marcarProcesados()`). La auditoría pre-cierre compara ese
+snapshot histórico del período anterior contra el `banco`/`numeroCuenta`
+ACTUAL del empleado — solo alerta si AMBOS existen (sin falsos positivos
+con períodos anteriores a este campo o empleados sin cuenta configurada).
+Nuevo badge ámbar con ícono de banco: "Cambió de cuenta bancaria: {banco
+antes} ...{últimos 4 dígitos} → {banco ahora} ...{últimos 4 dígitos}".
+`reabrir()` limpia el snapshot junto con `resultadosPorEmpleado`, ya que
+ambos quedan obsoletos al desposteo.
+
+Verificado en navegador: empleado con Banco Popular ...3334, período de
+julio cerrado → cambia a BHD León ...7778 → al procesar agosto, la
+auditoría pre-cierre muestra exacto "Ana Perez — Cambió de cuenta
+bancaria: Banco Popular ...3334 → BHD León ...7778"; un empleado control
+sin cambio de banco no dispara la alerta.
+
+### 2. Suspensión de contrato — pausa la acumulación de Regalía y vacaciones
+
+**Decisión confirmada con el usuario**: durante los meses suspendidos, la
+acumulación de Regalía Pascual Y de vacaciones se PAUSA (no se devenga
+salario, no se genera el derecho) — pero la antigüedad legal que gobierna
+Cesantía/Preaviso/Asistencia Económica sigue siendo continua, sin tocar
+(`getAnosServicio` no cambió).
+
+Dos funciones nuevas en `dominican-labor.ts`: `mesesSuspendidosEnAnio(empleado,
+anio)` (solapamiento en meses fraccionales entre cada intervalo de
+`historialSuspensiones` y el año calendario dado) y `aniosSuspendidosTotal(empleado)`
+(todo el tiempo suspendido histórico, en años). La suspensión VIGENTE
+(mientras `suspendido === true`) ya vive como el último elemento de
+`historialSuspensiones` sin `fechaFin` — no hay doble conteo.
+
+- **Regalía Pascual** (`regalia-pascual/page.tsx`): `mesesAcumulados` resta
+  `mesesSuspendidosEnAnio(e, anioActual)` (piso en 0).
+- **Vacaciones** (`vacaciones/page.tsx` y `liquidacion/page.tsx`, los dos
+  call sites de `calcularDiasVacacionesAcumulados`): se pasa
+  `anosServicioEfectivosVacaciones = max(0, getAnosServicio(...) -
+  aniosSuspendidosTotal(e))` en vez de la antigüedad real — desplaza TODO
+  el reloj de acumulación de vacaciones (incluido cuándo se alcanza el
+  tramo de 18 días/año) por el tiempo total suspendido. Es una
+  interpretación específica para vacaciones, distinta de la antigüedad
+  legal que gobierna cesantía/preaviso (que sigue intacta) — documentada
+  así explícitamente en el código para que una sesión futura no la
+  confunda con un descuido.
+- La regalía proporcional en Liquidación también se corrigió con el mismo
+  mecanismo (hallazgo del propio agente, no estaba en el pedido original,
+  pero es la misma brecha exacta aplicada a un tercer lugar).
+
+Verificado en navegador (horario Santo Domingo): empleado con 1 año 11
+meses de antigüedad, suspendido 3 meses completos (ene-abr 2026) ya
+reactivado, vs. un control idéntico sin suspensión — Regalía: 7/12 meses
+(RD$35,000.00) vs. 10/12 (RD$50,000.00), exactamente 3 meses menos;
+Vacaciones: 24.53 días vs. 27.98 días; antigüedad mostrada idéntica en
+ambos ("1 año y 11 meses"), confirmando que la antigüedad legal no se tocó.
+
+### 3. Retribuciones Complementarias — diferencial de préstamos (Art. 318) + desglose vivienda/vehículo
+
+**Decisión confirmada con el usuario**: sí implementar ambas, incluida la
+tasa de referencia configurable (el sistema no tiene forma de consultar
+una tasa de mercado real sin backend).
+
+**A — Diferencial de interés de préstamos**: nuevo campo
+`Empresa.tasaInteresReferenciaPrestamos?: number` (% anual), configurable
+en Configuración → Reglas de Negocio (slider, mismo patrón que los
+umbrales ya existentes) con nota explícita de que es una tasa manual, sin
+fuente de mercado real. `calcularDiferencialesInteresPrestamos()` (nuevo,
+`dominican-labor.ts`) recorre los préstamos activos (excluye `tipo:
+'avance'` — un adelanto de un solo período, no una línea de crédito
+sostenida), anualiza la tasa MENSUAL real de cada préstamo (`×12` — en
+Cielo Cloud `Prestamo.tasaInteres` siempre es mensual) y, si es menor a la
+referencia, calcula el diferencial mensual no cobrado =
+`saldoPendiente × (tasaReferenciaAnual − tasaAnualPrestamo) / 100 / 12`.
+En `/retribuciones-complementarias`, un panel "Préstamos a tasa
+preferencial (Art. 318)" con botón "Detectar diferenciales" muestra una
+vista previa por préstamo y permite agregar cada uno (o todos) como
+`RetribucionComplementaria` con `prestamoId` seteado (nuevo campo,
+evita duplicar la misma línea el mismo mes) y badge "Art. 318". Sin tasa
+de referencia configurada, el panel lo dice explícitamente en vez de
+sugerir con un default arbitrario. Al no existir snapshot histórico de
+saldo de préstamo por mes, la detección para meses pasados usa el saldo
+pendiente ACTUAL — limitación documentada en la propia UI.
+
+**B — Desglose detallado de Vivienda y Vehículo**: `RetribucionComplementaria`
+gana campos opcionales — Vivienda: `viviendaDepreciacionAlquiler`/
+`viviendaMantenimiento`/`viviendaServicios` (su suma reemplaza el monto
+único); Vehículo: `vehiculoValorMensual`/`vehiculoEsEmpleadoDeOficina`/
+`vehiculoPropiedadDe`/`vehiculoPorcentajeAplicado`. La matriz de % de uso
+personal presunto (40% si el vehículo es de la empresa y el empleado no es
+de oficina, 20% en cualquier otro caso) es **interpretación propia de
+Cielo Cloud, no la tabla oficial completa de la Guía DGII** — rotulado así
+explícitamente en una nota siempre visible en el formulario, con el %
+editable a mano. Regla especial implementada: cuando un mismo empleado
+tiene varias líneas de "Vehículo de la empresa" el mismo mes, solo la de
+`vehiculoValorMensual` MÁS BAJO recibe la reducción proporcional — las
+demás gravan al 100%, recalculado dinámicamente cada vez que cambian las
+líneas de ese empleado/mes. El cálculo de la base gravable del Impuesto
+Sustitutivo (27%, `TASA_IMPUESTO_SUSTITUTIVO_RETRIBUCIONES`, sin cambios)
+se extrajo a una función compartida, usada también por el bloque IR-17 de
+Cumplimiento Fiscal (Reportería) y por la alerta de vencimiento — los tres
+lugares ahora muestran siempre el mismo número.
+
+Verificado en navegador: diferencial de préstamo con tasa 0.4167%
+mensual (5.0004% anual) vs. referencia 15% anual, saldo RD$60,000 →
+diferencial exacto RD$499.98/mes; línea de Vivienda con RD$15,000 +
+RD$2,000 + RD$1,000 → total exacto RD$18,000.00, impuesto RD$4,860.00;
+2 vehículos de empresa del mismo empleado/mes (RD$20,000 y RD$12,000,
+empleado no de oficina) → el de RD$12,000 (más barato) recibe el 40%
+(RD$4,800 gravable), el de RD$20,000 grava al 100% (RD$20,000 gravable),
+confirmado que se recalcula dinámicamente al agregar la segunda línea.
+
+`npx tsc --noEmit` y `npm run build` limpios (19 rutas, sin cambio de
+conteo) tras fusionar los 3 worktrees sobre la rama principal. Sin
+errores de consola en ninguno de los escenarios verificados.
+
+## Parcheo de vulnerabilidades de dependencias (pre-backend)
+
+El usuario pidió parchear todas las vulnerabilidades posibles antes de la
+migración a backend ya planeada ("pronto subiré Cielo Nómina a una base de
+datos... dejará de ser estático"). Auditoría con `npm audit` antes de tocar
+nada: 24 vulnerabilidades (2 críticas, 17 altas, 5 moderadas).
+
+**Aplicado en esta sesión:**
+- `next` 14.2.5 → **15.5.29** (salto de versión mayor, confirmado
+  explícitamente con el usuario antes de aplicarse — ver abajo por qué).
+  `eslint-config-next` subido en paralelo a la misma versión.
+- `npm audit fix` (sin `--force`) resolvió de forma automática y sin
+  cambios de API: `dompurify` (crítica), `postcss-selector-parser`,
+  `protobufjs`, `source-map-js`, `nanoid`, `js-yaml`, `browserslist`,
+  `baseline-browser-mapping`.
+- Resultado: de 2 críticas a **0 críticas** (quedan 6 altas + 9 moderadas,
+  ver "Pendiente" abajo). `tsc --noEmit` y `npm run build` limpios en cada
+  paso, 19 rutas sin cambio de conteo.
+
+**Por qué el salto de Next 14→15 (y no solo 14.2.35)**: `14.2.35` (el
+último patch de la rama 14.x) ya resuelve el CVE de `postcss` empaquetado,
+pero TODA la rama 14.x — incluido ese último patch — sigue cargando varias
+vulnerabilidades críticas de RCE no autenticado (GHSA-p293-qw3h-jr36,
+GHSA-2xp9-vwfh-vxw4, GHSA-2464-fhr4-w9xw) que solo se corrigen en 15.5.28+.
+Confirmado con `npm audit` paso a paso, no asumido. Se presentó la
+disyuntiva al usuario (hacerlo ahora, aislado, vs. después junto con la
+migración a backend) — eligió ahora, para no compounder dos cambios
+grandes a la vez. **Riesgo real evaluado como bajo antes de ejecutar**: se
+auditó el código fuente buscando las APIs que sí cambiaron entre Next 14 y
+15 (`cookies()`/`headers()`, `useSearchParams`, Server Actions,
+middleware, rutas dinámicas `[param]`, API routes) — ninguna existe en
+esta app, 100% componentes cliente sobre `localStorage`, consistente con
+"`'use client'` en todas las páginas" (ver arriba). Verificado además en
+navegador (no solo `tsc`/`build`): Dashboard, Cálculo de Nómina, Empleados,
+Préstamos, Vacaciones, Liquidación, Reportería, Configuración y Login
+cargan sin errores de consola tras el salto — mismo render exacto que
+antes (gráficos, agenda, sidebar, stat cards).
+
+**Pendiente, evaluado y dejado así a propósito (no es negligencia, es
+decisión informada):**
+- **`xlsx` (alta, sin fix publicado en npm)** — prototype pollution +
+  ReDoS en el parser de Excel/CSV usado por los importadores (Carga
+  Inicial, Horas, Aumentos masivos). El mantenedor (SheetJS) solo publica
+  la versión corregida desde su propio servidor, fuera del registro oficial
+  de npm. Decisión del usuario: dejarlo así por ahora — hoy el riesgo real
+  es bajo (100% cliente, cada usuario solo procesa su propio archivo en su
+  propio navegador; un archivo malicioso como mucho afecta a quien mismo
+  lo subió). **Revisar en serio en cuanto la migración a backend toque este
+  flujo de importación** — si el parseo se mueve al servidor o empieza a
+  procesar archivos de terceros, este dejar-así deja de ser válido.
+- **`firebase`/`@grpc/grpc-js` (alta)** — la vulnerabilidad vive en
+  `@grpc/grpc-js` (transporte gRPC de Node), arrastrada por
+  `@firebase/firestore` como dependencia. Confirmado que **hoy no es
+  explotable**: el código fuente no importa `firebase/firestore` en
+  ningún lado (solo se usa `firebase/auth`), así que ese código ni
+  siquiera se empaqueta en el bundle estático. La única "corrección" que
+  ofrece `npm audit` es downgradear `firebase` a 9.14.0 — una regresión
+  real (perdería funcionalidad del SDK actual) que no se aplicó. Esto
+  **se vuelve relevante el día que la migración a backend agregue
+  Firestore o `firebase-admin`** (que sí usa gRPC en Node de verdad) — en
+  ese momento, re-auditar: a la fecha de esta sesión ni siquiera la
+  versión más reciente de `@firebase/firestore` (4.20.0) ha actualizado su
+  dependencia de `@grpc/grpc-js` más allá de la rama vulnerable, es un
+  problema de la propia librería de Firebase, no de esta app.
+- **`exceljs`/`uuid` (moderada)** — `exceljs` 4.4.0 es la última versión
+  publicada y sigue dependiendo de `uuid@8.3.x` (vulnerable). La única
+  "corrección" de `npm audit` es downgradear a `exceljs@3.4.0` — también
+  una regresión real, no un fix hacia adelante. Severidad práctica baja:
+  el advisory es sobre un buffer `buf` provisto por el llamador, y exceljs
+  solo usa `uuid` internamente para generar IDs de estructura XML, sin
+  exponer ese parámetro a datos externos. Aceptado como residual sin
+  acción, documentado aquí en vez de ignorado en silencio.
+- **`eslint-config-next`/`glob`/`minimatch`/`@typescript-eslint/*`** — solo
+  afectan `next lint` (herramienta de desarrollo, nunca se empaqueta ni se
+  sirve a un usuario real). Prioridad baja por diseño — no son superficie
+  de ataque en producción.
+
 ## Branch de trabajo
 
 `claude/accounting-app-sme-design-wqfazv` → remote: `manuel-erasmo-oss/tyui`
@@ -1829,6 +4613,54 @@ colapsarse — patrón "hover-to-peek" (VS Code, Notion).
 
 | Hash | Descripción |
 |---|---|
+| `a5206bc` | fix: ajustesToParams no pre-doblaba ajustes manuales en período quincenal |
+| `f43b13a` | fix: Regalía/Bonificación requieren deshacer pago antes de reabrir, igual que nómina normal |
+| `7518dcc` | fix: revertir acumulado de Regalía Pascual al reabrir un período (título de commit incorrecto por error de copiado) |
+| `2b63b69` | fix: congelar el roster de un período no en_proceso — evita que un ingreso posterior al cierre real aparezca en la tabla |
+| `1853b22` | fix: el corte de cierre solo excluye el último día del período, no todo ingreso posterior al día 1 |
+| `d7d339d` | feat: ningún período cerrado se altera jamás — guard de datos + bloqueo de reabrir pagados |
+| `851ec56` | fix: ingreso a mitad de período se excluye y se paga en el siguiente a tarifa diaria legal |
+| `040d12d` | fix: prorratear salario de empleado nuevo cuando su ingreso cae a mitad de período |
+| `01202c1` | fix: QA de 7 años — 13 bugs críticos y 6 medios en Nómina, Vacaciones, Regalía, Bonificación, Reportería y Alertas |
+| `b9944b2` | feat: Retribuciones Complementarias — acumulado por empleado, PDF y bloque en Cumplimiento Fiscal |
+| `12b4a5c` | feat: Retribuciones Complementarias — acumulado histórico por empleado |
+| `4952e02` | feat: Retribuciones Complementarias — persistencia real + recordatorio de vencimiento IR-17 |
+| `ab8bcd0` | feat: filtros, documento de soporte y trazabilidad de reclamo en Licencias |
+| `7d5e156` | feat: prorrateo por reajuste salarial a mitad de período + alerta de pago retroactivo |
+| `ee0d37a` | redesign: Centro de Alertas como campanita de notificaciones en el Header |
+| `a5717a8` | polish: Centro de Alertas con tratamiento visual premium |
+| `0e21450` | feat: Centro de Alertas en Dashboard + gráficos con historial real configurable |
+| `58e2a51` | fix: prorratear Bonificación de empleados liquidados a mitad del ejercicio fiscal |
+| `c1cbd0c` | feat: liquidación de Bonificación por Utilidades vía período especial en Nómina |
+| `06c579f` | feat: ampliar plantilla de Carga Inicial con identidad, contacto y datos bancarios |
+| `7374260` | feat: Saldo ISR a Favor migrado — Carga Inicial ya no es decorativa |
+| `f32d2cf` | fix: acumulación de vacaciones ahora compone múltiples años + venta de vacaciones |
+| `c167b40` | feat: disfrute de vacaciones — registro de toma + puente automático a Nómina |
+| `0aa2a7e` | feat: agregar favicon al sistema (isotipo Cielo Cloud) |
+| `bb2f8ec` | feat: permitir crear períodos retroactivos hasta 10 años atrás |
+| `320390a` | fix: Cálculo de Nómina — permitir seleccionar el período libremente |
+| `de3e2c4` | redesign: separar Nómina en Cálculo de Nómina y Gestión de Envíos |
+| `86bf00a` | fix: períodos de Regalía Pascual contaminaban Reportería/Liquidación + rediseño premium con prepantalla |
+| `252b78a` | docs: registrar en CLAUDE.md las fases pendientes y las 3 features más recientes |
+| `4c8bbab` | fix: Regalía Pascual — banner de ciclo pendiente no distinguía período cerrado |
+| `5ffe5b5` | fix: vacaciones no gozadas llevan AFP/SFS/ISR — no son indemnización exenta |
+| `fe92d70` | feat: liquidación de Regalía Pascual vía período especial en Nómina |
+| `0fdac97` | polish: identidad visual propia para Liquidación — no imita Préstamos/Reportería |
+| `9020d43` | redesign: Liquidación en asistente de 3 pasos, cálculo transparente y editable, PDF de firma |
+| `4c465cc` | feat: exportación a Excel en Empleados y Préstamos |
+| `732f04c` | feat: exportación a Excel con estilo real en todos los módulos de negocio |
+| `7d0fdcf` | fix: key duplicada en fila de nómina — pertenecía al Fragment, no al `<tr>` |
+| `add67a2` | feat: salida pendiente de empleados + pago de días trabajados al terminar |
+| `aa8b459` | fix: dos decimales consistentes en montos + bordes visibles en tablas |
+| `7b54e8b` | fix: el salto real era texto envolviéndose a 2 líneas durante el flyout |
+| `5d0e386` | fix: salto residual del layout interno al abrir el flyout de la sidebar |
+| `4160d79` | fix: eliminar jank al pasar el mouse por la sidebar (flyout + prefetch) |
+| `1555027` | feat: catálogo configurable de ingresos y deducciones en Configuración |
+| `57be0a8` | feat: sidebar colapsado se expande temporalmente al pasar el mouse (flyout) |
+| `e1f0ef1` | feat: filas de tabla clickeables — corrige desajuste de affordance de hover |
+| `f44a6f5` | feat: estados vacíos con personalidad, PDF de comprobante rediseñado, botón primario compartido |
+| `7613918` | feat: paletazo de comandos (Cmd+K) + skeletons con forma en Dashboard |
+| `8a34dde` | docs: registrar rediseño premium de login/registro en CLAUDE.md |
 | `fc96104` | redesign: pantallas de login y registro con estética cinematográfica premium |
 | `4f9a905` | fix: multiempresa con cuentas reales de Firebase, no perfiles compartidos |
 | `503b167` | feat: multiempresa — una cuenta puede tener varias empresas |

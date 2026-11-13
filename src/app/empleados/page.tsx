@@ -11,14 +11,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { useEmpleados } from '@/lib/empleados-context'
-import { calcularCesantia, calcularPreaviso, getAnosServicio, calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, getDivisorSalarioDiario, aplicarSaldoISRFavor, ajustesToParams } from '@/lib/dominican-labor'
+import { useRouter } from 'next/navigation'
+import { calcularCesantia, calcularPreaviso, getAnosServicio, calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, getDivisorSalarioDiario, aplicarSaldoISRFavor, ajustesToParams, MOTIVO_LIQUIDACION_LABELS } from '@/lib/dominican-labor'
 import {
   formatRD, formatDate, formatAnosServicio,
-  fullName, contratoBadgeClass, contratoLabel, BTN_PRIMARY,
+  fullName, contratoBadgeClass, contratoLabel, BTN_PRIMARY, parseFechaLocal, hoyLocalISO,
 } from '@/lib/utils'
 import { usePeriodos } from '@/lib/periodos-context'
 import { useEmpresa } from '@/lib/empresa-context'
 import { useSaldoISR } from '@/lib/saldo-isr-context'
+import { useLicencias, labelLicencia } from '@/lib/licencias-context'
 import {
   getPais, formatDocNumber, labelTipoDoc, calcularEdad, downloadBase64,
   EMPTY_EMP_FORM, toEmpForm, formToEmpleado, validateEmpForm,
@@ -26,7 +28,7 @@ import {
 import type { EmpForm } from '@/lib/empleado-form'
 import { EmpleadoAvatar } from '@/components/empleados/EmpleadoAvatar'
 import { EmpleadoFormFields, FlagImg, inputCls, labelCls } from '@/components/empleados/EmpleadoFormFields'
-import type { Empleado, Dependiente, ParentescoDependiente, PeriodoNomina, AjusteLinea, TipoPeriodo, ResultadoNomina, TipoCreditoISR } from '@/types'
+import type { Empleado, Dependiente, ParentescoDependiente, PeriodoNomina, AjusteLinea, TipoPeriodo, ResultadoNomina, TipoCreditoISR, MotivoLiquidacion } from '@/types'
 
 // ── Floating Form Modal ───────────────────────────────────────────────────────
 type WindowState = 'normal' | 'maximized' | 'minimized'
@@ -192,11 +194,27 @@ const MESES_HIST = [
 ]
 
 function labelPeriodoHist(p: PeriodoNomina): string {
+  if (p.tipo === 'regalia') return `Regalía Pascual ${p.anio}`
+  if (p.tipo === 'bonificacion') return `Bonificación Utilidades ${p.anio}`
   const mes = MESES_HIST[p.mes - 1]
   if (p.tipo === 'quincenal') {
     return `${p.quincena === 1 ? '1a Q' : '2a Q'} ${mes} ${p.anio}`
   }
   return `${mes} ${p.anio}`
+}
+
+// Estado combinado de un empleado para el listado exportado — refleja las
+// mismas condiciones que ya muestran los badges de la tabla/drawer
+// (Activo/Inactivo, Suspendido/Salida Pendiente/De Licencia cuando aplica
+// sobre un empleado activo). "De Licencia" es puramente derivado (¿hoy cae
+// dentro de fechaInicio/fechaFin de alguna licencia?), no un campo
+// persistido en Empleado — por eso se recibe aparte, no viene en `e`.
+function estadoEmpleadoLabel(e: Empleado, deLicencia = false): string {
+  const partes = [e.activo ? 'Activo' : 'Inactivo']
+  if (e.activo && e.suspendido) partes.push('Suspendido')
+  if (e.activo && e.salidaPendiente) partes.push('Salida Pendiente')
+  if (e.activo && deLicencia) partes.push('De Licencia')
+  return partes.join(' / ')
 }
 
 // Reusa ajustesToParams (dominican-labor.ts) en vez de repetir el bucketing
@@ -210,7 +228,7 @@ function calcNominaConAjustes(
   tipo: TipoPeriodo,
   quincena: 1 | 2,
 ): ResultadoNomina {
-  const params = ajustesToParams(ajustes)
+  const params = ajustesToParams(ajustes, tipo)
   return tipo === 'quincenal'
     ? calcularNominaQuincenal(empleado, quincena, params)
     : calcularNomina(empleado, params)
@@ -227,9 +245,13 @@ function EmpleadoDrawer({
   onToggleActivo: () => void
   onEliminar: () => void
 }) {
-  const { update, suspender, reactivar } = useEmpleados()
+  const { update, suspender, reactivar, marcarSalidaPendiente, cancelarSalidaPendiente } = useEmpleados()
   const { periodos } = usePeriodos()
+  const { empresa } = useEmpresa()
   const { registrar: registrarSaldoISR, getSaldosActivos, getMontoAplicadoEnPeriodo } = useSaldoISR()
+  const { licenciaActiva } = useLicencias()
+  const licenciaVigente = licenciaActiva(empleado.id)
+  const router = useRouter()
   const [showSaldoISRForm, setShowSaldoISRForm] = useState(false)
   const [saldoISRMonto, setSaldoISRMonto] = useState('')
   const [saldoISRMotivo, setSaldoISRMotivo] = useState('')
@@ -238,7 +260,11 @@ function EmpleadoDrawer({
   const [winState, setWinState] = useState<WindowState>('normal')
   const [mostrarSuspension, setMostrarSuspension] = useState(false)
   const [motivoSusp, setMotivoSusp] = useState('')
-  const [fechaSusp, setFechaSusp] = useState(() => new Date().toISOString().slice(0, 10))
+  const [fechaSusp, setFechaSusp] = useState(() => hoyLocalISO())
+  const [mostrarSalida, setMostrarSalida] = useState(false)
+  const [fechaSalida, setFechaSalida] = useState(() => hoyLocalISO())
+  const [motivoSalida, setMotivoSalida] = useState<MotivoLiquidacion | ''>('')
+  const [pagoDiasSalida, setPagoDiasSalida] = useState<'nomina' | 'liquidacion' | ''>('')
   const [tabActivo, setTabActivo] = useState<'info' | 'dependientes' | 'historial'>('info')
   const [showDepForm, setShowDepForm] = useState(false)
   const [depNombre, setDepNombre]     = useState('')
@@ -337,6 +363,12 @@ function EmpleadoDrawer({
               {empleado.activo && empleado.suspendido && (
                 <Badge variant="warning">Suspendido</Badge>
               )}
+              {empleado.activo && empleado.salidaPendiente && (
+                <Badge variant="danger">Salida Pendiente</Badge>
+              )}
+              {empleado.activo && !empleado.suspendido && !empleado.salidaPendiente && licenciaVigente && (
+                <Badge variant="info">De Licencia</Badge>
+              )}
               {pais && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#252840] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
                   <FlagImg code={pais.code} className="h-3.5 w-5" /> {pais.nombre}
@@ -349,10 +381,37 @@ function EmpleadoDrawer({
                 {empleado.motivoSuspension && ` — ${empleado.motivoSuspension}`}
               </p>
             )}
+            {empleado.activo && empleado.salidaPendiente && (
+              <p className="mt-1.5 text-xs text-rose-700 dark:text-rose-400">
+                Sale el {formatDate(empleado.fechaSalidaPendiente!)} — {MOTIVO_LIQUIDACION_LABELS[empleado.motivoSalidaPendiente!]}
+                {' · '}días trabajados: {empleado.pagoDiasTrabajadosPendiente === 'nomina' ? 'por nómina' : 'con la liquidación'}
+                {' — '}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/liquidacion?empleadoId=${empleado.id}`)}
+                  className="font-semibold underline underline-offset-2 hover:text-rose-800 dark:hover:text-rose-300"
+                >
+                  Ir a Liquidación
+                </button>
+              </p>
+            )}
+            {empleado.activo && !empleado.suspendido && !empleado.salidaPendiente && licenciaVigente && (
+              <p className="mt-1.5 text-xs text-sky-700 dark:text-sky-400">
+                {labelLicencia(licenciaVigente.tipo)} — hasta el {formatDate(licenciaVigente.fechaFin)}
+                {' — '}
+                <button
+                  type="button"
+                  onClick={() => router.push('/licencias')}
+                  className="font-semibold underline underline-offset-2 hover:text-sky-800 dark:hover:text-sky-300"
+                >
+                  Ver en Licencias
+                </button>
+              </p>
+            )}
           </div>
           {/* Quick stats */}
           <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
-            <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(empleado.salarioBase, 0)}</p>
+            <p className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(empleado.salarioBase)}</p>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Salario mensual</p>
             <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{formatAnosServicio(anos)} de antigüedad</p>
           </div>
@@ -497,8 +556,8 @@ function EmpleadoDrawer({
                   {[
                     { label: 'Fecha de Ingreso', value: formatDate(empleado.fechaIngreso) },
                     { label: 'Antigüedad',        value: formatAnosServicio(anos) },
-                    { label: 'Salario Mensual',   value: formatRD(empleado.salarioBase, 0) },
-                    { label: 'Salario Anual',     value: formatRD(empleado.salarioBase * 12, 0) },
+                    { label: 'Salario Mensual',   value: formatRD(empleado.salarioBase) },
+                    { label: 'Salario Anual',     value: formatRD(empleado.salarioBase * 12) },
                     { label: 'Banco',             value: empleado.banco ?? '—' },
                     { label: 'N° Cuenta',         value: empleado.numeroCuenta ?? '—' },
                   ].map(item => (
@@ -529,7 +588,7 @@ function EmpleadoDrawer({
                         <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{r.label}</p>
                         <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{r.sub}</p>
                       </div>
-                      <span className={`text-sm font-bold tabular-nums ${r.color}`}>{formatRD(r.value, 0)}</span>
+                      <span className={`text-sm font-bold tabular-nums ${r.color}`}>{formatRD(r.value)}</span>
                     </div>
                   ))}
                 </div>
@@ -605,7 +664,7 @@ function EmpleadoDrawer({
                             motivo: saldoISRMotivo.trim() || 'Sin especificar',
                             tipo: saldoISRTipo,
                             anio: saldoISRAnio,
-                            fechaRegistro: new Date().toISOString().slice(0, 10),
+                            fechaRegistro: hoyLocalISO(),
                           })
                           setShowSaldoISRForm(false)
                           setSaldoISRMonto('')
@@ -635,9 +694,9 @@ function EmpleadoDrawer({
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Año {s.anio} · original {formatRD(s.monto, 0)}</p>
+                            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Año {s.anio} · original {formatRD(s.monto)}</p>
                           </div>
-                          <span className="text-sm font-bold tabular-nums text-teal-600 dark:text-teal-400">{formatRD(s.saldoPendiente, 0)}</span>
+                          <span className="text-sm font-bold tabular-nums text-teal-600 dark:text-teal-400">{formatRD(s.saldoPendiente)}</span>
                         </div>
                       </div>
                     ))}
@@ -772,7 +831,7 @@ function EmpleadoDrawer({
                             madre_titular:               'Madre del Titular',
                             padre_conyuge:               'Padre del Cónyuge',
                             madre_conyuge:               'Madre del Cónyuge',
-                          } as Record<ParentescoDependiente, string>)[dep.parentesco]}{dep.cedula ? ` · ${dep.cedula}` : ''}{dep.fechaNacimiento ? ` · ${new Date(dep.fechaNacimiento).toLocaleDateString('es-DO')}` : ''}
+                          } as Record<ParentescoDependiente, string>)[dep.parentesco]}{dep.cedula ? ` · ${dep.cedula}` : ''}{dep.fechaNacimiento ? ` · ${parseFechaLocal(dep.fechaNacimiento).toLocaleDateString('es-DO')}` : ''}
                         </p>
                       </div>
                     </div>
@@ -811,8 +870,25 @@ function EmpleadoDrawer({
           const historial = periodos
             .filter(p => {
               const fechaPeriodo = new Date(p.fechaGeneracion)
-              const fechaIngreso = new Date(empleado.fechaIngreso)
-              return fechaIngreso <= fechaPeriodo && p.estado !== 'en_proceso'
+              const fechaIngreso = parseFechaLocal(empleado.fechaIngreso)
+              if (fechaIngreso > fechaPeriodo || p.estado === 'en_proceso') return false
+              // Un período de Regalía Pascual o Bonificación por Utilidades sin
+              // snapshot para este empleado significa que nunca formó parte
+              // del pago — se excluye en vez de caer al motor normal de
+              // nómina, que fabricaría un salario mensual completo
+              // inexistente bajo la etiqueta de ese período.
+              if ((p.tipo === 'regalia' || p.tipo === 'bonificacion') && !p.resultadosPorEmpleado?.[empleado.id]) return false
+              // Igual criterio para mensual/quincenal: si el período SÍ
+              // trackea quién fue procesado (empleadosProcesados) y este
+              // empleado no está en la lista, nunca formó parte de ese pago
+              // real — sin este chequeo, el paso de abajo caía al motor
+              // "en vivo" (calcNominaConAjustes con el salario actual) y
+              // fabricaba un pago completo inexistente bajo la etiqueta de
+              // ese período. Sin `empleadosProcesados` (períodos anteriores
+              // a ese campo) se asume que sí participó, como en el resto de
+              // la app.
+              if (p.empleadosProcesados !== undefined && !p.empleadosProcesados.includes(empleado.id)) return false
+              return true
             })
             .map(p => {
               // Preferir el snapshot histórico congelado al momento de
@@ -856,6 +932,48 @@ function EmpleadoDrawer({
               isr:   acc.isr   + h.resultado.isrMensual,
             }), { bruto: 0, neto: 0, isr: 0 })
 
+          // Exporta exactamente las mismas filas ya visibles en la tabla de
+          // abajo (mismo período/S.Bruto/AFP+SFS/ISR/Dep.SFS/S.Neto/Estado),
+          // con una fila de totales que coincide con el <tfoot> en pantalla.
+          async function handleExportarHistorial() {
+            const { exportarExcel } = await import('@/lib/excel-export')
+            const estadoLabel = (p: PeriodoNomina) =>
+              p.estado === 'cerrada' ? 'Cerrada' : p.estado === 'procesada' ? 'Procesada' : 'En Proceso'
+            const filas = historial.map(({ periodo, resultado }) => [
+              labelPeriodoHist(periodo),
+              resultado.totalBruto,
+              resultado.afpEmpleado + resultado.sfsEmpleado,
+              resultado.isrMensual,
+              resultado.sfsDependientes,
+              resultado.salarioNeto,
+              estadoLabel(periodo),
+            ])
+            const totales = [
+              `TOTAL — ${historial.length} período(s)`,
+              historial.reduce((s, h) => s + h.resultado.totalBruto, 0),
+              historial.reduce((s, h) => s + h.resultado.afpEmpleado + h.resultado.sfsEmpleado, 0),
+              historial.reduce((s, h) => s + h.resultado.isrMensual, 0),
+              historial.reduce((s, h) => s + h.resultado.sfsDependientes, 0),
+              historial.reduce((s, h) => s + h.resultado.salarioNeto, 0),
+              '',
+            ]
+            const slug = fullName(empleado).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-')
+            await exportarExcel({
+              nombreArchivo: `historial-nomina-${slug}`,
+              empresa: empresa.nombre,
+              rnc: empresa.rnc,
+              hojas: [{
+                nombre: 'Historial Nómina',
+                titulo: `Historial de Nómina — ${fullName(empleado)}`,
+                subtitulo: `${historial.length} período(s)`,
+                encabezados: ['Período', 'S. Bruto', 'AFP+SFS', 'ISR', 'Dep. SFS', 'S. Neto', 'Estado'],
+                filas,
+                totales,
+                anchos: [18, 14, 13, 12, 12, 14, 14],
+              }],
+            })
+          }
+
           return (
             <div className="flex-1 overflow-y-auto">
               <div className="grid grid-cols-3 gap-3 p-5 border-b border-zinc-100 dark:border-[#1d2035]">
@@ -866,9 +984,22 @@ function EmpleadoDrawer({
                 ].map(kpi => (
                   <div key={kpi.label} className="rounded-xl border border-zinc-100 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{kpi.label}</p>
-                    <p className="mt-1 text-sm font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">{formatRD(kpi.value, 0)}</p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">{formatRD(kpi.value)}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 dark:border-[#1d2035]">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                  Detalle por Período
+                </p>
+                <button
+                  onClick={handleExportarHistorial}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Exportar Excel
+                </button>
               </div>
 
               <div className="overflow-x-auto">
@@ -886,24 +1017,24 @@ function EmpleadoDrawer({
                   </thead>
                   <tbody>
                     {historial.map(({ periodo, resultado }) => (
-                      <tr key={periodo.id} className="border-b border-zinc-50 dark:border-[#1d2035] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                      <tr key={periodo.id} className="border-b border-zinc-200 dark:border-[#252840] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
                         <td className="px-5 py-3">
                           <p className="font-medium text-zinc-800 dark:text-zinc-200">{labelPeriodoHist(periodo)}</p>
                           <p className="text-[10px] text-zinc-400 dark:text-zinc-500 capitalize">{periodo.tipo}</p>
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">{formatRD(resultado.totalBruto, 0)}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(resultado.afpEmpleado + resultado.sfsEmpleado, 0)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-zinc-700 dark:text-zinc-300">{formatRD(resultado.totalBruto)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(resultado.afpEmpleado + resultado.sfsEmpleado)}</td>
                         <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.isrMensual === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                            : formatRD(resultado.isrMensual, 0)}
+                            : formatRD(resultado.isrMensual)}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.sfsDependientes === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                            : formatRD(resultado.sfsDependientes, 0)}
+                            : formatRD(resultado.sfsDependientes)}
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">{formatRD(resultado.salarioNeto, 0)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">{formatRD(resultado.salarioNeto)}</td>
                         <td className="px-3 py-3">
                           {periodo.estado === 'cerrada' ? (
                             <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-[#1a1d2e] dark:text-zinc-400">Cerrada</span>
@@ -922,19 +1053,19 @@ function EmpleadoDrawer({
                         Total — {historial.length} período{historial.length !== 1 ? 's' : ''}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">
-                        {formatRD(historial.reduce((s, h) => s + h.resultado.totalBruto, 0), 0)}
+                        {formatRD(historial.reduce((s, h) => s + h.resultado.totalBruto, 0))}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                        {formatRD(historial.reduce((s, h) => s + h.resultado.afpEmpleado + h.resultado.sfsEmpleado, 0), 0)}
+                        {formatRD(historial.reduce((s, h) => s + h.resultado.afpEmpleado + h.resultado.sfsEmpleado, 0))}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                        {formatRD(historial.reduce((s, h) => s + h.resultado.isrMensual, 0), 0)}
+                        {formatRD(historial.reduce((s, h) => s + h.resultado.isrMensual, 0))}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                        {formatRD(historial.reduce((s, h) => s + h.resultado.sfsDependientes, 0), 0)}
+                        {formatRD(historial.reduce((s, h) => s + h.resultado.sfsDependientes, 0))}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
-                        {formatRD(historial.reduce((s, h) => s + h.resultado.salarioNeto, 0), 0)}
+                        {formatRD(historial.reduce((s, h) => s + h.resultado.salarioNeto, 0))}
                       </td>
                       <td />
                     </tr>
@@ -986,6 +1117,87 @@ function EmpleadoDrawer({
           </div>
         )}
 
+        {/* ── Salida pendiente de liquidar ─────────────────────────── */}
+        {mostrarSalida && (
+          <div className="shrink-0 border-t border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 px-6 py-4 space-y-3">
+            <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
+              Registrar salida — el empleado queda "con salida pendiente" (sigue activo, conserva
+              su historial) hasta que se calculen sus prestaciones en Liquidación. Deja de
+              acumular nómina desde la fecha indicada.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de salida</label>
+                <input type="date" value={fechaSalida} onChange={e => setFechaSalida(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Motivo</label>
+                <select value={motivoSalida} onChange={e => setMotivoSalida(e.target.value as MotivoLiquidacion | '')}
+                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none">
+                  <option value="">— Seleccionar —</option>
+                  {Object.entries(MOTIVO_LIQUIDACION_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                ¿Cómo se pagarán los días trabajados de este período, aún no cubiertos por una nómina cerrada?
+              </label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
+                  pagoDiasSalida === 'nomina'
+                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
+                    : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                }`}>
+                  <input type="radio" name="pagoDiasSalida" value="nomina" checked={pagoDiasSalida === 'nomina'}
+                    onChange={() => setPagoDiasSalida('nomina')} className="mt-0.5" />
+                  <span>
+                    <span className="block font-semibold text-zinc-700 dark:text-zinc-300">En la próxima nómina</span>
+                    <span className="block text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Se prorratean automáticamente en el período de Nómina que cubra esta fecha.
+                    </span>
+                  </span>
+                </label>
+                <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
+                  pagoDiasSalida === 'liquidacion'
+                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
+                    : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                }`}>
+                  <input type="radio" name="pagoDiasSalida" value="liquidacion" checked={pagoDiasSalida === 'liquidacion'}
+                    onChange={() => setPagoDiasSalida('liquidacion')} className="mt-0.5" />
+                  <span>
+                    <span className="block font-semibold text-zinc-700 dark:text-zinc-300">Junto con la liquidación</span>
+                    <span className="block text-zinc-500 dark:text-zinc-400 mt-0.5">
+                      Se agregan como línea aparte —con AFP/SFS/ISR calculados— al liquidar sus prestaciones.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setMostrarSalida(false); setMotivoSalida(''); setPagoDiasSalida('') }}
+                className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
+                Cancelar
+              </button>
+              <button
+                disabled={!fechaSalida || !motivoSalida || !pagoDiasSalida}
+                onClick={() => {
+                  if (!fechaSalida || !motivoSalida || !pagoDiasSalida) return
+                  marcarSalidaPendiente(empleado.id, fechaSalida, motivoSalida, pagoDiasSalida)
+                  setMostrarSalida(false)
+                  setMotivoSalida('')
+                  setPagoDiasSalida('')
+                }}
+                className="rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2 text-xs font-semibold text-white transition-colors">
+                Confirmar Salida Pendiente
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Footer actions ──────────────────────────────────────── */}
         <div className="shrink-0 flex items-center justify-between gap-2 border-t border-zinc-100 dark:border-[#1d2035] bg-white dark:bg-[#141722] px-6 py-4">
           <button onClick={onEliminar}
@@ -997,7 +1209,7 @@ function EmpleadoDrawer({
               className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
-            {empleado.activo && (
+            {empleado.activo && !empleado.salidaPendiente && (
               empleado.suspendido ? (
                 <button onClick={() => reactivar(empleado.id)}
                   className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-medium text-white transition-colors">
@@ -1010,14 +1222,24 @@ function EmpleadoDrawer({
                 </button>
               )
             )}
-            <button onClick={onToggleActivo}
-              className={`rounded-lg px-4 py-2 text-xs font-medium transition-colors ${
-                empleado.activo
-                  ? 'border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
-              }`}>
-              {empleado.activo ? 'Dar de baja' : 'Reactivar'}
-            </button>
+            {empleado.activo ? (
+              empleado.salidaPendiente ? (
+                <button onClick={() => cancelarSalidaPendiente(empleado.id)}
+                  className="rounded-lg border border-rose-200 dark:border-rose-800/50 px-4 py-2 text-xs font-medium text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors">
+                  Cancelar Salida Pendiente
+                </button>
+              ) : (
+                <button onClick={() => setMostrarSalida(v => !v)}
+                  className="rounded-lg border border-amber-200 dark:border-amber-800/50 px-4 py-2 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
+                  Dar de baja
+                </button>
+              )
+            ) : (
+              <button onClick={onToggleActivo}
+                className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-medium text-white transition-colors">
+                Reactivar
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1029,6 +1251,7 @@ function EmpleadoDrawer({
 export default function EmpleadosPage() {
   const { empleados, add, update, remove } = useEmpleados()
   const { empresa } = useEmpresa()
+  const { estaDeLicencia } = useLicencias()
   const [busqueda, setBusqueda]             = useState('')
   const [departamento, setDepartamento]     = useState('Todos')
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
@@ -1077,19 +1300,70 @@ export default function EmpleadosPage() {
     setToast('Cambios guardados')
   }
 
+  // Exporta exactamente la lista ya filtrada que se ve en pantalla (respeta
+  // búsqueda, departamento y el toggle de "Mostrar inactivos"), no siempre
+  // todos los empleados.
+  async function handleExportarEmpleados() {
+    const { exportarExcel } = await import('@/lib/excel-export')
+    const filas = filtrados.map(e => [
+      fullName(e),
+      formatDocNumber(e.cedula, e.tipoDocumento),
+      labelTipoDoc(e.tipoDocumento),
+      e.nacionalidad ? (getPais(e.nacionalidad)?.nombre ?? e.nacionalidad) : '—',
+      e.departamento,
+      e.cargo,
+      contratoLabel(e.tipoContrato),
+      formatDate(e.fechaIngreso),
+      e.salarioBase,
+      estadoEmpleadoLabel(e, estaDeLicencia(e.id)),
+      e.banco ?? '—',
+      e.numeroCuenta ?? '—',
+      e.email ?? '—',
+      e.telefono ?? '—',
+    ])
+    const filtroPartes = [
+      departamento !== 'Todos' ? departamento : null,
+      busqueda.trim() ? `Búsqueda: "${busqueda.trim()}"` : null,
+    ].filter(Boolean)
+    const hoy = new Date().toISOString().slice(0, 10)
+    await exportarExcel({
+      nombreArchivo: `empleados-${hoy}`,
+      empresa: empresa.nombre,
+      rnc: empresa.rnc,
+      hojas: [{
+        nombre: 'Empleados',
+        titulo: 'Listado de Empleados',
+        subtitulo: `${filtrados.length} empleado(s)${filtroPartes.length ? ' · ' + filtroPartes.join(' · ') : ''}`,
+        encabezados: ['Empleado', 'Documento', 'Tipo Doc.', 'Nacionalidad', 'Departamento', 'Cargo', 'Tipo Contrato', 'Fecha Ingreso', 'Salario Base', 'Estado', 'Banco', 'N° Cuenta', 'Email', 'Teléfono'],
+        filas,
+        anchos: [26, 16, 14, 16, 18, 20, 16, 14, 14, 16, 16, 16, 24, 14],
+      }],
+    })
+    setToast('Empleados exportados a Excel')
+  }
+
   return (
     <div className="flex flex-col overflow-hidden h-full">
       <Header
         title="Empleados"
         subtitle={`${empleados.filter(e => e.activo).length} activos · ${empleados.filter(e => !e.activo).length} inactivos`}
         actions={
-          <button
-            onClick={() => setMostrarNuevo(true)}
-            className={BTN_PRIMARY}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Empleado
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportarEmpleados}
+              className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              Exportar Excel
+            </button>
+            <button
+              onClick={() => setMostrarNuevo(true)}
+              className={BTN_PRIMARY}
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Empleado
+            </button>
+          </div>
         }
       />
 
@@ -1133,7 +1407,7 @@ export default function EmpleadosPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {filtrados.map(emp => {
                   const pais = emp.nacionalidad ? getPais(emp.nacionalidad) : undefined
                   return (
@@ -1170,11 +1444,13 @@ export default function EmpleadosPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs">{formatDate(emp.fechaIngreso)}</td>
-                      <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(emp.salarioBase, 0)}</td>
+                      <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(emp.salarioBase)}</td>
                       <td className="px-4 py-3.5">
                         <div className="flex flex-wrap gap-1">
                           <Badge variant={emp.activo ? 'success' : 'neutral'}>{emp.activo ? 'Activo' : 'Inactivo'}</Badge>
                           {emp.activo && emp.suspendido && <Badge variant="warning">Suspendido</Badge>}
+                          {emp.activo && emp.salidaPendiente && <Badge variant="danger">Salida Pendiente</Badge>}
+                          {emp.activo && !emp.suspendido && !emp.salidaPendiente && estaDeLicencia(emp.id) && <Badge variant="info">De Licencia</Badge>}
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
@@ -1216,9 +1492,11 @@ export default function EmpleadosPage() {
             onClose={() => setEmpSeleccionado(null)}
             onEditar={() => { setEditando(empleadoSeleccionado); setEmpSeleccionado(null) }}
             onToggleActivo={() => {
-              update(empleadoSeleccionado.id, { activo: !empleadoSeleccionado.activo })
+              // Solo se llama desde el estado inactivo — "Dar de baja" ahora pasa
+              // por marcarSalidaPendiente()/Liquidación, no por este toggle directo.
+              update(empleadoSeleccionado.id, { activo: true })
               setEmpSeleccionado(null)
-              setToast(empleadoSeleccionado.activo ? 'Empleado dado de baja' : 'Empleado reactivado')
+              setToast('Empleado reactivado')
             }}
             onEliminar={() => {
               if (!confirm(`¿Eliminar a ${fullName(empleadoSeleccionado)}? Esta acción no se puede deshacer.`)) return

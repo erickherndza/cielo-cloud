@@ -6,12 +6,13 @@ import { StatCard } from '@/components/ui/StatCard'
 import { Toast } from '@/components/ui/Toast'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useEmpleados } from '@/lib/empleados-context'
+import { useEmpresa } from '@/lib/empresa-context'
 import { useBandasSalariales, normalizarPosicion } from '@/lib/bandas-salariales-context'
-import { formatRD, fullName, cn, BTN_PRIMARY } from '@/lib/utils'
+import { formatRD, formatDate, fullName, cn, BTN_PRIMARY } from '@/lib/utils'
 import type { BandaSalarial, Empleado } from '@/types'
 import {
   BarChart2, Plus, Pencil, Trash2, X, AlertTriangle, ArrowDown, ArrowUp,
-  ListChecks, Info,
+  ListChecks, Info, Download,
 } from 'lucide-react'
 
 const INPUT_CLASS =
@@ -28,6 +29,7 @@ type EmpleadoFueraDeBanda = {
 
 export default function BandasSalarialesPage() {
   const { empleadosActivos } = useEmpleados()
+  const { empresa } = useEmpresa()
   const { bandas, crear, actualizar, eliminar } = useBandasSalariales()
 
   const [form, setForm] = useState(EMPTY_FORM)
@@ -122,7 +124,7 @@ export default function BandasSalarialesPage() {
     const max = Math.max(...salarios)
     const NUM_BUCKETS = 6
     if (min === max) {
-      return [{ label: formatRD(min, 0), count: salarios.length, pct: 100 }]
+      return [{ label: formatRD(min), count: salarios.length, pct: 100 }]
     }
     const ancho = (max - min) / NUM_BUCKETS
     const buckets = Array.from({ length: NUM_BUCKETS }, (_, i) => {
@@ -136,13 +138,65 @@ export default function BandasSalarialesPage() {
     }
     const maxCount = Math.max(...buckets.map(b => b.count))
     return buckets.map(b => ({
-      label: `${formatRD(b.desde, 0)} – ${formatRD(b.hasta, 0)}`,
+      label: `${formatRD(b.desde)} – ${formatRD(b.hasta)}`,
       count: b.count,
       pct: maxCount > 0 ? (b.count / maxCount) * 100 : 0,
     }))
   }, [empleadosActivos])
 
   const bandasOrdenadas = [...bandas].sort((a, b) => a.posicion.localeCompare(b.posicion))
+
+  async function handleExportar() {
+    if (bandasOrdenadas.length === 0 && fueraDeBanda.length === 0) return
+    const { exportarExcel } = await import('@/lib/excel-export')
+    const fechaGenerado = `Generado ${formatDate(new Date().toISOString())}`
+
+    const filasBandas = bandasOrdenadas.map(b => {
+      const empleadosEnBanda = empleadosActivos.filter(
+        e => normalizarPosicion(e.cargo) === normalizarPosicion(b.posicion),
+      ).length
+      return [b.posicion, b.salarioMinimo, b.salarioMedio, b.salarioMaximo, empleadosEnBanda]
+    })
+
+    const filasFuera = fueraDeBanda.map(({ empleado, banda, direccion, diferencia }) => [
+      fullName(empleado),
+      empleado.cargo,
+      empleado.salarioBase,
+      banda.salarioMinimo,
+      banda.salarioMaximo,
+      diferencia,
+      direccion === 'debajo' ? 'Por Debajo' : 'Por Encima',
+    ])
+
+    await exportarExcel({
+      nombreArchivo: `bandas-salariales-${new Date().toISOString().split('T')[0]}`,
+      empresa: empresa.nombre,
+      rnc: empresa.rnc,
+      hojas: [
+        {
+          nombre: 'Bandas Salariales',
+          titulo: 'Catálogo de Bandas Salariales',
+          subtitulo: `${bandasOrdenadas.length} posición(es) — ${fechaGenerado}`,
+          encabezados: ['Posición', 'Salario Mínimo', 'Salario Medio', 'Salario Máximo', 'Empleados'],
+          filas: filasBandas,
+          anchos: [26, 18, 18, 18, 14],
+          columnasEnteras: [4],
+        },
+        {
+          nombre: 'Fuera de Banda',
+          titulo: 'Empleados Fuera de Banda',
+          subtitulo: `${fueraDeBanda.length} empleado(s) — ${fechaGenerado}`,
+          encabezados: [
+            'Empleado', 'Posición / Cargo', 'Salario Actual', 'Banda Mínima', 'Banda Máxima',
+            'Diferencia', 'Situación',
+          ],
+          filas: filasFuera,
+          anchos: [26, 22, 16, 16, 16, 16, 14],
+        },
+      ],
+    })
+    setToast('Bandas salariales exportadas a Excel')
+  }
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
@@ -263,8 +317,18 @@ export default function BandasSalarialesPage() {
 
         {/* ── Table: bandas definidas ──────────────────────────────────── */}
         <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Bandas Definidas</h2>
+            {(bandasOrdenadas.length > 0 || fueraDeBanda.length > 0) && (
+              <button
+                onClick={handleExportar}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
+                title="Exporta el catálogo de bandas y los empleados fuera de banda (2 hojas)"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exportar Excel
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -278,7 +342,7 @@ export default function BandasSalarialesPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {bandasOrdenadas.length === 0 && (
                   <tr>
                     <td colSpan={6}>
@@ -303,9 +367,9 @@ export default function BandasSalarialesPage() {
                       <td className="px-5 py-3.5">
                         <p className="font-medium text-[#1B2980] dark:text-indigo-400">{b.posicion}</p>
                       </td>
-                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMinimo, 0)}</td>
-                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMedio, 0)}</td>
-                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMaximo, 0)}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMinimo)}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMedio)}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(b.salarioMaximo)}</td>
                       <td className="px-4 py-3.5 text-center tabular-nums text-zinc-500 dark:text-zinc-400">{empleadosEnBanda}</td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -363,7 +427,7 @@ export default function BandasSalarialesPage() {
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Diferencia</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-50 dark:divide-[#1d2035]">
+                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                   {fueraDeBanda.map(({ empleado, banda, direccion, diferencia }) => (
                     <tr key={empleado.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
                       <td className="px-5 py-3.5">
@@ -371,9 +435,9 @@ export default function BandasSalarialesPage() {
                         <p className="text-xs text-zinc-400 dark:text-zinc-500">{empleado.cargo}</p>
                       </td>
                       <td className="px-4 py-3.5 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-                        {formatRD(banda.salarioMinimo, 0)} – {formatRD(banda.salarioMaximo, 0)}
+                        {formatRD(banda.salarioMinimo)} – {formatRD(banda.salarioMaximo)}
                       </td>
-                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">{formatRD(empleado.salarioBase, 0)}</td>
+                      <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">{formatRD(empleado.salarioBase)}</td>
                       <td className="px-4 py-3.5 text-center">
                         <span
                           className={cn(
@@ -388,7 +452,7 @@ export default function BandasSalarialesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
-                        {formatRD(diferencia, 0)}
+                        {formatRD(diferencia)}
                       </td>
                     </tr>
                   ))}

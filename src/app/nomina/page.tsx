@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import {
   ChevronRight,
   Download,
@@ -22,6 +22,11 @@ import {
   Send,
   Filter,
   FileSpreadsheet,
+  Gift,
+  Search,
+  Eye,
+  Percent,
+  RotateCcw,
 } from 'lucide-react'
 import { Toast } from '@/components/ui/Toast'
 import { Header } from '@/components/layout/Header'
@@ -35,27 +40,35 @@ import { usePrestamos } from '@/lib/prestamos-context'
 import { useLiquidaciones } from '@/lib/liquidaciones-context'
 import { useSaldoISR } from '@/lib/saldo-isr-context'
 import { useFeriados } from '@/lib/feriados-context'
+import { useVacaciones } from '@/lib/vacaciones-context'
+import { useLicencias } from '@/lib/licencias-context'
+import { useAumentos } from '@/lib/aumentos-context'
 import { useAuth } from '@/lib/auth-context'
-import {
-  enviarComprobante, plantillaComprobanteDeEmpresa, resolverPlantilla, PLACEHOLDERS_COMPROBANTE,
-} from '@/lib/comprobante-email'
-import type { PlantillaComprobante } from '@/lib/comprobante-email'
-import { calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, aplicarSaldoISRFavor, prorratearMontoFijo, ajustesToParams } from '@/lib/dominican-labor'
+import { calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, aplicarSaldoISRFavor, prorratearMontoFijo, ajustesToParams, getAnosServicio, getDivisorSalarioDiario, contarDiasLaborables } from '@/lib/dominican-labor'
 import { useConceptosPersonalizados } from '@/lib/conceptos-personalizados-context'
-import { formatRD, fullName, formatCedula, formatDate, BTN_PRIMARY, cn, csvCell } from '@/lib/utils'
-import jsPDF from 'jspdf'
+import { formatRD, fullName, formatDate, BTN_PRIMARY, cn, parseFechaLocal } from '@/lib/utils'
+import {
+  labelPeriodo, resultadoRegalia, resultadoBonificacion, descargarComprobantePDF,
+  diasSuspensionEnPeriodo, diasSalidaEnPeriodo,
+  diasVacacionEnPeriodo, diasLicenciaSinSueldoEnPeriodo, diasIngresoEnPeriodo, diasIngresoPendientes, salarioEfectivoEnPeriodo, calcularParaPeriodo, rangoPeriodo,
+} from '@/lib/nomina-shared'
 import type {
   Empleado,
   ResultadoNomina,
   PeriodoNomina,
   TipoPeriodo,
+  EstadoPeriodo,
   ParametrosNomina,
   ConceptoAjuste,
   AjusteLinea,
   Empresa,
+  DisfruteVacaciones,
+  Licencia,
+  RegistroAumento,
+  CuentaBancariaSnapshot,
 } from '@/types'
 import { UMBRAL_ENDEUDAMIENTO_DEFAULT, UMBRAL_VARIACION_BRUTO_DEFAULT } from '@/types'
-import { Wallet, TrendingUp, Receipt, BarChart3 } from 'lucide-react'
+import { Wallet, TrendingUp, Receipt, BarChart3, Landmark } from 'lucide-react'
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -63,23 +76,6 @@ const MESES = [
 ]
 
 const hoy = new Date()
-
-// ── CSV export ────────────────────────────────────────────────────────────────
-function exportarCSV(filename: string, headers: string[], rows: (string | number)[][]) {
-  const bom = '﻿'
-  const csv = [headers, ...rows]
-    .map(r => r.map(csvCell).join(','))
-    .join('\r\n')
-  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
 
 // ── Label helpers ─────────────────────────────────────────────────────────────
 // Nómina en USD — capa de presentación pura, nunca la base del cálculo. El
@@ -97,14 +93,6 @@ function formatMoneda(amountRD: number, empresa: Empresa, mostrarUSD: boolean, d
     }).format(amountRD / empresa.tasaCambioUSD)
   }
   return formatRD(amountRD, decimals)
-}
-
-function labelPeriodo(p: PeriodoNomina): string {
-  const mes = MESES[p.mes - 1]
-  if (p.tipo === 'quincenal') {
-    return `${p.quincena === 1 ? '1ª' : '2ª'} Quincena · ${mes} ${p.anio}`
-  }
-  return `${mes} ${p.anio}`
 }
 
 function labelConcepto(concepto: ConceptoAjuste): string {
@@ -134,326 +122,54 @@ function isHorasConcepto(concepto: ConceptoAjuste): boolean {
   return concepto === 'horas_extras_35' || concepto === 'horas_extras_100' || concepto === 'recargo_nocturno'
 }
 
-// ── calcularConAjustes ────────────────────────────────────────────────────────
-// `diasOverride` prorratea el salario base cuando el empleado no trabajó el
-// período completo (ver diasSuspensionEnPeriodo) — ambos valores son días
-// calendario en la MISMA unidad, así que la razón diasTrabajados/diasLaborablesMes
-// es válida tanto para un período mensual como para media quincena. Reusa
-// ajustesToParams (dominican-labor.ts) en vez de repetir el bucketing de
-// conceptos inline — así el catálogo de conceptos personalizados (y
-// cualquier concepto nuevo a futuro) solo necesita mantenerse en un lugar.
-function calcularConAjustes(
-  empleado: Empleado,
-  ajustes: AjusteLinea[],
-  tipo: TipoPeriodo,
-  quincena: 1 | 2,
-  diasOverride?: { diasTrabajados: number; diasLaborablesMes: number } | null,
-): ResultadoNomina {
-  const params: ParametrosNomina = {
-    ...ajustesToParams(ajustes),
-    ...(diasOverride ? { diasTrabajados: diasOverride.diasTrabajados, diasLaborablesMes: diasOverride.diasLaborablesMes } : {}),
-  }
-  return tipo === 'quincenal'
-    ? calcularNominaQuincenal(empleado, quincena, params)
-    : calcularNomina(empleado, params)
-}
-
-// ── Prorrateo por suspensión a mitad de período ────────────────────────────────
-// Rango de fechas calendario que cubre un período — el mes completo para
-// mensual, o la mitad correspondiente (1-15 / 16-fin) para quincenal.
-function rangoPeriodo(
-  mes: number, anio: number, tipo: TipoPeriodo, quincena: 1 | 2,
-): { inicio: Date; fin: Date } {
-  const diasEnMes = new Date(anio, mes, 0).getDate()
-  if (tipo === 'mensual') return { inicio: new Date(anio, mes - 1, 1), fin: new Date(anio, mes - 1, diasEnMes) }
-  return quincena === 1
-    ? { inicio: new Date(anio, mes - 1, 1), fin: new Date(anio, mes - 1, 15) }
-    : { inicio: new Date(anio, mes - 1, 16), fin: new Date(anio, mes - 1, diasEnMes) }
-}
-
-// Si el empleado está suspendido y su fecha de suspensión cae DENTRO (o
-// después) del rango de este período, devuelve cuántos días calendario
-// trabajó antes de suspenderse, sobre el total de días del período — para
-// prorratear su salario en vez de pagarle el período completo o excluirlo
-// por completo. `null` si no aplica (no suspendido, o ya estaba suspendido
-// desde ANTES de que este período empezara — ese caso se excluye del todo
-// en empleadosDelPeriodo, no se prorratea).
-function diasSuspensionEnPeriodo(
-  empleado: Empleado, mes: number, anio: number, tipo: TipoPeriodo, quincena: 1 | 2,
-): { diasTrabajados: number; diasLaborablesMes: number } | null {
-  if (!empleado.suspendido || !empleado.fechaSuspension) return null
-  const { inicio, fin } = rangoPeriodo(mes, anio, tipo, quincena)
-  const fechaSuspension = new Date(empleado.fechaSuspension)
-  if (fechaSuspension < inicio) return null
-  const finEfectivo = fechaSuspension < fin ? fechaSuspension : fin
-  const msPorDia = 24 * 3600 * 1000
-  const diasTrabajados     = Math.floor((finEfectivo.getTime() - inicio.getTime()) / msPorDia) + 1
-  const diasLaborablesMes  = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
-  return { diasTrabajados, diasLaborablesMes }
-}
-
 // Lista de empleados que participan de un período específico: los normales
-// (empleadosEnNomina) más cualquier empleado suspendido cuya fecha de
-// suspensión cae dentro de este período — porque sí trabajó una parte y le
-// corresponde su pago prorrateado, aunque hoy ya esté suspendido. Un
-// empleado suspendido desde ANTES de que el período comenzara no se agrega
-// (0 días trabajados, correctamente excluido).
+// (empleadosEnNomina) más cualquier empleado suspendido o con salida
+// pendiente (pago "por nómina") cuya fecha de corte cae dentro de este
+// período — porque sí trabajó una parte y le corresponde su pago
+// prorrateado, aunque ya esté suspendido o a punto de irse. Una fecha de
+// corte ANTERIOR a que el período comenzara no se agrega (0 días
+// trabajados, correctamente excluido).
+//
+// También excluye de "normales" a cualquier empleado cuya fechaIngreso caiga
+// EXACTAMENTE en el último día calendario de este período (el "corte" de
+// cierre real de nómina — 15/30/31, ver diasIngresoEnPeriodo en
+// nomina-shared.ts) o después — un ingreso ANTES de ese corte (día 2, día
+// 10, día 14…) sí participa de este período, prorrateado normalmente vía
+// diasIngresoEnPeriodo (mismo mecanismo de días calendario que ya usan
+// suspensión/salida/licencia). Solo el que cae justo en el corte se excluye
+// del todo; esos días laborables se valoran a la tarifa legal y se suman
+// como línea aparte en el período SIGUIENTE, vía calcularParaPeriodo.
 function empleadosDelPeriodo(
   todos: Empleado[], normales: Empleado[], mes: number, anio: number, tipo: TipoPeriodo, quincena: 1 | 2,
 ): Empleado[] {
+  const { fin } = rangoPeriodo(mes, anio, tipo, quincena)
+  const normalesVigentes = normales.filter(e => parseFechaLocal(e.fechaIngreso) < fin)
   const extra = todos.filter(e =>
-    e.activo && e.suspendido && !normales.some(n => n.id === e.id) &&
-    diasSuspensionEnPeriodo(e, mes, anio, tipo, quincena) !== null
+    e.activo && !normalesVigentes.some(n => n.id === e.id) && (
+      (e.suspendido && diasSuspensionEnPeriodo(e, mes, anio, tipo, quincena) !== null) ||
+      (e.salidaPendiente && diasSalidaEnPeriodo(e, mes, anio, tipo, quincena) !== null)
+    )
   )
-  return extra.length ? [...normales, ...extra] : normales
+  return extra.length ? [...normalesVigentes, ...extra] : normalesVigentes
 }
 
-// Envoltorio de conveniencia: calcula la nómina de un empleado para un
-// período específico, aplicando automáticamente el prorrateo por suspensión
-// si corresponde — evita tener que acordarse de calcular diasSuspensionEnPeriodo
-// en cada call-site.
-function calcularParaPeriodo(
-  empleado: Empleado, ajustes: AjusteLinea[],
-  periodo: { mes: number; anio: number; tipo: TipoPeriodo; quincena?: 1 | 2 },
-): ResultadoNomina {
-  const quincena = periodo.quincena ?? 1
-  const dias = diasSuspensionEnPeriodo(empleado, periodo.mes, periodo.anio, periodo.tipo, quincena)
-  return calcularConAjustes(empleado, ajustes, periodo.tipo, quincena, dias)
-}
-
-// ── Comprobante PDF ───────────────────────────────────────────────────────────
-function descargarComprobantePDF(
-  empleado: Empleado,
-  nomina: ResultadoNomina,
-  label: string,
-  empresa: Empresa,
-) {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const W = 210
-  const NR = 27, NG = 41, NB = 128
-  const LINE_GRAY: [number, number, number] = [228, 228, 231]
-
-  // Header bar — navy con un filo más claro para dar profundidad de marca
-  doc.setFillColor(NR, NG, NB)
-  doc.rect(0, 0, W, 28, 'F')
-  doc.setFillColor(47, 63, 168)
-  doc.rect(0, 27, W, 1, 'F')
-
-  let tX = 14
-  if (empresa.logo) {
-    try {
-      const fmt = empresa.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(empresa.logo, fmt, 14, 5, 18, 18)
-      tX = 36
-    } catch {}
+// Sugiere el próximo período mensual/quincenal a crear, continuando la serie
+// existente de ese tipo (ignora Regalía Pascual — es un ciclo aparte). Sin
+// períodos previos de ese tipo, sugiere el mes/quincena calendario actual.
+function sugerirProximoPeriodo(
+  periodos: PeriodoNomina[], tipo: TipoPeriodo,
+): { mes: number; anio: number; quincena: 1 | 2 } {
+  const serie = periodos
+    .filter(p => p.tipo === tipo)
+    .sort((a, b) => (b.anio * 12 + b.mes) - (a.anio * 12 + a.mes) || ((b.quincena ?? 1) - (a.quincena ?? 1)))
+  const ultimo = serie[0]
+  if (!ultimo) return { mes: hoy.getMonth() + 1, anio: hoy.getFullYear(), quincena: 1 }
+  if (tipo === 'quincenal' && ultimo.quincena === 1) {
+    return { mes: ultimo.mes, anio: ultimo.anio, quincena: 2 }
   }
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'bold')
-  doc.text(empresa.nombre || 'Empresa', tX, 12)
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(210, 214, 240)
-  doc.text(`RNC: ${empresa.rnc || '—'}  ·  ${empresa.ciudad || 'República Dominicana'}`, tX, 18)
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.text('COMPROBANTE DE NÓMINA', W - 14, 12, { align: 'right' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.setTextColor(210, 214, 240)
-  doc.text(label, W - 14, 18, { align: 'right' })
-  doc.text(`Emitido: ${new Date().toLocaleDateString('es-DO')}`, W - 14, 23, { align: 'right' })
-
-  // Employee info — tarjeta con fondo tenue en vez de texto suelto
-  let y = 36
-  doc.setFillColor(250, 250, 251)
-  doc.setDrawColor(...LINE_GRAY)
-  doc.roundedRect(14, y, W - 28, 22, 2, 2, 'FD')
-  y += 8
-  doc.setTextColor(NR, NG, NB)
-  doc.setFontSize(12.5)
-  doc.setFont('helvetica', 'bold')
-  doc.text(fullName(empleado), 20, y)
-  y += 5.5
-  doc.setFontSize(7.8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(110, 110, 116)
-  doc.text(`${empleado.cargo}  ·  ${empleado.departamento}  ·  Cédula: ${formatCedula(empleado.cedula)}`, 20, y)
-  y += 4.5
-  doc.text(`Ingreso: ${formatDate(empleado.fechaIngreso)}  ·  Salario base: ${formatRD(empleado.salarioBase, 0)}`, 20, y)
-  y += 10
-
-  // Two columns
-  const colW = (W - 32) / 2
-  const c2 = 14 + colW + 4
-
-  const chip = (rgb: [number, number, number], text: string, x: number) => {
-    doc.setFillColor(...rgb)
-    doc.roundedRect(x, y - 3.2, 2.4, 2.4, 0.6, 0.6, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7.5)
-    doc.setTextColor(...rgb)
-    doc.text(text, x + 4, y)
-  }
-  chip([16, 185, 129], 'DEVENGOS', 14)
-  chip([220, 38, 38], 'DESCUENTOS', c2)
-  y += 5
-
-  const devengos = [
-    { label: 'Salario Básico', v: nomina.salarioBruto },
-    ...(nomina.importeHE35   > 0 ? [{ label: 'H.E. 35% Recargo',  v: nomina.importeHE35 }]   : []),
-    ...(nomina.importeHE100  > 0 ? [{ label: 'H.E. 100% Recargo', v: nomina.importeHE100 }]  : []),
-    ...(nomina.importeNocturno > 0 ? [{ label: 'Recargo Nocturno (15%)', v: nomina.importeNocturno }] : []),
-    ...(nomina.bonificaciones > 0 ? [{ label: 'Bonificaciones',    v: nomina.bonificaciones }] : []),
-    ...(nomina.comisiones     > 0 ? [{ label: 'Comisiones',        v: nomina.comisiones }]     : []),
-    ...(nomina.ingresosPersonalizados > 0 ? [{ label: 'Otros Ingresos', v: nomina.ingresosPersonalizados }] : []),
-  ]
-  const descuentos = [
-    { label: 'AFP Empleado (2.87%)', v: nomina.afpEmpleado },
-    { label: 'SFS Empleado (3.04%)', v: nomina.sfsEmpleado },
-    ...(nomina.isrMensual      > 0 ? [{ label: 'ISR Retención',       v: nomina.isrMensual }]      : []),
-    ...(nomina.sfsDependientes > 0 ? [{ label: 'SFS Dep. Adicionales',v: nomina.sfsDependientes }] : []),
-    ...(nomina.otrosDescuentos > 0 ? [{ label: 'Otros Descuentos',    v: nomina.otrosDescuentos }] : []),
-    ...(nomina.aporteVoluntarioAFPEmpleado > 0 ? [{ label: 'Aporte Voluntario AFP', v: nomina.aporteVoluntarioAFPEmpleado }] : []),
-  ]
-
-  const rH = 5.2
-  const rows = Math.max(devengos.length, descuentos.length)
-  for (let i = 0; i < rows; i++) {
-    const ry = y + i * rH
-    if (i % 2 === 1) {
-      doc.setFillColor(250, 250, 251)
-      doc.rect(12, ry - 3.7, W - 24, rH, 'F')
-    }
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(80, 80, 80)
-    if (devengos[i]) {
-      doc.text(devengos[i].label, 14, ry)
-      doc.setTextColor(40, 40, 40)
-      doc.setFont('helvetica', 'bold')
-      doc.text(formatRD(devengos[i].v), 14 + colW, ry, { align: 'right' })
-    }
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(80, 80, 80)
-    if (descuentos[i]) {
-      doc.text(descuentos[i].label, c2, ry)
-      doc.setTextColor(40, 40, 40)
-      doc.setFont('helvetica', 'bold')
-      doc.text(`(${formatRD(descuentos[i].v)})`, W - 14, ry, { align: 'right' })
-    }
-  }
-
-  y += rows * rH + 2
-  doc.setDrawColor(...LINE_GRAY)
-  doc.line(14, y, 14 + colW, y)
-  doc.line(c2, y, W - 14, y)
-  y += 4
-
-  doc.setFontSize(8.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(16, 185, 129)
-  doc.text('Total Bruto', 14, y)
-  doc.text(formatRD(nomina.totalBruto), 14 + colW, y, { align: 'right' })
-  doc.setTextColor(220, 38, 38)
-  doc.text('Total Descuentos', c2, y)
-  doc.text(`(${formatRD(nomina.totalDescuentos)})`, W - 14, y, { align: 'right' })
-
-  // Neto box — con un filo superior más claro para dar sensación de volumen
-  y += 9
-  doc.setFillColor(NR, NG, NB)
-  doc.roundedRect(14, y, W - 28, 15, 2.5, 2.5, 'F')
-  doc.setFillColor(47, 63, 168)
-  doc.roundedRect(14, y, W - 28, 4, 2.5, 2.5, 'F')
-  doc.setFillColor(NR, NG, NB)
-  doc.rect(14, y + 3, W - 28, 12, 'F')
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.text('SALARIO NETO A PAGAR', 22, y + 5.5)
-  doc.setFontSize(13)
-  doc.setFont('helvetica', 'bold')
-  doc.text(formatRD(nomina.salarioNeto, 0), W - 22, y + 10, { align: 'right' })
-
-  // Aportes empresa — tarjeta tenue para agruparlo como bloque propio
-  y += 21
-  const aportes = [
-    { label: 'AFP Empleador (7.10%)', v: nomina.afpEmpleador },
-    { label: 'SFS Empleador (7.09%)', v: nomina.sfsEmpleador },
-    { label: 'SRL Empleador',         v: nomina.srlEmpleador },
-    { label: 'Infotep (1.00%)',       v: nomina.infotepEmpleador },
-    ...(nomina.aporteVoluntarioAFPEmpresa > 0 ? [{ label: 'Aporte Voluntario AFP', v: nomina.aporteVoluntarioAFPEmpresa }] : []),
-    ...(nomina.grossingUpEmpresa           > 0 ? [{ label: 'Grossing-up (ISR/TSS empleado)', v: nomina.grossingUpEmpresa }] : []),
-  ]
-  const cardH = 9 + aportes.length * 4.5 + 4
-  doc.setFillColor(247, 248, 252)
-  doc.setDrawColor(...LINE_GRAY)
-  doc.roundedRect(14, y, W - 28, cardH, 2, 2, 'FD')
-  y += 6.5
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(NR, NG, NB)
-  doc.text('APORTES EMPRESA (TSS)', 20, y)
-  y += 5
-  aportes.forEach(a => {
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(90, 90, 90)
-    doc.text(a.label, 20, y)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(40, 40, 40)
-    doc.text(formatRD(a.v), W - 20, y, { align: 'right' })
-    y += 4.5
-  })
-  doc.setDrawColor(...LINE_GRAY)
-  doc.line(20, y - 1.5, W - 20, y - 1.5)
-  y += 2.5
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(NR, NG, NB)
-  doc.text('Costo Total Empresa', 20, y)
-  doc.text(formatRD(nomina.totalCostoEmpleador), W - 20, y, { align: 'right' })
-
-  // Footer
-  y += 9
-  doc.setDrawColor(...LINE_GRAY)
-  doc.line(14, y, W - 14, y)
-  y += 5
-  if (nomina.saldoISRAplicado > 0) {
-    doc.setFontSize(6.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(16, 150, 100)
-    doc.text(`Crédito ISR a favor aplicado: -${formatRD(nomina.saldoISRAplicado)}`, 14, y)
-    y += 4
-  }
-  if ((empleado.ingresoOtroEmpleadorMensual ?? 0) > 0) {
-    doc.setFontSize(6.5)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(150, 150, 150)
-    doc.text(`ISR consolidado con ingreso de otro empleador (${formatRD(empleado.ingresoOtroEmpleadorMensual!, 0)}/mes)`, 14, y)
-    y += 4
-  }
-
-  doc.setFontSize(6.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(170, 170, 170)
-  doc.text(`Regalía/período: ${formatRD(nomina.regaliaPascual, 0)}`, 14, y)
-  doc.text(`Vacaciones: ${nomina.vacacionesMensualesDias.toFixed(2)} días`, 90, y)
-  doc.text('Ley 16-92  ·  Ley 87-01  ·  Ley 11-92', W - 14, y, { align: 'right' })
-
-  // Pie de página fijo — marca + fecha de generación, siempre al fondo
-  const pageH = doc.internal.pageSize.getHeight()
-  doc.setDrawColor(NR, NG, NB)
-  doc.setLineWidth(0.6)
-  doc.line(14, pageH - 12, W - 14, pageH - 12)
-  doc.setLineWidth(0.2)
-  doc.setFontSize(6.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(NR, NG, NB)
-  doc.text('Cielo Cloud · Nómina', 14, pageH - 8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(170, 170, 170)
-  doc.text(`Generado el ${new Date().toLocaleDateString('es-DO')} — documento de uso interno`, W - 14, pageH - 8, { align: 'right' })
-
-  doc.save(`comprobante-${empleado.cedula}-${label.replace(/\s+/g, '-')}.pdf`)
+  const mes  = ultimo.mes === 12 ? 1 : ultimo.mes + 1
+  const anio = ultimo.mes === 12 ? ultimo.anio + 1 : ultimo.anio
+  return { mes, anio, quincena: 1 }
 }
 
 // ── Detalle modal ─────────────────────────────────────────────────────────────
@@ -507,6 +223,9 @@ function DetalleNomina({
                 { label: 'Recargo Nocturno (15%)', value: nomina.importeNocturno, hide: nomina.importeNocturno === 0 },
                 { label: 'Bonificaciones',       value: nomina.bonificaciones, hide: nomina.bonificaciones === 0 },
                 { label: 'Comisiones',           value: nomina.comisiones,     hide: nomina.comisiones === 0 },
+                { label: 'Vacaciones (Goce)',     value: nomina.vacacionesGoce, hide: nomina.vacacionesGoce === 0 },
+                { label: 'Vacaciones Vendidas',   value: nomina.vacacionesVendidas, hide: nomina.vacacionesVendidas === 0 },
+                { label: 'Días Pendientes (Ingreso)', value: nomina.diasIngresoPendientes, hide: nomina.diasIngresoPendientes === 0 },
                 { label: 'Otros Ingresos',       value: nomina.ingresosPersonalizados, hide: nomina.ingresosPersonalizados === 0 },
               ].filter(r => !r.hide).map(row => (
                 <div key={row.label} className="flex justify-between text-sm">
@@ -514,6 +233,21 @@ function DetalleNomina({
                   <span className="tabular-nums font-medium text-zinc-900 dark:text-zinc-100">{fmt(row.value)}</span>
                 </div>
               ))}
+              {nomina.vacacionesGoce > 0 && (
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 italic">
+                  Incluye días de disfrute de vacaciones — salario ordinario, con AFP/SFS/ISR normales (Art. 178)
+                </p>
+              )}
+              {nomina.vacacionesVendidas > 0 && (
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 italic">
+                  Incluye venta de vacaciones — pago extra sobre el salario normal completo, con AFP/SFS/ISR (Art. 178)
+                </p>
+              )}
+              {nomina.diasIngresoPendientes > 0 && (
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 italic">
+                  Días laborables de un ingreso a mitad del período anterior, arrastrados y pagados aquí a la tarifa diaria legal
+                </p>
+              )}
               <div className="border-t border-zinc-100 dark:border-[#1d2035] pt-2 flex justify-between font-semibold text-sm">
                 <span className="text-zinc-800 dark:text-zinc-200">Total Bruto</span>
                 <span className="text-emerald-700 dark:text-emerald-400 tabular-nums">{fmt(nomina.totalBruto)}</span>
@@ -549,7 +283,7 @@ function DetalleNomina({
               )}
               {(empleado.ingresoOtroEmpleadorMensual ?? 0) > 0 && (
                 <p className="text-[11px] text-zinc-400 dark:text-zinc-500 italic">
-                  ISR consolidado con ingreso de otro empleador ({fmt(empleado.ingresoOtroEmpleadorMensual!, 0)}/mes)
+                  ISR consolidado con ingreso de otro empleador ({fmt(empleado.ingresoOtroEmpleadorMensual!)}/mes)
                   — esta empresa solo retiene su porción proporcional
                 </p>
               )}
@@ -564,7 +298,7 @@ function DetalleNomina({
         <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] p-6 rounded-b-xl">
           <div className="rounded-xl bg-white dark:bg-[#141722] border border-zinc-200 dark:border-[#252840] p-4">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide">Salario Neto a Pagar</p>
-            <p className="mt-1 text-2xl font-bold text-[#151f66] dark:text-indigo-300 tabular-nums">{fmt(nomina.salarioNeto, 0)}</p>
+            <p className="mt-1 text-2xl font-bold text-[#151f66] dark:text-indigo-300 tabular-nums">{fmt(nomina.salarioNeto)}</p>
             {nomina.grossingUpEmpresa > 0 && (
               <p className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                 Incluye reembolso de grossing-up: +{fmt(nomina.grossingUpEmpresa)}
@@ -610,7 +344,7 @@ function DetalleNomina({
 
         <div className="border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex gap-4 text-xs text-zinc-500 dark:text-zinc-400">
-            <span>Regalía/período: <strong className="text-zinc-800 dark:text-zinc-200">{fmt(nomina.regaliaPascual, 0)}</strong></span>
+            <span>Regalía/período: <strong className="text-zinc-800 dark:text-zinc-200">{fmt(nomina.regaliaPascual)}</strong></span>
             <span>Vacaciones: <strong className="text-zinc-800 dark:text-zinc-200">{nomina.vacacionesMensualesDias.toFixed(2)} días</strong></span>
           </div>
           <button
@@ -628,13 +362,16 @@ function DetalleNomina({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function NominaPage() {
-  const { empleados, empleadosEnNomina } = useEmpleados()
-  const { periodos, generar, cerrar, eliminar, actualizarAjustes, actualizarTotales, marcarProcesados, reabrir, marcarPagada } = usePeriodos()
+  const { empleados, empleadosEnNomina, update: actualizarEmpleado } = useEmpleados()
+  const { periodos, generar, cerrar, eliminar, actualizarAjustes, actualizarTotales, marcarProcesados, reabrir } = usePeriodos()
   const { empresa } = useEmpresa()
   const { getPrestamosActivos, registrarPago, registrarOmisionCuota } = usePrestamos()
   const { liquidaciones } = useLiquidaciones()
   const { saldos: saldosISR, getSaldosActivos, getMontoAplicadoEnPeriodo, aplicar: aplicarSaldoISR } = useSaldoISR()
   const { getFeriados } = useFeriados()
+  const { disfrutes } = useVacaciones()
+  const { licencias } = useLicencias()
+  const { aumentos } = useAumentos()
   const { user } = useAuth()
   const { conceptosActivos: conceptosPersonalizados, getConcepto: getConceptoPersonalizado } = useConceptosPersonalizados()
 
@@ -645,9 +382,14 @@ export default function NominaPage() {
   // disponible ahora mismo (se "congela" recién al procesar).
   function conSaldoISR(empleado: Empleado, base: ResultadoNomina, periodo: PeriodoNomina): ResultadoNomina {
     const yaProcesado = periodo.empleadosProcesados?.includes(empleado.id) ?? false
+    // Suma TODOS los saldos activos, no solo el más antiguo — un empleado
+    // puede tener más de un registro de crédito ISR vigente a la vez (ej. uno
+    // de hace varios años parcialmente consumido más uno nuevo), y el ISR de
+    // este período debe poder cubrirse encadenando ambos (FIFO), no solo el
+    // primero.
     const monto = yaProcesado
       ? getMontoAplicadoEnPeriodo(empleado.id, periodo.id)
-      : (getSaldosActivos(empleado.id)[0]?.saldoPendiente ?? 0)
+      : getSaldosActivos(empleado.id).reduce((s, x) => s + x.saldoPendiente, 0)
     return aplicarSaldoISRFavor(base, monto, empleado.grossingUpPct).resultado
   }
 
@@ -660,7 +402,7 @@ export default function NominaPage() {
   function resultadoDePeriodo(empleado: Empleado, ajustes: AjusteLinea[], periodo: PeriodoNomina): ResultadoNomina {
     const snapshot = periodo.resultadosPorEmpleado?.[empleado.id]
     if (snapshot) return snapshot
-    return conSaldoISR(empleado, calcularParaPeriodo(empleado, ajustes, periodo), periodo)
+    return conSaldoISR(empleado, calcularParaPeriodo(empleado, ajustes, periodo, disfrutes, licencias, aumentos, periodos), periodo)
   }
 
   // View state
@@ -677,6 +419,11 @@ export default function NominaPage() {
   const [nuevoMes, setNuevoMes]           = useState(hoy.getMonth() + 1)
   const [nuevoAnio, setNuevoAnio]         = useState(hoy.getFullYear())
   const [nuevaQuincena, setNuevaQuincena] = useState<1 | 2>(1)
+
+  // Lista de períodos ("Cálculo de Nómina") — búsqueda + filtros de estado/año
+  const [busquedaPeriodo, setBusquedaPeriodo]       = useState('')
+  const [filtroEstadoPeriodo, setFiltroEstadoPeriodo] = useState<'todos' | EstadoPeriodo>('todos')
+  const [filtroAnioPeriodo, setFiltroAnioPeriodo]   = useState<'todos' | number>('todos')
 
   // Ajuste inline form
   const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null)
@@ -697,15 +444,17 @@ export default function NominaPage() {
   const [filtroIngresoDesde, setFiltroIngresoDesde] = useState('')
   const [filtroIngresoHasta, setFiltroIngresoHasta] = useState('')
 
+  // Búsqueda/filtro de la tabla de empleados del período — independiente del
+  // panel de "Filtros" de arriba (ese es un criterio de selección masiva,
+  // solo visible en_proceso; esto es para ubicar empleados en la tabla,
+  // visible sin importar el estado del período). Mismo patrón ya usado en
+  // Regalía Pascual.
+  const [busquedaEmpleado, setBusquedaEmpleado] = useState('')
+  const [filtroDeptoTabla, setFiltroDeptoTabla] = useState('todos')
+
   // Auditoría pre-cierre: ids en espera de confirmación antes de completar
   // el período (pasar de en_proceso a procesada)
   const [auditoriaIds, setAuditoriaIds] = useState<string[] | null>(null)
-
-  // Envío de comprobantes de pago por correo — se abre justo después de
-  // marcar un período como pagado (o manualmente después, vía "Comprobantes")
-  const [envioPeriodoId, setEnvioPeriodoId] = useState<string | null>(null)
-  const [plantillaComprobante, setPlantillaComprobante] = useState<PlantillaComprobante>(plantillaComprobanteDeEmpresa(empresa))
-  const [enviadosComprobante, setEnviadosComprobante] = useState<Set<string>>(new Set())
 
   // Importador de horas trabajadas (Excel/CSV) — solo tiene sentido con el
   // período en_proceso, ya que anexa AjusteLinea nuevas a los empleados.
@@ -719,6 +468,19 @@ export default function NominaPage() {
     if (empresa.modalidadNomina) setNuevoTipo(empresa.modalidadNomina)
   }, [empresa.modalidadNomina])
 
+  // Pre-llena Mes/Año/Quincena con una sugerencia razonable (sigue la serie
+  // existente, o el mes actual si es el primer período) solo al cambiar la
+  // frecuencia — el usuario elige libremente el período desde ahí, así que
+  // esto NO debe recalcularse cada vez que cambia `periodos` (le pisaría la
+  // selección manual con cualquier actualización de fondo).
+  useEffect(() => {
+    const sugerido = sugerirProximoPeriodo(periodos, nuevoTipo)
+    setNuevoMes(sugerido.mes)
+    setNuevoAnio(sugerido.anio)
+    setNuevaQuincena(sugerido.quincena)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nuevoTipo])
+
   const periodoActual = periodos.find(p => p.id === periodoAbierto) ?? null
   const periodoActualLabel = periodoActual ? labelPeriodo(periodoActual) : ''
 
@@ -726,8 +488,28 @@ export default function NominaPage() {
   // normales, a cualquier suspendido a mitad de ESTE período (ver
   // empleadosDelPeriodo). Sustituye a empleadosEnNomina en todo lo que sea
   // específico del período actualmente abierto.
+  //
+  // Solo se recalcula EN VIVO mientras el período está en_proceso — un
+  // período procesada/cerrada es un registro histórico congelado (mismo
+  // principio que ya rige actualizarAjustes/marcarProcesados, ver
+  // periodos-context.tsx), así que su roster se fija a los empleados que
+  // REALMENTE fueron procesados. Sin este freeze, un empleado contratado
+  // DESPUÉS de que el departamento ya cerró ese período (ej. cierre el día
+  // 12 para pagar el 15, empleado entra el 13) aparecía igual en la tabla
+  // al reabrir/ver el período — aunque ya no se le podía procesar ahí
+  // (bloqueado por el guard de datos), seguía viéndose como si pudiera. Sus
+  // días quedan correctamente diferidos al período siguiente vía
+  // diasIngresoPendientes (nomina-shared.ts), sin importar en qué día
+  // calendario específico haya entrado. Fallback a la lista en vivo solo
+  // para períodos sin empleadosProcesados (anteriores a ese campo, o datos
+  // demo sembrados directo) — mismo criterio ya usado en
+  // EnvioComprobantesModal.tsx.
   const empleadosPeriodo = periodoActual
-    ? empleadosDelPeriodo(empleados, empleadosEnNomina, periodoActual.mes, periodoActual.anio, periodoActual.tipo, periodoActual.quincena ?? 1)
+    ? periodoActual.estado === 'en_proceso'
+      ? empleadosDelPeriodo(empleados, empleadosEnNomina, periodoActual.mes, periodoActual.anio, periodoActual.tipo, periodoActual.quincena ?? 1)
+      : periodoActual.empleadosProcesados
+        ? periodoActual.empleadosProcesados.flatMap(id => { const e = empleados.find(x => x.id === id); return e ? [e] : [] })
+        : empleadosEnNomina
     : empleadosEnNomina
 
   // If the open period was deleted, reset to list view without calling setState during render
@@ -753,10 +535,15 @@ export default function NominaPage() {
   // monto nunca se pagó realmente. Al reabrir (desposteo) el estado vuelve a
   // en_proceso y el recálculo en vivo se reanuda correctamente.
   useEffect(() => {
-    if (!periodoActual || periodoActual.estado !== 'en_proceso') return
+    // El período de Regalía Pascual (tipo 'regalia') o de Bonificación por
+    // Utilidades (tipo 'bonificacion') nace con sus totales ya congelados
+    // desde montosRegalia/montosBonificacion — no usa ajustesPorEmpleado ni
+    // el motor normal de calcularNomina en este flujo, así que este
+    // recálculo no aplica a ninguno de los dos.
+    if (!periodoActual || periodoActual.estado !== 'en_proceso' || periodoActual.tipo === 'regalia' || periodoActual.tipo === 'bonificacion') return
     const ajustesPorEmp = periodoActual.ajustesPorEmpleado ?? {}
     const rs = empleadosPeriodo.map(e =>
-      conSaldoISR(e, calcularParaPeriodo(e, ajustesPorEmp[e.id] ?? [], periodoActual), periodoActual)
+      conSaldoISR(e, calcularParaPeriodo(e, ajustesPorEmp[e.id] ?? [], periodoActual, disfrutes, licencias, aumentos, periodos), periodoActual)
     )
     const round = (n: number) => Math.round(n * 100) / 100
     const nuevos = {
@@ -771,12 +558,12 @@ export default function NominaPage() {
     const cambiaron = (Object.keys(nuevos) as (keyof typeof nuevos)[]).some(k => nuevos[k] !== actuales[k])
     if (cambiaron) actualizarTotales(periodoActual.id, nuevos)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodoActual?.id, periodoActual?.ajustesPorEmpleado, periodoActual?.empleadosProcesados, periodoActual?.estado, empleadosPeriodo, saldosISR])
+  }, [periodoActual?.id, periodoActual?.ajustesPorEmpleado, periodoActual?.empleadosProcesados, periodoActual?.estado, empleadosPeriodo, saldosISR, disfrutes])
 
   function calcularTotalesRapido(ajustesPorEmp: Record<string, AjusteLinea[]> = {}) {
     const empleadosNuevoPeriodo = empleadosDelPeriodo(empleados, empleadosEnNomina, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena)
     const rs = empleadosNuevoPeriodo.map(e =>
-      calcularParaPeriodo(e, ajustesPorEmp[e.id] ?? [], { mes: nuevoMes, anio: nuevoAnio, tipo: nuevoTipo, quincena: nuevaQuincena })
+      calcularParaPeriodo(e, ajustesPorEmp[e.id] ?? [], { mes: nuevoMes, anio: nuevoAnio, tipo: nuevoTipo, quincena: nuevaQuincena }, disfrutes, licencias, aumentos, periodos)
     )
     return {
       bruto:      rs.reduce((s, r) => s + r.totalBruto, 0),
@@ -817,6 +604,7 @@ export default function NominaPage() {
             descripcion: p.notas ? `${etiqueta} — ${p.notas}` : etiqueta,
             valor: p.cuotaBase,
             prestamoId: p.id,
+            prestamoFrecuencia: p.frecuencia,
           }
         })
       }
@@ -847,49 +635,277 @@ export default function NominaPage() {
     })
     setPeriodoAbierto(nuevo.id)
     setSelectedEmps(new Set())
-    setToast('Período creado · Cuotas de préstamos pre-cargadas')
+    // El goce de vacaciones (Disfrute registrado en /vacaciones), el
+    // prorrateo por licencia sin sueldo (Licencias), y el salario ponderado
+    // por reajuste a mitad de período (Aumentos Salariales) se aplican
+    // automáticamente al calcular cada empleado — no son un AjusteLinea, así
+    // que no hay nada que pre-cargar aquí, solo avisar si aplica a alguien.
+    const conVacaciones = empleadosNuevoPeriodo.filter(e =>
+      diasVacacionEnPeriodo(e, disfrutes, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena) !== null
+    ).length
+    const conLicenciaSinSueldo = empleadosNuevoPeriodo.filter(e =>
+      diasLicenciaSinSueldoEnPeriodo(e, licencias, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena) !== null
+    ).length
+    // Solo cuenta como "reajuste" si el salario reconstruido para este
+    // período realmente DIFIERE del salario en vivo — salarioEfectivoEnPeriodo
+    // también devuelve un valor (no null) para el caso "sin ningún reajuste
+    // relevante, coincide con el salario actual", que no amerita aviso.
+    const conReajusteSalarial = empleadosNuevoPeriodo.filter(e => {
+      const efectivo = salarioEfectivoEnPeriodo(e.id, aumentos, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena)
+      return efectivo !== null && Math.abs(efectivo - e.salarioBase) > 0.005
+    }).length
+    const conDiasPendientes = empleadosNuevoPeriodo.filter(e =>
+      diasIngresoPendientes(e, periodos, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena) !== null
+    ).length
+    // Empleados con ingreso a mitad de período (antes del corte de cierre)
+    // que SÍ participan de este período, prorrateados por días calendario.
+    const conIngresoProrrateado = empleadosNuevoPeriodo.filter(e =>
+      diasIngresoEnPeriodo(e, nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena) !== null
+    ).length
+    // Empleados excluidos por completo de ESTE período por ingresar
+    // justo en el corte de cierre (el último día calendario del período —
+    // 15/30/31) — sus días se sumarán al próximo período vía
+    // diasIngresoPendientes. Se avisa aparte para que no parezca que el
+    // empleado "desapareció" del período recién creado.
+    const { fin: finNuevo } = rangoPeriodo(nuevoMes, nuevoAnio, nuevoTipo, nuevaQuincena)
+    const conIngresoExcluido = empleadosEnNomina.filter(e => parseFechaLocal(e.fechaIngreso).getTime() === finNuevo.getTime()).length
+    const avisos = [
+      conVacaciones > 0 ? `${conVacaciones} empleado(s) con vacaciones` : null,
+      conLicenciaSinSueldo > 0 ? `${conLicenciaSinSueldo} empleado(s) con licencia sin sueldo` : null,
+      conReajusteSalarial > 0 ? `${conReajusteSalarial} empleado(s) con reajuste salarial` : null,
+      conIngresoProrrateado > 0 ? `${conIngresoProrrateado} empleado(s) con ingreso a mitad de período (prorrateado)` : null,
+      conDiasPendientes > 0 ? `${conDiasPendientes} empleado(s) con días pendientes de un ingreso reciente` : null,
+      conIngresoExcluido > 0 ? `${conIngresoExcluido} empleado(s) ingresados en el corte de cierre no cobran este período (sus días se suman al próximo)` : null,
+    ].filter(Boolean)
+    setToast(avisos.length > 0
+      ? `Período creado · Cuotas de préstamos pre-cargadas · ${avisos.join(' · ')} en este período`
+      : 'Período creado · Cuotas de préstamos pre-cargadas')
+  }
+
+  // El valor crudo pre-cargado en el ajuste (AjusteLinea.valor = cuotaBase)
+  // no siempre coincide con lo que el empleado realmente pagó EN ESTE
+  // período específico — depende de si la frecuencia de descuento del
+  // préstamo (Préstamos permite elegir mensual o quincenal por empleado)
+  // coincide con el tipo del período que se está cerrando. Misma regla que
+  // ya aplica ajustesToParams al calcular el comprobante, ahora usada
+  // también para registrar el pago real contra el saldo del préstamo — sin
+  // esto, un préstamo mensual bajo nómina quincenal registraría la cuota
+  // completa DOS veces por mes (una por cada quincena cerrada), agotando el
+  // saldo al doble de velocidad de lo que el empleado realmente pagó.
+  function montoRealPrestamoEnPeriodo(ajuste: AjusteLinea, tipoPeriodo: TipoPeriodo): number {
+    const freq = ajuste.prestamoFrecuencia ?? 'mensual'
+    if (freq === tipoPeriodo) return ajuste.valor
+    if (freq === 'mensual' && tipoPeriodo === 'quincenal') return Math.round((ajuste.valor / 2) * 100) / 100
+    return ajuste.valor * 2 // freq === 'quincenal' && tipoPeriodo === 'mensual' — 2 quincenas acumuladas
+  }
+
+  // Registra contra cada préstamo real el monto EFECTIVAMENTE deducido en
+  // este período — compartido entre el cierre desde el detalle
+  // (handleCerrarPeriodo) y el botón de cierre rápido de la lista de
+  // períodos, para que un préstamo se pague igual sin importar desde dónde
+  // se cierre el período.
+  function registrarPagosPrestamos(periodo: PeriodoNomina) {
+    const ajustesPorEmp = periodo.ajustesPorEmpleado ?? {}
+    for (const ajustes of Object.values(ajustesPorEmp)) {
+      for (const ajuste of ajustes) {
+        if (ajuste.concepto !== 'prestamo' || !ajuste.prestamoId || ajuste.valor <= 0) continue
+        const monto = montoRealPrestamoEnPeriodo(ajuste, periodo.tipo)
+        if (monto <= 0) continue
+        registrarPago(ajuste.prestamoId, {
+          periodoId: periodo.id,
+          fecha: new Date().toISOString(),
+          montoPagado: monto,
+          esLiquidacion: false,
+        })
+      }
+    }
   }
 
   function handleCerrarPeriodo() {
     if (!periodoActual) return
-    // Register actual paid amounts against each loan
-    const ajustesPorEmp = periodoActual.ajustesPorEmpleado ?? {}
-    for (const ajustes of Object.values(ajustesPorEmp)) {
-      for (const ajuste of ajustes) {
-        if (ajuste.concepto === 'prestamo' && ajuste.prestamoId && ajuste.valor > 0) {
-          registrarPago(ajuste.prestamoId, {
-            periodoId: periodoActual.id,
-            fecha: new Date().toISOString(),
-            montoPagado: ajuste.valor,
-            esLiquidacion: false,
-          })
-        }
-      }
-    }
+    registrarPagosPrestamos(periodoActual)
     cerrar(periodoActual.id)
     setToast('Período cerrado · Pagos de préstamos registrados')
   }
 
-  function handleExportar() {
+  // Procesa el pago de Regalía Pascual de uno o varios empleados dentro de un
+  // período tipo 'regalia': congela el ResultadoNomina sintético (bruto, sin
+  // AFP/SFS/ISR) igual que cualquier otro período, y además "reinicia" el
+  // acumulado del empleado a cero estampando regaliaPagadaEsteAnio/Anio — así
+  // regalia-pascual/page.tsx vuelve a mostrar RD$0 acumulado a partir de este
+  // pago, acumulando de nuevo mes a mes hacia la próxima liquidación.
+  function handleProcesarRegalia(empIds: string[]) {
+    if (!periodoActual || periodoActual.tipo !== 'regalia') return
+    const montos = periodoActual.montosRegalia ?? {}
+    const resultados: Record<string, ResultadoNomina> = {}
+    for (const id of empIds) {
+      const emp = empleados.find(e => e.id === id)
+      if (!emp) continue
+      const monto = montos[id] ?? 0
+      resultados[id] = resultadoRegalia(id, monto, getAnosServicio(emp.fechaIngreso))
+      actualizarEmpleado(id, { regaliaPagadaEsteAnio: monto, regaliaPagadaAnio: periodoActual.anio })
+    }
+    if (Object.keys(resultados).length === 0) return
+    marcarProcesados(periodoActual.id, resultados)
+    setSelectedEmps(new Set())
+    setToast(empIds.length === 1 ? 'Regalía procesada' : `${empIds.length} pago(s) de regalía procesados`)
+  }
+
+  // Procesa el pago de Bonificación por Utilidades de uno o varios empleados
+  // dentro de un período tipo 'bonificacion': a diferencia de Regalía
+  // Pascual, SÍ calcula AFP/SFS/ISR reales (resultadoBonificacion) y no hay
+  // ningún acumulado en Empleado que reiniciar — la Bonificación no se
+  // acumula mes a mes, se calcula una sola vez al año en /bonificacion.
+  function handleProcesarBonificacion(empIds: string[]) {
+    if (!periodoActual || periodoActual.tipo !== 'bonificacion') return
+    const montos = periodoActual.montosBonificacion ?? {}
+    const resultados: Record<string, ResultadoNomina> = {}
+    for (const id of empIds) {
+      const emp = empleados.find(e => e.id === id)
+      if (!emp) continue
+      const monto = montos[id] ?? 0
+      resultados[id] = resultadoBonificacion(emp, monto)
+    }
+    if (Object.keys(resultados).length === 0) return
+    marcarProcesados(periodoActual.id, resultados)
+    setSelectedEmps(new Set())
+    setToast(empIds.length === 1 ? 'Bonificación procesada' : `${empIds.length} pago(s) de bonificación procesados`)
+  }
+
+  // Export a Excel con TODO el detalle transaccional del período: una hoja
+  // de resumen por empleado (mismos totales que ya se ven en la tabla) más
+  // una segunda hoja con cada línea de ajuste individual (bonos, comisiones,
+  // préstamos, descuentos) — no solo los totales agregados por empleado.
+  // La librería de Excel (exceljs, ~250KB) se carga bajo demanda recién al
+  // hacer clic, para no inflar el bundle inicial de esta página.
+  async function handleExportar() {
     if (!periodoActual) return
-    const ajustesPorEmp  = periodoActual.ajustesPorEmpleado ?? {}
-    const rows = empleadosPeriodo.map(e => {
-      const r = resultadoDePeriodo(e, ajustesPorEmp[e.id] ?? [], periodoActual)
-      return [
-        fullName(e), e.cargo, e.departamento,
-        r.totalBruto.toFixed(2), r.afpEmpleado.toFixed(2), r.sfsEmpleado.toFixed(2),
-        r.isrMensual.toFixed(2), r.sfsDependientes.toFixed(2), r.totalDescuentos.toFixed(2),
-        r.salarioNeto.toFixed(2), r.afpEmpleador.toFixed(2), r.sfsEmpleador.toFixed(2),
-        r.srlEmpleador.toFixed(2), r.infotepEmpleador.toFixed(2), r.totalCostoEmpleador.toFixed(2),
-      ]
+    const { exportarExcel } = await import('@/lib/excel-export')
+
+    if (periodoActual.tipo === 'regalia') {
+      const montos = periodoActual.montosRegalia ?? {}
+      const procesadosSet = new Set(periodoActual.empleadosProcesados ?? [])
+      const filas = Object.entries(montos).map(([empId, monto]) => {
+        const e = empleados.find(x => x.id === empId)
+        return [
+          e ? fullName(e) : empId, e?.cargo ?? '—', e?.departamento ?? '—',
+          monto, procesadosSet.has(empId) ? 'Procesado' : 'Pendiente',
+        ]
+      })
+      const totalMonto = Object.values(montos).reduce((s, m) => s + m, 0)
+      await exportarExcel({
+        nombreArchivo: `regalia-pascual-${periodoActual.anio}`,
+        empresa: empresa.nombre,
+        rnc: empresa.rnc,
+        hojas: [{
+          nombre: 'Regalía Pascual',
+          titulo: `Regalía Pascual — ${periodoActualLabel}`,
+          subtitulo: `${filas.length} empleado(s)`,
+          encabezados: ['Empleado', 'Cargo', 'Departamento', 'Monto Regalía', 'Estado'],
+          filas,
+          totales: [`TOTAL — ${filas.length} empleado(s)`, '', '', totalMonto, ''],
+          anchos: [26, 20, 18, 16, 14],
+        }],
+      })
+      setToast('Regalía Pascual exportada a Excel')
+      return
+    }
+
+    if (periodoActual.tipo === 'bonificacion') {
+      const montos = periodoActual.montosBonificacion ?? {}
+      const procesadosSet = new Set(periodoActual.empleadosProcesados ?? [])
+      const filas = Object.entries(montos).map(([empId, monto]) => {
+        const e = empleados.find(x => x.id === empId)
+        const r = e ? resultadoBonificacion(e, monto) : null
+        return [
+          e ? fullName(e) : empId, e?.cargo ?? '—', e?.departamento ?? '—',
+          monto, r?.afpEmpleado ?? 0, r?.sfsEmpleado ?? 0, r?.isrMensual ?? 0, r?.salarioNeto ?? monto,
+          procesadosSet.has(empId) ? 'Procesado' : 'Pendiente',
+        ]
+      })
+      const suma = (i: number) => filas.reduce((s, f) => s + (f[i] as number), 0)
+      await exportarExcel({
+        nombreArchivo: `bonificacion-utilidades-${periodoActual.anio}`,
+        empresa: empresa.nombre,
+        rnc: empresa.rnc,
+        hojas: [{
+          nombre: 'Bonificación Utilidades',
+          titulo: `Bonificación por Utilidades — ${periodoActualLabel}`,
+          subtitulo: `Art. 223 · ${filas.length} empleado(s) · con AFP/SFS/ISR`,
+          encabezados: ['Empleado', 'Cargo', 'Departamento', 'Monto Bruto', 'AFP', 'SFS', 'ISR', 'Neto a Pagar', 'Estado'],
+          filas,
+          totales: [`TOTAL — ${filas.length} empleado(s)`, '', '', suma(3), suma(4), suma(5), suma(6), suma(7), ''],
+          anchos: [26, 20, 18, 16, 14, 14, 14, 16, 14],
+        }],
+      })
+      setToast('Bonificación por Utilidades exportada a Excel')
+      return
+    }
+
+    const ajustesPorEmp = periodoActual.ajustesPorEmpleado ?? {}
+
+    const resultados = empleadosPeriodo.map(e => {
+      const ajustes = ajustesPorEmp[e.id] ?? []
+      return { empleado: e, ajustes, r: resultadoDePeriodo(e, ajustes, periodoActual) }
     })
+
+    const filasResumen = resultados.map(({ empleado: e, r }) => [
+      fullName(e), e.cargo, e.departamento,
+      r.totalBruto, r.afpEmpleado, r.sfsEmpleado, r.isrMensual, r.sfsDependientes,
+      r.totalDescuentos, r.salarioNeto, r.afpEmpleador, r.sfsEmpleador,
+      r.srlEmpleador, r.infotepEmpleador, r.totalCostoEmpleador,
+    ])
+    const suma = (f: (x: (typeof resultados)[number]) => number) => resultados.reduce((s, x) => s + f(x), 0)
+    const totalesResumen = [
+      `TOTAL — ${resultados.length} empleado(s)`, '', '',
+      suma(x => x.r.totalBruto), suma(x => x.r.afpEmpleado), suma(x => x.r.sfsEmpleado),
+      suma(x => x.r.isrMensual), suma(x => x.r.sfsDependientes), suma(x => x.r.totalDescuentos),
+      suma(x => x.r.salarioNeto), suma(x => x.r.afpEmpleador), suma(x => x.r.sfsEmpleador),
+      suma(x => x.r.srlEmpleador), suma(x => x.r.infotepEmpleador), suma(x => x.r.totalCostoEmpleador),
+    ]
+
+    const filasAjustes: (string | number)[][] = []
+    for (const { empleado: e, ajustes } of resultados) {
+      for (const a of ajustes) {
+        filasAjustes.push([
+          fullName(e), e.cargo,
+          a.tipo === 'ingreso' ? 'Ingreso' : 'Descuento',
+          labelAjuste(a),
+          a.descripcion || '—',
+          isHorasConcepto(a.concepto) ? `${a.valor} horas` : a.valor,
+        ])
+      }
+    }
+
     const slug = periodoActualLabel.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-')
-    exportarCSV(
-      `nomina-${slug}.csv`,
-      ['Empleado','Cargo','Departamento','S. Bruto','AFP Emp','SFS Emp','ISR','SFS Dep.','Total Desc.','S. Neto','AFP Empr','SFS Empr','SRL','Infotep','Costo Total'],
-      rows,
-    )
-    setToast('Nómina exportada correctamente')
+    const estadoLabel = periodoActual.estado === 'cerrada' ? 'Cerrada'
+      : periodoActual.estado === 'procesada' ? 'Procesada' : 'En proceso'
+
+    await exportarExcel({
+      nombreArchivo: `nomina-${slug}`,
+      empresa: empresa.nombre,
+      rnc: empresa.rnc,
+      hojas: [
+        {
+          nombre: 'Resumen por Empleado',
+          titulo: `Nómina — ${periodoActualLabel}`,
+          subtitulo: `${resultados.length} empleado(s) · Estado: ${estadoLabel}`,
+          encabezados: ['Empleado', 'Cargo', 'Departamento', 'S. Bruto', 'AFP Empleado', 'SFS Empleado', 'ISR', 'SFS Dependientes', 'Total Descuentos', 'S. Neto', 'AFP Empleador', 'SFS Empleador', 'SRL Empleador', 'Infotep', 'Costo Total Empresa'],
+          filas: filasResumen,
+          totales: totalesResumen,
+          anchos: [26, 20, 18, 14, 13, 13, 12, 16, 15, 14, 13, 13, 13, 12, 16],
+        },
+        ...(filasAjustes.length > 0 ? [{
+          nombre: 'Detalle de Ajustes',
+          titulo: `Ajustes del Período — ${periodoActualLabel}`,
+          subtitulo: `${filasAjustes.length} ajuste(s) individuales`,
+          encabezados: ['Empleado', 'Cargo', 'Tipo', 'Concepto', 'Descripción', 'Valor'],
+          filas: filasAjustes,
+          anchos: [26, 20, 12, 20, 32, 14],
+        }] : []),
+      ],
+    })
+    setToast('Nómina exportada a Excel')
   }
 
   function getAjustes(empleadoId: string): AjusteLinea[] {
@@ -950,13 +966,38 @@ export default function NominaPage() {
     if (!periodoActual) return null
     const emp = empleadosPeriodo.find(e => e.id === empId)
     if (!emp) return null
-    const base = calcularParaPeriodo(emp, ajustes, periodoActual)
-    const saldo = getSaldosActivos(emp.id)[0]
-    const { resultado, montoAplicado } = aplicarSaldoISRFavor(base, saldo?.saldoPendiente ?? 0, emp.grossingUpPct)
-    if (saldo && montoAplicado > 0) {
-      aplicarSaldoISR(saldo.id, periodoActual.id, periodoActualLabel, montoAplicado)
+    const base = calcularParaPeriodo(emp, ajustes, periodoActual, disfrutes, licencias, aumentos, periodos)
+    // Encadena TODOS los saldos activos del empleado (FIFO — el más antiguo
+    // primero), no solo el primero: si el crédito más antiguo no alcanza a
+    // cubrir el ISR de este período, el excedente se consume del siguiente
+    // registro activo, y así sucesivamente, hasta cubrir el ISR o agotarlos.
+    const saldosActivos = getSaldosActivos(emp.id)
+    const totalDisponible = saldosActivos.reduce((s, x) => s + x.saldoPendiente, 0)
+    const { resultado, montoAplicado } = aplicarSaldoISRFavor(base, totalDisponible, emp.grossingUpPct)
+    let restante = montoAplicado
+    for (const saldo of saldosActivos) {
+      if (restante <= 0) break
+      const montoDeEste = Math.min(restante, saldo.saldoPendiente)
+      if (montoDeEste > 0) {
+        aplicarSaldoISR(saldo.id, periodoActual.id, periodoActualLabel, montoDeEste)
+        restante -= montoDeEste
+      }
     }
     return resultado
+  }
+
+  // Snapshot de banco/cuenta de cada empleado procesado, capturado en el
+  // mismo instante que congelarYCalcular congela su resultado — se persiste
+  // en PeriodoNomina.cuentasBancariasPorEmpleado junto a resultadosPorEmpleado
+  // para que la auditoría pre-cierre del período SIGUIENTE pueda detectar un
+  // cambio de cuenta bancaria (el Empleado en vivo solo guarda el valor actual).
+  function snapshotCuentas(ids: string[]): Record<string, CuentaBancariaSnapshot> {
+    const out: Record<string, CuentaBancariaSnapshot> = {}
+    for (const id of ids) {
+      const emp = empleadosPeriodo.find(e => e.id === id)
+      if (emp) out[id] = { banco: emp.banco, numeroCuenta: emp.numeroCuenta }
+    }
+    return out
   }
 
   // Reglas de manejo de insuficiencia de fondos: si el neto de un empleado no
@@ -974,14 +1015,14 @@ export default function NominaPage() {
     if (!periodoActual) return { ajustesFinales: ajustes, omitido: null }
     const emp = empleadosPeriodo.find(e => e.id === empId)
     if (!emp) return { ajustesFinales: ajustes, omitido: null }
-    const resultado = conSaldoISR(emp, calcularParaPeriodo(emp, ajustes, periodoActual), periodoActual)
+    const resultado = conSaldoISR(emp, calcularParaPeriodo(emp, ajustes, periodoActual, disfrutes, licencias, aumentos, periodos), periodoActual)
     if (resultado.salarioNeto >= 0) return { ajustesFinales: ajustes, omitido: null }
 
     const ajustesPrestamo = ajustes.filter(a => a.concepto === 'prestamo' && a.prestamoId)
     if (ajustesPrestamo.length === 0) return { ajustesFinales: ajustes, omitido: null }
 
     const ajustesSinPrestamo = ajustes.filter(a => !(a.concepto === 'prestamo' && a.prestamoId))
-    const resultadoSinPrestamo = conSaldoISR(emp, calcularParaPeriodo(emp, ajustesSinPrestamo, periodoActual), periodoActual)
+    const resultadoSinPrestamo = conSaldoISR(emp, calcularParaPeriodo(emp, ajustesSinPrestamo, periodoActual, disfrutes, licencias, aumentos, periodos), periodoActual)
     if (resultadoSinPrestamo.salarioNeto < 0) return { ajustesFinales: ajustes, omitido: null } // no es solo el préstamo — se deja para la auditoría
 
     actualizarAjustes(periodoActual.id, empId, ajustesSinPrestamo)
@@ -999,7 +1040,7 @@ export default function NominaPage() {
     }
     const { ajustesFinales, omitido } = manejarInsuficienciaFondos(empId)
     const resultado = congelarYCalcular(empId, ajustesFinales)
-    if (resultado) marcarProcesados(periodoActual.id, { [empId]: resultado })
+    if (resultado) marcarProcesados(periodoActual.id, { [empId]: resultado }, snapshotCuentas([empId]))
     setSelectedEmps(prev => { const s = new Set(prev); s.delete(empId); return s })
     setToast(omitido ? `Cuota de préstamo omitida para ${omitido} — el neto no alcanzaba` : 'Empleado procesado')
   }
@@ -1014,7 +1055,7 @@ export default function NominaPage() {
       const r = congelarYCalcular(id, ajustesFinales)
       if (r) resultados[id] = r
     }
-    marcarProcesados(periodoActual.id, resultados)
+    marcarProcesados(periodoActual.id, resultados, snapshotCuentas(Object.keys(resultados)))
     setSelectedEmps(new Set())
     setToast(omitidos.length > 0
       ? `Todos los empleados procesados — cuota de préstamo omitida para: ${omitidos.join(', ')}`
@@ -1044,7 +1085,7 @@ export default function NominaPage() {
       const r = congelarYCalcular(id, ajustesFinales)
       if (r) resultados[id] = r
     }
-    marcarProcesados(periodoActual.id, resultados)
+    marcarProcesados(periodoActual.id, resultados, snapshotCuentas(Object.keys(resultados)))
     setSelectedEmps(new Set())
     if (omitidos.length > 0) {
       setToast(`Cuota de préstamo omitida para: ${omitidos.join(', ')}`)
@@ -1083,102 +1124,157 @@ export default function NominaPage() {
     setSelectedEmps(new Set(coincidencias.map(e => e.id)))
   }
 
-  const anios = [nuevoAnio - 1, nuevoAnio, nuevoAnio + 1]
+  // 10 años atrás hasta 1 año adelante del año calendario real (no del año
+  // seleccionado en el form — anclarlo a `nuevoAnio` movería el rango cada
+  // vez que se elige un año distinto). Permite registrar retroactivamente
+  // un período de una empresa con historial previo a Cielo Cloud, sin
+  // limitarse a "año actual ± 1".
+  const anios = Array.from({ length: 12 }, (_, i) => hoy.getFullYear() - 10 + i)
   const conceptosIngreso: ConceptoAjuste[]   = ['horas_extras_35', 'horas_extras_100', 'recargo_nocturno', 'comision', 'bono', 'otro_ingreso']
   const conceptosDeduccion: ConceptoAjuste[] = ['prestamo', 'dependiente_sfs', 'otro_descuento']
 
   // ── VISTA: LISTA ─────────────────────────────────────────────────────────────
   if (!periodoAbierto) {
+    const periodosFiltrados = periodos
+      .filter(p => filtroEstadoPeriodo === 'todos' || p.estado === filtroEstadoPeriodo)
+      .filter(p => filtroAnioPeriodo === 'todos' || p.anio === filtroAnioPeriodo)
+      .filter(p => !busquedaPeriodo.trim() || labelPeriodo(p).toLowerCase().includes(busquedaPeriodo.trim().toLowerCase()))
+      .sort((a, b) => new Date(b.fechaGeneracion).getTime() - new Date(a.fechaGeneracion).getTime())
+    const aniosPeriodos = Array.from(new Set(periodos.map(p => p.anio))).sort((a, b) => b - a)
+    const hayFiltrosPeriodo = busquedaPeriodo.trim() !== '' || filtroEstadoPeriodo !== 'todos' || filtroAnioPeriodo !== 'todos'
+
     return (
       <div className="flex flex-col overflow-hidden h-full">
-        <Header title="Nómina" subtitle="Gestión de períodos de pago" />
+        <Header title="Cálculo de Nómina" subtitle="Calcula los devengados y deducciones de tu equipo de trabajo" />
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
-          {/* Crear período */}
-          <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Crear Período</h2>
-            </div>
-            <div className="px-5 py-4">
-              <div className="flex flex-wrap items-end gap-3">
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Tipo</label>
-                  <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
-                    {(['mensual', 'quincenal'] as TipoPeriodo[]).map(t => (
-                      <button
-                        key={t}
-                        onClick={() => setNuevoTipo(t)}
-                        className={`px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-                          nuevoTipo === t
-                            ? 'bg-[#1B2980] text-white'
-                            : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
-                        }`}
-                      >
-                        {t === 'mensual' ? 'Mensual' : 'Quincenal'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Mes</label>
-                  <select
-                    value={nuevoMes}
-                    onChange={e => setNuevoMes(Number(e.target.value))}
-                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
-                  >
-                    {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Año</label>
-                  <select
-                    value={nuevoAnio}
-                    onChange={e => setNuevoAnio(Number(e.target.value))}
-                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
-                  >
-                    {anios.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                </div>
-
-                {nuevoTipo === 'quincenal' && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Quincena</label>
-                    <select
-                      value={nuevaQuincena}
-                      onChange={e => setNuevaQuincena(Number(e.target.value) as 1 | 2)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+          {/* Selección de período a calcular */}
+          <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none px-5 py-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Frecuencia</label>
+                <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                  {(['mensual', 'quincenal'] as TipoPeriodo[]).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setNuevoTipo(t)}
+                      className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                        nuevoTipo === t
+                          ? 'bg-[#1B2980] text-white'
+                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                      }`}
                     >
-                      <option value={1}>1ª Quincena (1–15)</option>
-                      <option value={2}>2ª Quincena (16–fin)</option>
-                    </select>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleCrearPeriodo}
-                  disabled={empleadosEnNomina.length === 0}
-                  className={cn(BTN_PRIMARY, 'self-end')}
-                >
-                  <Plus className="h-4 w-4" />
-                  Crear Período
-                </button>
+                      {t === 'mensual' ? 'Mensual' : 'Quincenal'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {empleadosEnNomina.length === 0 && (
-                <p className="mt-2.5 text-xs text-amber-600 dark:text-amber-400">
-                  Debes registrar al menos un empleado activo para crear un período de nómina.
-                </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Mes</label>
+                <select
+                  value={nuevoMes}
+                  onChange={e => setNuevoMes(Number(e.target.value))}
+                  className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                >
+                  {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Año</label>
+                <select
+                  value={nuevoAnio}
+                  onChange={e => setNuevoAnio(Number(e.target.value))}
+                  className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                >
+                  {anios.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+
+              {nuevoTipo === 'quincenal' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Quincena</label>
+                  <select
+                    value={nuevaQuincena}
+                    onChange={e => setNuevaQuincena(Number(e.target.value) as 1 | 2)}
+                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                  >
+                    <option value={1}>1ª Quincena (1–15)</option>
+                    <option value={2}>2ª Quincena (16–fin)</option>
+                  </select>
+                </div>
               )}
+
+              <div className="flex items-center gap-2 pb-2">
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">Empleados</span>
+                <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  {empleadosEnNomina.length}
+                </span>
+              </div>
+
+              <button
+                onClick={handleCrearPeriodo}
+                disabled={empleadosEnNomina.length === 0}
+                className={cn(BTN_PRIMARY, 'ml-auto self-end disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none')}
+              >
+                <Plus className="h-4 w-4" />
+                Calcular Período
+              </button>
             </div>
+            {empleadosEnNomina.length === 0 && (
+              <p className="mt-2.5 text-xs text-amber-600 dark:text-amber-400">
+                Debes registrar al menos un empleado activo para crear un período de nómina.
+              </p>
+            )}
           </div>
 
-          {/* Period cards */}
-          {periodos.length === 0 ? (
-            <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+          {/* Historial de períodos */}
+          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-5 py-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+                <input
+                  type="text"
+                  value={busquedaPeriodo}
+                  onChange={e => setBusquedaPeriodo(e.target.value)}
+                  placeholder="Buscar período…"
+                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                />
+              </div>
+              <select
+                value={filtroEstadoPeriodo}
+                onChange={e => setFiltroEstadoPeriodo(e.target.value as 'todos' | EstadoPeriodo)}
+                className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="en_proceso">En Proceso</option>
+                <option value="procesada">Procesada</option>
+                <option value="cerrada">Cerrada</option>
+              </select>
+              <select
+                value={filtroAnioPeriodo}
+                onChange={e => setFiltroAnioPeriodo(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
+                className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              >
+                <option value="todos">Todos los años</option>
+                {aniosPeriodos.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              {hayFiltrosPeriodo && (
+                <button
+                  onClick={() => { setBusquedaPeriodo(''); setFiltroEstadoPeriodo('todos'); setFiltroAnioPeriodo('todos') }}
+                  className="text-xs font-medium text-[#1B2980] dark:text-indigo-400 hover:underline"
+                >
+                  Ver todos
+                </button>
+              )}
+              <span className="ml-auto text-xs text-zinc-400 dark:text-zinc-500">
+                {periodosFiltrados.length} de {periodos.length} período(s)
+              </span>
+            </div>
+
+            {periodos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1189,329 +1285,159 @@ export default function NominaPage() {
                 </div>
                 <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Sin períodos de nómina</p>
                 <p className="mt-1 max-w-xs text-sm text-zinc-500 dark:text-zinc-400">
-                  Crea tu primer período usando el formulario de arriba para comenzar a procesar pagos.
+                  Crea tu primer período usando el panel de arriba para comenzar a procesar pagos.
                 </p>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {periodos.map(p => (
-                <div
-                  key={p.id}
-                  className="flex flex-col rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden"
-                >
-                  <div className="flex items-start justify-between px-5 py-4 border-b border-zinc-100 dark:border-[#1d2035]">
-                    <div>
-                      <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">{labelPeriodo(p)}</p>
-                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                        {p.totalEmpleados} empleado{p.totalEmpleados !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {(p.bitacoraDesposteos?.length ?? 0) > 0 && (
-                        <span
-                          title={p.bitacoraDesposteos!.map(b =>
-                            `Reabierto el ${formatDate(b.fecha.slice(0, 10))} por ${b.usuarioEmail} (estaba ${b.estadoAnterior})`
-                          ).join('\n')}
-                        >
-                          <History className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
-                        </span>
-                      )}
-                      {p.estado === 'cerrada' ? (
-                        <Badge variant="neutral"><Lock className="mr-1 h-3 w-3" />Cerrada</Badge>
-                      ) : p.estado === 'procesada' ? (
-                        <Badge variant="success">Procesada</Badge>
-                      ) : (
-                        <Badge variant="warning">En Proceso</Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 px-5 py-4 space-y-2">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">Neto Total</span>
-                      <span className="text-lg font-bold text-[#151f66] dark:text-indigo-300 tabular-nums">
-                        {fmt(p.totales.neto, 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">Costo Empresa</span>
-                      <span className="text-sm font-semibold text-amber-700 dark:text-amber-400 tabular-nums">
-                        {fmt(p.totales.costoTotal, 0)}
-                      </span>
-                    </div>
-                    {p.estado === 'cerrada' && (
-                      p.pagada ? (
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                            <Wallet className="h-3.5 w-3.5" />
-                            Pagada el {formatDate(p.fechaPago!)}
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                      <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Período de Nómina</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">S. Bruto</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Total Neto</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Costo Total</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                    {periodosFiltrados.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                          Ningún período coincide con el filtro.
+                        </td>
+                      </tr>
+                    )}
+                    {periodosFiltrados.map(p => (
+                      <tr
+                        key={p.id}
+                        onClick={() => setPeriodoAbierto(p.id)}
+                        className="cursor-pointer hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors"
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-[#1B2980] dark:text-indigo-400">{labelPeriodo(p)}</p>
+                              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                                {p.totalEmpleados} empleado{p.totalEmpleados !== 1 ? 's' : ''}
+                                {p.pagada && ` · Pagada el ${formatDate(p.fechaPago!)}`}
+                              </p>
+                            </div>
+                            {(p.bitacoraDesposteos?.length ?? 0) > 0 && (
+                              <span
+                                title={p.bitacoraDesposteos!.map(b =>
+                                  `Reabierto el ${formatDate(b.fecha.slice(0, 10))} por ${b.usuarioEmail} (estaba ${b.estadoAnterior})`
+                                ).join('\n')}
+                              >
+                                <History className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                              </span>
+                            )}
                           </div>
-                          <button
-                            onClick={() => {
-                              setEnvioPeriodoId(p.id)
-                              setPlantillaComprobante(plantillaComprobanteDeEmpresa(empresa))
-                              setEnviadosComprobante(new Set())
-                            }}
-                            className="flex items-center gap-1 text-[11px] font-medium text-[#1B2980] dark:text-indigo-400 hover:underline"
-                          >
-                            <Mail className="h-3.5 w-3.5" /> Comprobantes
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            const hoy = new Date().toISOString().slice(0, 10)
-                            if (!confirm(`¿Confirmar que "${labelPeriodo(p)}" ya fue pagado (transferencia ACH enviada) el ${formatDate(hoy)}?`)) return
-                            marcarPagada(p.id, hoy)
-                            setEnvioPeriodoId(p.id)
-                            setPlantillaComprobante(plantillaComprobanteDeEmpresa(empresa))
-                            setEnviadosComprobante(new Set())
-                          }}
-                          className="flex items-center gap-1.5 pt-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                        >
-                          <Wallet className="h-3.5 w-3.5" />
-                          Marcar como pagada
-                        </button>
-                      )
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 px-5 py-3 border-t border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-                    <button
-                      onClick={() => setPeriodoAbierto(p.id)}
-                      className="flex-1 rounded-lg bg-[#1B2980] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#151f66] transition-colors text-center"
-                    >
-                      Abrir
-                    </button>
-                    {p.estado === 'procesada' && (
-                      <button
-                        onClick={() => cerrar(p.id)}
-                        title="Cerrar período"
-                        className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-                      >
-                        <Lock className="h-4 w-4" />
-                      </button>
-                    )}
-                    {p.estado !== 'en_proceso' && esPeriodoMasReciente(p, periodos) && (
-                      <button
-                        onClick={() => {
-                          if (!confirm(
-                            `¿Reabrir "${labelPeriodo(p)}"? Los empleados procesados volverán a marcarse como pendientes y deberás reprocesarlos. Esta acción queda registrada con tu usuario y fecha.`
-                          )) return
-                          const ok = reabrir(p.id, user?.email ?? 'desconocido')
-                          setToast(ok ? 'Período reabierto — vuelve a En Proceso' : 'No se pudo reabrir el período')
-                        }}
-                        title="Reabrir período (desposteo)"
-                        className="rounded-lg border border-amber-200 dark:border-amber-800/50 p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
-                      >
-                        <Unlock className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (!confirm(`¿Eliminar el período "${labelPeriodo(p)}"?`)) return
-                        eliminar(p.id)
-                      }}
-                      title="Eliminar período"
-                      className="rounded-lg border border-rose-200 dark:border-rose-800/50 p-1.5 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(p.totales.bruto)}</td>
+                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#151f66] dark:text-indigo-300">{fmt(p.totales.neto)}</td>
+                        <td className="px-4 py-3.5 text-right tabular-nums text-amber-700 dark:text-amber-400">{fmt(p.totales.costoTotal)}</td>
+                        <td className="px-4 py-3.5">
+                          {p.estado === 'cerrada' ? (
+                            <Badge variant="neutral"><Lock className="mr-1 h-3 w-3" />Cerrada</Badge>
+                          ) : p.estado === 'procesada' ? (
+                            <Badge variant="success">Procesada</Badge>
+                          ) : (
+                            <Badge variant="warning">En Proceso</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={e => { e.stopPropagation(); setPeriodoAbierto(p.id) }}
+                              title="Ver período"
+                              className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            {p.estado === 'procesada' && (
+                              <button
+                                onClick={e => { e.stopPropagation(); registrarPagosPrestamos(p); cerrar(p.id) }}
+                                title="Cerrar período"
+                                className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </button>
+                            )}
+                            {p.estado !== 'en_proceso' && esPeriodoMasReciente(p, periodos) && (
+                              p.pagada ? (
+                                <button
+                                  disabled
+                                  title="Período ya pagado — no se puede reabrir. Deshaz el pago primero en Gestión de Envíos."
+                                  className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+                                >
+                                  <Unlock className="h-4 w-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    if (!confirm(
+                                      `¿Reabrir "${labelPeriodo(p)}"? Los empleados procesados volverán a marcarse como pendientes y deberás reprocesarlos. Esta acción queda registrada con tu usuario y fecha.`
+                                    )) return
+                                    const procesadosAntes = p.empleadosProcesados ?? []
+                                    const ok = reabrir(p.id, user?.email ?? 'desconocido')
+                                    // Reabrir un período de Regalía Pascual debe revertir el "reinicio"
+                                    // de acumulado que handleProcesarRegalia estampó en cada empleado
+                                    // procesado — de lo contrario, regalia-pascual/page.tsx sigue
+                                    // mostrando "ya pagado / RD$0 pendiente" para un período que en
+                                    // realidad quedó vacío (0 procesados) tras el desposteo. Como
+                                    // reabrir() solo permite el período MÁS RECIENTE de su serie, este
+                                    // campo nunca contiene el rastro de un pago histórico más antiguo
+                                    // que estemos pisando por error — siempre es seguro limpiarlo.
+                                    if (ok && p.tipo === 'regalia') {
+                                      procesadosAntes.forEach(empId => {
+                                        actualizarEmpleado(empId, { regaliaPagadaEsteAnio: undefined, regaliaPagadaAnio: undefined })
+                                      })
+                                    }
+                                    setToast(ok ? 'Período reabierto — vuelve a En Proceso' : 'No se pudo reabrir el período')
+                                  }}
+                                  title="Reabrir período (desposteo)"
+                                  className="rounded-lg border border-amber-200 dark:border-amber-800/50 p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+                                >
+                                  <Unlock className="h-4 w-4" />
+                                </button>
+                              )
+                            )}
+                            {p.estado === 'cerrada' ? (
+                              <button
+                                disabled
+                                title="Un período cerrado es un registro histórico — no se puede eliminar. Reábrelo primero si necesitas corregirlo."
+                                className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (!confirm(`¿Eliminar el período "${labelPeriodo(p)}"?`)) return
+                                  eliminar(p.id)
+                                }}
+                                title="Eliminar período"
+                                className="rounded-lg border border-rose-200 dark:border-rose-800/50 p-1.5 text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-
-        {envioPeriodoId && (() => {
-          const periodoEnvio = periodos.find(p => p.id === envioPeriodoId)
-          if (!periodoEnvio) return null
-          const periodoEnvioLabel = labelPeriodo(periodoEnvio)
-          const concepto = periodoEnvio.tipo === 'quincenal'
-            ? `Nómina Quincenal (${periodoEnvio.quincena}ª quincena)`
-            : 'Nómina Mensual'
-          const ajustesEnvio = periodoEnvio.ajustesPorEmpleado ?? {}
-          const empleadosEnvio = empleadosDelPeriodo(empleados, empleadosEnNomina, periodoEnvio.mes, periodoEnvio.anio, periodoEnvio.tipo, periodoEnvio.quincena ?? 1)
-
-          const filas = empleadosEnvio.map(e => ({
-            empleado: e,
-            resultado: resultadoDePeriodo(e, ajustesEnvio[e.id] ?? [], periodoEnvio),
-          }))
-
-          const fechaPagoTexto = periodoEnvio.fechaPago ? formatDate(periodoEnvio.fechaPago) : ''
-
-          // Intenta abrir la ventana de correo para un empleado; devuelve si se logró.
-          // No asume éxito: el navegador puede bloquear la ventana (ver enviarComprobante).
-          function intentarEnviar(emp: Empleado, resultado: ResultadoNomina): boolean {
-            if (!emp.email) return false
-            const { asunto, cuerpo } = resolverPlantilla(plantillaComprobante, {
-              '{nombre}':    fullName(emp),
-              '{periodo}':   periodoEnvioLabel,
-              '{concepto}':  concepto,
-              '{neto}':      formatRD(resultado.salarioNeto),
-              '{fechaPago}': fechaPagoTexto,
-              '{empresa}':   empresa.nombre || 'la empresa',
-            })
-            const abierto = enviarComprobante({ destinatarioEmail: emp.email, destinatarioNombre: fullName(emp), asunto, cuerpo })
-            if (abierto) setEnviadosComprobante(prev => new Set(prev).add(emp.id))
-            return abierto
-          }
-
-          function handleEnviar(emp: Empleado, resultado: ResultadoNomina) {
-            if (!intentarEnviar(emp, resultado)) {
-              setToast(`El navegador bloqueó la ventana de correo para ${fullName(emp)} — permite ventanas emergentes o envíalo individualmente`)
-            }
-          }
-
-          function handleEnviarTodos() {
-            const pendientes = filas.filter(f => f.empleado.email && !enviadosComprobante.has(f.empleado.id))
-            const bloqueados = pendientes.filter(({ empleado: emp, resultado }) => !intentarEnviar(emp, resultado)).length
-            if (bloqueados > 0) {
-              setToast(`Tu navegador bloqueó ${bloqueados} de ${pendientes.length} ventanas — envíalas individualmente o permite ventanas emergentes para este sitio`)
-            }
-          }
-
-          const pendientesEnvio = filas.filter(f => f.empleado.email && !enviadosComprobante.has(f.empleado.id)).length
-          const sinCorreo = filas.filter(f => !f.empleado.email).length
-
-          return (
-            <>
-              <div
-                className="fixed inset-0 z-40 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-backdrop-in"
-                onClick={() => setEnvioPeriodoId(null)}
-              />
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#141722] shadow-2xl animate-modal-in flex flex-col">
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#1d2035]">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-5 w-5 text-[#1B2980] dark:text-indigo-400" />
-                      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        Enviar Comprobantes de Pago — {periodoEnvioLabel}
-                      </h2>
-                    </div>
-                    <button onClick={() => setEnvioPeriodoId(null)} className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 px-4 py-3 text-[11px] text-amber-800 dark:text-amber-300">
-                      Cielo Cloud no tiene servidor de correo propio todavía: cada "Enviar" abre tu propio
-                      cliente de correo con el mensaje listo. Descarga el PDF de cada empleado y adjúntalo
-                      antes de dar clic en enviar desde tu correo.
-                    </div>
-
-                    {/* Plantilla editable */}
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Asunto</label>
-                        <input
-                          className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
-                          value={plantillaComprobante.asunto}
-                          onChange={e => setPlantillaComprobante(prev => ({ ...prev, asunto: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Cuerpo del correo</label>
-                        <textarea
-                          className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-xs font-mono focus:border-[#1B2980] focus:outline-none"
-                          rows={7}
-                          value={plantillaComprobante.cuerpo}
-                          onChange={e => setPlantillaComprobante(prev => ({ ...prev, cuerpo: e.target.value }))}
-                        />
-                      </div>
-                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
-                        Variables disponibles (se reemplazan por cada empleado):{' '}
-                        {PLACEHOLDERS_COMPROBANTE.map(p => p.token).join(', ')}
-                      </p>
-                    </div>
-
-                    {/* Lista de empleados */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {pendientesEnvio > 0 ? `${pendientesEnvio} pendiente${pendientesEnvio === 1 ? '' : 's'}` : 'Todos enviados'}
-                        {sinCorreo > 0 && ` · ${sinCorreo} sin correo registrado`}
-                      </p>
-                      <button
-                        onClick={handleEnviarTodos}
-                        disabled={pendientesEnvio === 0}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-semibold text-white transition-colors"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                        Enviar a Todos ({pendientesEnvio})
-                      </button>
-                    </div>
-                    <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-zinc-50 dark:bg-[#1a1d2e] text-left text-zinc-500 dark:text-zinc-400">
-                            <th className="px-3 py-2 font-medium">Empleado</th>
-                            <th className="px-3 py-2 font-medium">Correo</th>
-                            <th className="px-3 py-2 font-medium text-right">Neto</th>
-                            <th className="px-3 py-2 font-medium text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 dark:divide-[#1d2035]">
-                          {filas.map(({ empleado: emp, resultado }) => (
-                            <tr key={emp.id}>
-                              <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(emp)}</td>
-                              <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400">
-                                {emp.email || <span className="text-rose-500 dark:text-rose-400">Sin correo registrado</span>}
-                              </td>
-                              <td className="px-3 py-2 text-right tabular-nums text-zinc-600 dark:text-zinc-300">
-                                {formatRD(resultado.salarioNeto)}
-                              </td>
-                              <td className="px-3 py-2">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => descargarComprobantePDF(emp, resultado, periodoEnvioLabel, empresa)}
-                                    title="Descargar PDF"
-                                    className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] transition-colors"
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleEnviar(emp, resultado)}
-                                    disabled={!emp.email}
-                                    title={emp.email ? 'Enviar por correo' : 'Empleado sin correo registrado'}
-                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors ${
-                                      enviadosComprobante.has(emp.id)
-                                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
-                                        : 'bg-[#1B2980] hover:bg-[#151f66] text-white disabled:opacity-40 disabled:cursor-not-allowed'
-                                    }`}
-                                  >
-                                    {enviadosComprobante.has(emp.id) ? (
-                                      <><CheckCircle2 className="h-3.5 w-3.5" /> Abierto</>
-                                    ) : (
-                                      <><Send className="h-3.5 w-3.5" /> Enviar</>
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4">
-                    <button
-                      onClick={() => setEnvioPeriodoId(null)}
-                      className={BTN_PRIMARY}
-                    >
-                      Cerrar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )
-        })()}
       </div>
     )
   }
@@ -1519,6 +1445,402 @@ export default function NominaPage() {
   // ── VISTA: DETALLE ────────────────────────────────────────────────────────────
   if (!periodoActual) {
     return null
+  }
+
+  // ── VISTA: DETALLE — Regalía Pascual (tipo 'regalia') ──────────────────────
+  // Vista independiente y deliberadamente más simple que la nómina normal: no
+  // hay ajustes editables, préstamos, filtros ni auditoría pre-cierre — cada
+  // empleado tiene un monto ya congelado (montosRegalia) al momento de
+  // "Solicitar Liquidación" en el módulo Regalía Pascual.
+  if (periodoActual.tipo === 'regalia') {
+    const montos = periodoActual.montosRegalia ?? {}
+    const motivosAjuste = periodoActual.motivosAjusteRegalia ?? {}
+    const procesadosReg = new Set(periodoActual.empleadosProcesados ?? [])
+    const filasRegalia = Object.entries(montos)
+      .map(([empId, monto]) => ({ empleado: empleados.find(e => e.id === empId), empId, monto }))
+      .filter((f): f is { empleado: Empleado; empId: string; monto: number } => !!f.empleado)
+      .sort((a, b) => fullName(a.empleado).localeCompare(fullName(b.empleado)))
+    const totalRegalia = filasRegalia.reduce((s, f) => s + f.monto, 0)
+    const pendientesReg = filasRegalia.filter(f => !procesadosReg.has(f.empId))
+    const esEnProcesoReg = periodoActual.estado === 'en_proceso'
+    const esProcesadaReg = periodoActual.estado === 'procesada'
+
+    return (
+      <div className="flex flex-col overflow-hidden h-full">
+        <Header
+          title={periodoActualLabel}
+          subtitle={esEnProcesoReg ? 'En proceso' : esProcesadaReg ? 'Período procesado' : 'Período cerrado'}
+          actions={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPeriodoAbierto(null)}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Períodos
+              </button>
+              {esEnProcesoReg && pendientesReg.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (!confirm(`¿Procesar el pago de Regalía Pascual de ${pendientesReg.length} empleado(s)? El acumulado de cada uno vuelve a cero para el resto del año.`)) return
+                    handleProcesarRegalia(pendientesReg.map(f => f.empId))
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Procesar Todo
+                </button>
+              )}
+              {esProcesadaReg && (
+                <button
+                  onClick={handleCerrarPeriodo}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                >
+                  <Lock className="h-4 w-4" />
+                  Cerrar
+                </button>
+              )}
+              <button
+                onClick={handleExportar}
+                className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </button>
+            </div>
+          }
+        />
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+            <StatCard
+              label="Total a Pagar"
+              value={formatRD(totalRegalia)}
+              sub="Suma de acumulados liquidados"
+              icon={Gift}
+              iconColor="bg-[#eef0fb] text-[#1B2980] dark:bg-indigo-950/40 dark:text-indigo-400"
+            />
+            <StatCard
+              label="Empleados"
+              value={String(filasRegalia.length)}
+              sub="Incluidos en esta liquidación"
+              icon={BarChart3}
+              iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+            />
+            <StatCard
+              label={esEnProcesoReg ? 'Pendientes de Pago' : 'Estado'}
+              value={esEnProcesoReg ? String(pendientesReg.length) : (esProcesadaReg ? 'Procesado' : 'Cerrado')}
+              sub={esEnProcesoReg ? `de ${filasRegalia.length} empleado(s)` : 'Todos los pagos registrados'}
+              icon={CheckCircle2}
+              iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+            />
+          </div>
+
+          <div className="rounded-lg border border-[#1B2980]/15 bg-[#eef0fb] dark:bg-indigo-950/20 dark:border-indigo-800/30 px-4 py-3 text-xs text-[#1B2980] dark:text-indigo-300">
+            Pago bruto de Regalía Pascual (Art. 219, Código de Trabajo) — no es salario cotizable, por lo
+            que no lleva descuentos de AFP, SFS ni retención de ISR, igual que el tratamiento ya vigente
+            para Vacaciones y Regalía dentro de Liquidación.
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Detalle por Empleado — {periodoActualLabel}
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Monto Regalía</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filasRegalia.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                        Este período no tiene empleados con monto de regalía asociado.
+                      </td>
+                    </tr>
+                  )}
+                  {filasRegalia.map(({ empleado, empId, monto }) => {
+                    const isProcesado = procesadosReg.has(empId)
+                    const resultado = resultadoRegalia(empId, monto, getAnosServicio(empleado.fechaIngreso))
+                    const motivo = motivosAjuste[empId]
+                    return (
+                      <tr
+                        key={empId}
+                        onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
+                        className={`cursor-pointer border-b border-zinc-200 dark:border-[#252840] transition-colors ${
+                          isProcesado ? 'bg-emerald-50/40 dark:bg-emerald-950/10' : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
+                        }`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                              isProcesado
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-[#eef0fb] dark:bg-indigo-900/40 text-[#1B2980] dark:text-indigo-300'
+                            }`}>
+                              {empleado.nombre[0]}{empleado.apellido[0]}
+                            </div>
+                            <div>
+                              <p className="font-medium text-[#1B2980] dark:text-indigo-400 leading-tight">{fullName(empleado)}</p>
+                              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-tight mt-0.5">
+                                {empleado.cedula} · {empleado.cargo}
+                                {motivo && <span title={motivo} className="ml-1.5 text-amber-500 dark:text-amber-400">· ajustado manualmente</span>}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
+                          {formatRD(monto)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {isProcesado
+                            ? <Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" />Procesado</Badge>
+                            : <Badge variant="warning">Pendiente</Badge>}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          {esEnProcesoReg && !isProcesado && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleProcesarRegalia([empId]) }}
+                              className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                            >
+                              Procesar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
+        {detalleModal && (
+          <>
+            <div className="fixed inset-0 z-40 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-backdrop-in" />
+            <DetalleNomina
+              empleado={detalleModal.emp}
+              nomina={detalleModal.nom}
+              periodoLabel={periodoActualLabel}
+              mostrarUSD={mostrarUSD}
+              onClose={() => setDetalleModal(null)}
+            />
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // ── VISTA: DETALLE — Bonificación por Utilidades (tipo 'bonificacion') ─────
+  // Vista independiente y deliberadamente más simple que la nómina normal —
+  // igual que Regalía Pascual: no hay ajustes editables, préstamos, filtros
+  // ni auditoría pre-cierre, cada empleado tiene un monto bruto ya congelado
+  // (montosBonificacion) desde "Solicitar Liquidación" en /bonificacion. A
+  // diferencia de Regalía, SÍ lleva AFP/SFS/ISR reales (Art. 223 es salario
+  // ordinario a efectos fiscales) — por eso la tabla muestra Bruto y Neto
+  // por separado, y cada fila abre el mismo modal DetalleNomina con el
+  // desglose completo de descuentos, en vez de un monto plano.
+  if (periodoActual.tipo === 'bonificacion') {
+    const montos = periodoActual.montosBonificacion ?? {}
+    const motivosAjuste = periodoActual.motivosAjusteBonificacion ?? {}
+    const procesadosBon = new Set(periodoActual.empleadosProcesados ?? [])
+    const filasBonificacion = Object.entries(montos)
+      .map(([empId, monto]) => ({ empleado: empleados.find(e => e.id === empId), empId, monto }))
+      .filter((f): f is { empleado: Empleado; empId: string; monto: number } => !!f.empleado)
+      .sort((a, b) => fullName(a.empleado).localeCompare(fullName(b.empleado)))
+    const totalBrutoBon = filasBonificacion.reduce((s, f) => s + f.monto, 0)
+    const pendientesBon = filasBonificacion.filter(f => !procesadosBon.has(f.empId))
+    const esEnProcesoBon = periodoActual.estado === 'en_proceso'
+    const esProcesadaBon = periodoActual.estado === 'procesada'
+
+    return (
+      <div className="flex flex-col overflow-hidden h-full">
+        <Header
+          title={periodoActualLabel}
+          subtitle={esEnProcesoBon ? 'En proceso' : esProcesadaBon ? 'Período procesado' : 'Período cerrado'}
+          actions={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPeriodoAbierto(null)}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Períodos
+              </button>
+              {esEnProcesoBon && pendientesBon.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (!confirm(`¿Procesar el pago de Bonificación por Utilidades de ${pendientesBon.length} empleado(s)?`)) return
+                    handleProcesarBonificacion(pendientesBon.map(f => f.empId))
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Procesar Todo
+                </button>
+              )}
+              {esProcesadaBon && (
+                <button
+                  onClick={handleCerrarPeriodo}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                >
+                  <Lock className="h-4 w-4" />
+                  Cerrar
+                </button>
+              )}
+              <button
+                onClick={handleExportar}
+                className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </button>
+            </div>
+          }
+        />
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+            <StatCard
+              label="Total Bruto a Pagar"
+              value={formatRD(totalBrutoBon)}
+              sub="Antes de AFP/SFS/ISR"
+              icon={Percent}
+              iconColor="bg-[#eef0fb] text-[#1B2980] dark:bg-indigo-950/40 dark:text-indigo-400"
+            />
+            <StatCard
+              label="Empleados"
+              value={String(filasBonificacion.length)}
+              sub="Incluidos en esta liquidación"
+              icon={BarChart3}
+              iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+            />
+            <StatCard
+              label={esEnProcesoBon ? 'Pendientes de Pago' : 'Estado'}
+              value={esEnProcesoBon ? String(pendientesBon.length) : (esProcesadaBon ? 'Procesado' : 'Cerrado')}
+              sub={esEnProcesoBon ? `de ${filasBonificacion.length} empleado(s)` : 'Todos los pagos registrados'}
+              icon={CheckCircle2}
+              iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+            />
+          </div>
+
+          <div className="rounded-lg border border-[#1B2980]/15 bg-[#eef0fb] dark:bg-indigo-950/20 dark:border-indigo-800/30 px-4 py-3 text-xs text-[#1B2980] dark:text-indigo-300">
+            Bonificación por Participación en Utilidades (Art. 223, Código de Trabajo) — a diferencia de la
+            Regalía Pascual, SÍ es salario ordinario a efectos fiscales: lleva AFP, SFS e ISR normales,
+            calculados sobre el monto bruto como si fuera el salario del mes.
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Detalle por Empleado — {periodoActualLabel}
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Monto Bruto</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Neto a Pagar</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filasBonificacion.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                        Este período no tiene empleados con monto de bonificación asociado.
+                      </td>
+                    </tr>
+                  )}
+                  {filasBonificacion.map(({ empleado, empId, monto }) => {
+                    const isProcesado = procesadosBon.has(empId)
+                    const resultado = resultadoBonificacion(empleado, monto)
+                    const motivo = motivosAjuste[empId]
+                    return (
+                      <tr
+                        key={empId}
+                        onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
+                        className={`cursor-pointer border-b border-zinc-200 dark:border-[#252840] transition-colors ${
+                          isProcesado ? 'bg-emerald-50/40 dark:bg-emerald-950/10' : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
+                        }`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                              isProcesado
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-[#eef0fb] dark:bg-indigo-900/40 text-[#1B2980] dark:text-indigo-300'
+                            }`}>
+                              {empleado.nombre[0]}{empleado.apellido[0]}
+                            </div>
+                            <div>
+                              <p className="font-medium text-[#1B2980] dark:text-indigo-400 leading-tight">{fullName(empleado)}</p>
+                              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-tight mt-0.5">
+                                {empleado.cedula} · {empleado.cargo}
+                                {motivo && <span title={motivo} className="ml-1.5 text-amber-500 dark:text-amber-400">· ajustado manualmente</span>}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                          {formatRD(monto)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
+                          {formatRD(resultado.salarioNeto)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {isProcesado
+                            ? <Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" />Procesado</Badge>
+                            : <Badge variant="warning">Pendiente</Badge>}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          {esEnProcesoBon && !isProcesado && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleProcesarBonificacion([empId]) }}
+                              className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                            >
+                              Procesar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
+        {detalleModal && (
+          <>
+            <div className="fixed inset-0 z-40 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-backdrop-in" />
+            <DetalleNomina
+              empleado={detalleModal.emp}
+              nomina={detalleModal.nom}
+              periodoLabel={periodoActualLabel}
+              mostrarUSD={mostrarUSD}
+              onClose={() => setDetalleModal(null)}
+            />
+          </>
+        )}
+      </div>
+    )
   }
 
   const ajustesPorEmp  = periodoActual.ajustesPorEmpleado ?? {}
@@ -1534,6 +1856,17 @@ export default function NominaPage() {
     resultado: resultadoDePeriodo(e, ajustesPorEmp[e.id] ?? [], periodoActual),
   }))
 
+  // Búsqueda/filtro de la tabla — no afecta los totales del período (esos
+  // siguen siendo el total real a pagar), solo qué filas se muestran.
+  const departamentosPeriodo = Array.from(new Set(empleadosPeriodo.map(e => e.departamento))).sort()
+  const qEmpleado = busquedaEmpleado.trim().toLowerCase()
+  const nominasVisibles = nominas.filter(({ empleado }) => {
+    if (filtroDeptoTabla !== 'todos' && empleado.departamento !== filtroDeptoTabla) return false
+    if (!qEmpleado) return true
+    return fullName(empleado).toLowerCase().includes(qEmpleado) || empleado.cedula.toLowerCase().includes(qEmpleado)
+  })
+  const hayFiltrosTabla = busquedaEmpleado.trim() !== '' || filtroDeptoTabla !== 'todos'
+
   const totales = {
     bruto:      nominas.reduce((s, n) => s + n.resultado.totalBruto, 0),
     descuentos: nominas.reduce((s, n) => s + n.resultado.totalDescuentos, 0),
@@ -1541,6 +1874,17 @@ export default function NominaPage() {
     aportes:    nominas.reduce((s, n) => s + n.resultado.totalAportesEmpleador, 0),
     isr:        nominas.reduce((s, n) => s + n.resultado.isrMensual, 0),
     costoTotal: nominas.reduce((s, n) => s + n.resultado.totalCostoEmpleador, 0),
+  }
+
+  // Totales del pie de tabla — siguen el subconjunto filtrado (mismo criterio
+  // ya usado en Regalía Pascual/Bonificación); las StatCards de arriba, en
+  // cambio, siempre muestran el total real del período completo.
+  const totalesVisibles = {
+    bruto:      nominasVisibles.reduce((s, n) => s + n.resultado.totalBruto, 0),
+    afpSfs:     nominasVisibles.reduce((s, n) => s + n.resultado.afpEmpleado + n.resultado.sfsEmpleado, 0),
+    isr:        nominasVisibles.reduce((s, n) => s + n.resultado.isrMensual, 0),
+    neto:       nominasVisibles.reduce((s, n) => s + n.resultado.salarioNeto, 0),
+    costoTotal: nominasVisibles.reduce((s, n) => s + n.resultado.totalCostoEmpleador, 0),
   }
 
   return (
@@ -1590,7 +1934,7 @@ export default function NominaPage() {
               className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <Download className="h-4 w-4" />
-              Exportar CSV
+              Exportar Excel
             </button>
             {empresa.tasaCambioUSD && (
               <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]" title="Solo cambia lo que se muestra en pantalla — el PDF, el CSV y el correo siguen en RD$">
@@ -1619,28 +1963,28 @@ export default function NominaPage() {
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <StatCard
             label="Total Bruto"
-            value={fmt(totales.bruto, 0)}
+            value={fmt(totales.bruto)}
             sub="Suma devengados"
             icon={Wallet}
             iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
           />
           <StatCard
             label="Total Neto"
-            value={fmt(totales.neto, 0)}
+            value={fmt(totales.neto)}
             sub="A transferir empleados"
             icon={BarChart3}
             iconColor="bg-[#eef0fb] text-[#1B2980] dark:bg-indigo-950/40 dark:text-indigo-400"
           />
           <StatCard
             label="Aportes TSS Empresa"
-            value={fmt(totales.aportes, 0)}
+            value={fmt(totales.aportes)}
             sub="AFP + SFS + SRL + Infotep"
             icon={TrendingUp}
             iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
           />
           <StatCard
             label="ISR Retenido"
-            value={fmt(totales.isr, 0)}
+            value={fmt(totales.isr)}
             sub={periodoActual.tipo === 'quincenal' && quincenaActual === 1 ? 'Anticipo — sin ISR' : 'Por remitir a DGII'}
             icon={Receipt}
             iconColor="bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400"
@@ -1711,6 +2055,37 @@ export default function NominaPage() {
               </p>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+              <input
+                type="text"
+                value={busquedaEmpleado}
+                onChange={e => setBusquedaEmpleado(e.target.value)}
+                placeholder="Buscar por nombre o cédula…"
+                className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              />
+            </div>
+            <select
+              value={filtroDeptoTabla}
+              onChange={e => setFiltroDeptoTabla(e.target.value)}
+              className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+            >
+              <option value="todos">Todos los departamentos</option>
+              {departamentosPeriodo.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            {hayFiltrosTabla && (
+              <button
+                onClick={() => { setBusquedaEmpleado(''); setFiltroDeptoTabla('todos') }}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[#1B2980] dark:text-indigo-400 hover:bg-[#eef0fb] dark:hover:bg-indigo-950/30 transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Ver todos
+              </button>
+            )}
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-auto">
+              {nominasVisibles.length} de {nominas.length} empleado(s)
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -1740,7 +2115,14 @@ export default function NominaPage() {
                 </tr>
               </thead>
               <tbody>
-                {nominas.map(({ empleado, resultado }) => {
+                {nominasVisibles.length === 0 && (
+                  <tr>
+                    <td colSpan={esEnProceso ? 10 : 9} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                      Ningún empleado coincide con el filtro.
+                    </td>
+                  </tr>
+                )}
+                {nominasVisibles.map(({ empleado, resultado }) => {
                   const ajustes      = ajustesPorEmp[empleado.id] ?? []
                   const isExpanded   = expandedEmpId === empleado.id
                   const isProcesado  = procesados.has(empleado.id)
@@ -1748,11 +2130,10 @@ export default function NominaPage() {
                   const colSpanTotal = esEnProceso ? 10 : 9
 
                   return (
-                    <>
+                    <Fragment key={empleado.id}>
                       <tr
-                        key={empleado.id}
                         onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
-                        className={`cursor-pointer border-b border-zinc-50 dark:border-[#1d2035] transition-colors ${
+                        className={`cursor-pointer border-b border-zinc-200 dark:border-[#252840] transition-colors ${
                           isProcesado
                             ? 'bg-emerald-50/40 dark:bg-emerald-950/10'
                             : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
@@ -1805,7 +2186,7 @@ export default function NominaPage() {
                                 }`}
                               >
                                 {labelAjuste(a)}{' '}
-                                {isHorasConcepto(a.concepto) ? `${a.valor}h` : fmt(a.valor, 0)}
+                                {isHorasConcepto(a.concepto) ? `${a.valor}h` : fmt(a.valor)}
                                 {esEnProceso && (
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleRemoveAjuste(empleado.id, a.id) }}
@@ -1830,26 +2211,26 @@ export default function NominaPage() {
                         </td>
 
                         <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
-                          {fmt(resultado.totalBruto, 0)}
+                          {fmt(resultado.totalBruto)}
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                          {fmt(resultado.afpEmpleado + resultado.sfsEmpleado, 0)}
+                          {fmt(resultado.afpEmpleado + resultado.sfsEmpleado)}
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.isrMensual === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                            : fmt(resultado.isrMensual, 0)}
+                            : fmt(resultado.isrMensual)}
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.sfsDependientes === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                            : fmt(resultado.sfsDependientes, 0)}
+                            : fmt(resultado.sfsDependientes)}
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
-                          {fmt(resultado.salarioNeto, 0)}
+                          {fmt(resultado.salarioNeto)}
                         </td>
                         <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                          {fmt(resultado.totalCostoEmpleador, 0)}
+                          {fmt(resultado.totalCostoEmpleador)}
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5">
@@ -1876,7 +2257,6 @@ export default function NominaPage() {
                       {/* Inline ajuste form */}
                       {isExpanded && (
                         <tr
-                          key={`${empleado.id}-form`}
                           className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]"
                         >
                           <td colSpan={colSpanTotal} className="px-5 py-4">
@@ -2009,22 +2389,22 @@ export default function NominaPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
                   <td className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400" colSpan={esEnProceso ? 3 : 2}>
-                    TOTALES — {empleadosPeriodo.length} empleados
+                    {hayFiltrosTabla ? `TOTAL (filtrado) — ${nominasVisibles.length} empleados` : `TOTALES — ${empleadosPeriodo.length} empleados`}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">{fmt(totales.bruto, 0)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">{fmt(totalesVisibles.bruto)}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                    {fmt(nominas.reduce((s, n) => s + n.resultado.afpEmpleado + n.resultado.sfsEmpleado, 0), 0)}
+                    {fmt(totalesVisibles.afpSfs)}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totales.isr, 0)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{fmt(totales.neto, 0)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totales.costoTotal, 0)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.isr)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{fmt(totalesVisibles.neto)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.costoTotal)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -2102,12 +2482,23 @@ export default function NominaPage() {
                 }
               }
             }
-            const fi = new Date(e.fechaIngreso)
+            const fi = parseFechaLocal(e.fechaIngreso)
             const esNuevo = fi.getFullYear() === periodoActual.anio && (fi.getMonth() + 1) === periodoActual.mes
             const descuentoDiscrecional = (ajustesPorEmp[e.id] ?? [])
               .filter(a => a.concepto === 'prestamo' || a.concepto === 'otro_descuento')
               .reduce((s, a) => s + a.valor, 0)
             const descuentoDiscrecionalPct = actual.totalBruto > 0 ? (descuentoDiscrecional / actual.totalBruto) * 100 : 0
+            // Cambio de cuenta bancaria: compara el snapshot histórico del
+            // período anterior contra el valor actual en vivo. Solo si AMBOS
+            // existen — períodos previos a este campo o empleados sin cuenta
+            // configurada no generan falsos positivos.
+            const cuentaAntes = anterior?.cuentasBancariasPorEmpleado?.[e.id]
+            const tieneAntes = !!(cuentaAntes && (cuentaAntes.banco || cuentaAntes.numeroCuenta))
+            const tieneAhora = !!(e.banco || e.numeroCuenta)
+            const cambioCuentaBancaria = tieneAntes && tieneAhora &&
+              ((cuentaAntes!.banco ?? '') !== (e.banco ?? '') || (cuentaAntes!.numeroCuenta ?? '') !== (e.numeroCuenta ?? ''))
+              ? { antes: cuentaAntes!, ahora: { banco: e.banco, numeroCuenta: e.numeroCuenta } as CuentaBancariaSnapshot }
+              : null
             return {
               empleado: e,
               neto: actual.salarioNeto,
@@ -2115,6 +2506,7 @@ export default function NominaPage() {
               netoNegativo: actual.salarioNeto < 0,
               descuentoDiscrecionalPct,
               esNuevo,
+              cambioCuentaBancaria,
             }
           })
 
@@ -2122,12 +2514,17 @@ export default function NominaPage() {
           f.netoNegativo ||
           (f.variacionBrutoPct !== null && Math.abs(f.variacionBrutoPct) > UMBRAL_VARIACION) ||
           f.descuentoDiscrecionalPct > UMBRAL_DESCUENTO ||
-          f.esNuevo
+          f.esNuevo ||
+          f.cambioCuentaBancaria !== null
         )
+        const describirCuenta = (c: CuentaBancariaSnapshot) => {
+          const ult4 = c.numeroCuenta ? c.numeroCuenta.replace(/\D/g, '').slice(-4) : ''
+          return [c.banco ?? 'Sin banco', ult4 ? `...${ult4}` : ''].filter(Boolean).join(' ')
+        }
 
         const salientes = anterior
           ? liquidaciones.filter(l => {
-              const ft = new Date(l.fechaTerminacion)
+              const ft = parseFechaLocal(l.fechaTerminacion)
               const enAnterior = ft.getFullYear() === anterior.anio && (ft.getMonth() + 1) === anterior.mes
               const enActual   = ft.getFullYear() === periodoActual.anio && (ft.getMonth() + 1) === periodoActual.mes
               return enAnterior || enActual
@@ -2178,12 +2575,12 @@ export default function NominaPage() {
                                 <th className="px-3 py-2 font-medium">Alerta</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-100 dark:divide-[#1d2035]">
+                            <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                               {filasConAlerta.map(f => (
                                 <tr key={f.empleado.id}>
                                   <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(f.empleado)}</td>
                                   <td className={`px-3 py-2 text-right tabular-nums ${f.netoNegativo ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-zinc-600 dark:text-zinc-300'}`}>
-                                    {fmt(f.neto, 0)}
+                                    {fmt(f.neto)}
                                   </td>
                                   <td className="px-3 py-2">
                                     <div className="flex flex-wrap gap-1">
@@ -2197,6 +2594,14 @@ export default function NominaPage() {
                                         <Badge variant="warning">Descuentos {f.descuentoDiscrecionalPct.toFixed(0)}% del bruto</Badge>
                                       )}
                                       {f.esNuevo && <Badge variant="info">Nuevo este mes</Badge>}
+                                      {f.cambioCuentaBancaria && (
+                                        <Badge variant="warning" className="!rounded-md">
+                                          <span className="inline-flex items-start gap-1">
+                                            <Landmark className="mt-0.5 h-3 w-3 shrink-0" />
+                                            Cambió de cuenta bancaria: {describirCuenta(f.cambioCuentaBancaria.antes)} → {describirCuenta(f.cambioCuentaBancaria.ahora)}
+                                          </span>
+                                        </Badge>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>

@@ -1,5 +1,6 @@
 import type { Empleado, TipoDocumento, TipoContrato, Banco, SectorEmpresa } from '@/types'
 import { getCategoriaSRLPorSector } from './dominican-labor'
+import { parseFechaLocal } from './utils'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 export const BANCOS: Banco[] = ['Banco Popular', 'BanReservas', 'Scotiabank', 'BHD León', 'Banistmo', 'Otro']
@@ -11,6 +12,19 @@ export const DOC_TIPOS: { value: TipoDocumento; label: string; placeholder: stri
   { value: 'pasaporte',       label: 'Pasaporte',          placeholder: 'A1234567' },
   { value: 'residencia',      label: 'Residencia',         placeholder: 'RES-2024-00001' },
   { value: 'permiso_trabajo', label: 'Permiso de trabajo', placeholder: 'PT-2024-00001' },
+]
+
+// Compartido entre EmpleadoFormFields (los 2 selects inline de Tipo de
+// Contrato) y la Carga Inicial (Asistente Guiado + Importador Excel) — una
+// sola fuente de verdad para las etiquetas exactas de TipoContrato.
+export const TIPO_CONTRATO_OPTIONS: { value: TipoContrato; label: string }[] = [
+  { value: 'fijo',        label: 'Fijo (Tiempo Indefinido)' },
+  { value: 'temporal',    label: 'Temporal' },
+  { value: 'estacional',  label: 'Estacional / Temporada' },
+  { value: 'ocasional',   label: 'Móvil / Ocasional' },
+  { value: 'pasante',     label: 'Pasante' },
+  { value: 'aprendiz',    label: 'Aprendiz' },
+  { value: 'eventual',    label: 'Eventual (Obra/Servicio)' },
 ]
 
 export interface Pais {
@@ -149,9 +163,24 @@ export function labelTipoDoc(tipo?: TipoDocumento): string {
   return DOC_TIPOS.find(t => t.value === (tipo ?? 'cedula'))?.label ?? 'Cédula'
 }
 
+// Compara dos cédulas tolerando diferencias de formato (guiones/espacios) y
+// pérdida de ceros a la izquierda — común al reingresar cédulas dominicanas
+// en Excel: si la celda se guarda/lee como número en vez de texto, los
+// ceros iniciales (formato 0XX-XXXXXXX-X) se pierden. Compara primero
+// exacto (solo dígitos) y, si falla, ignorando ceros a la izquierda en
+// ambos lados antes de descartar la coincidencia.
+export function cedulasCoinciden(cedulaA: string, cedulaB: string): boolean {
+  const a = cedulaA.replace(/\D/g, '')
+  const b = cedulaB.replace(/\D/g, '')
+  if (a === b) return true
+  const aSinCeros = a.replace(/^0+/, '')
+  const bSinCeros = b.replace(/^0+/, '')
+  return aSinCeros !== '' && aSinCeros === bSinCeros
+}
+
 export function calcularEdad(fechaNacimiento: string): number {
   const hoy = new Date()
-  const nac = new Date(fechaNacimiento)
+  const nac = parseFechaLocal(fechaNacimiento)
   let edad = hoy.getFullYear() - nac.getFullYear()
   const m = hoy.getMonth() - nac.getMonth()
   if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--

@@ -1,4 +1,5 @@
-import type { AjusteLinea, CategoriaEmpresa, CategoriaRiesgoSRL, ConceptoAjuste, Empleado, Empresa, ParametrosNomina, PeriodoNomina, ResultadoNomina, SectorEmpresa, TipoPeriodo } from '@/types'
+import type { AjusteLinea, CategoriaEmpresa, CategoriaRiesgoSRL, CierreFiscal, ConceptoAjuste, Empleado, Empresa, MotivoLiquidacion, ParametrosNomina, PeriodoNomina, Prestamo, ResultadoNomina, RetribucionComplementaria, SectorEmpresa, TipoPeriodo } from '@/types'
+import { parseFechaLocal } from './utils'
 
 // ─── ISR Brackets 2024 (annual RD$) ──────────────────────────────────────────
 // Source: DGII, Ley 11-92 art. 296 según modificaciones vigentes
@@ -107,6 +108,48 @@ export function getDivisorSalarioDiario(empleado: Pick<Empleado, 'regimenIntermi
   return empleado.regimenIntermitente ? DIVISOR_DIA_INTERMITENTE : DIVISOR_DIA_ORDINARIO
 }
 
+// ─── Vacaciones acumuladas — compuestas a través de múltiples años ───────────
+// Un cálculo ingenuo por "ciclo actual" (ej. `(años % 1) × 14/12`) descarta
+// por completo cualquier año COMPLETO ya transcurrido que el empleado nunca
+// disfrutó — un empleado con 1 año y 5 meses sin tomar vacaciones acumularía
+// solo ~5.8 días en vez de los ~19.8 reales (14 del primer año + la fracción
+// del segundo). En la práctica real dominicana un empleado puede acumular 2,
+// 3 o más períodos pendientes si la empresa nunca lo obliga a disfrutarlos —
+// este helper compone correctamente cada año completo (a la tasa vigente EN
+// ESE año — 14 días los primeros 5 años, 18 después) más la fracción del año
+// en curso, sin resetear nunca. `diasTomados` (vacaciones-context.tsx) resta
+// aparte lo realmente disfrutado/vendido — la combinación de ambos refleja
+// el saldo real pendiente, sin importar cuántos años lleve acumulándose.
+export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVacacionesInicial: number = 0): number {
+  if (anosServicio <= 0) return Math.max(0, saldoVacacionesInicial)
+  const aniosCompletos  = Math.floor(anosServicio)
+  const fraccionActual  = anosServicio - aniosCompletos
+  let dias = 0
+  for (let i = 1; i <= aniosCompletos; i++) {
+    // Los primeros 5 años (i = 1..5) acreditan a 14 días — el salto a 18 solo
+    // aplica al 6º año en adelante (i > 5), nunca al año 5 en sí (bug corregido:
+    // antes usaba `i >= 5`, acreditando de más el año 5 completo).
+    dias += i > 5 ? DIAS_VACACIONES_MAS_5_ANOS : DIAS_VACACIONES_HASTA_5_ANOS
+  }
+  const tasaActual = (aniosCompletos + 1) > 5 ? DIAS_VACACIONES_MAS_5_ANOS : DIAS_VACACIONES_HASTA_5_ANOS
+  dias += tasaActual * fraccionActual
+  return Math.max(0, dias + saldoVacacionesInicial)
+}
+
+// ─── Días laborables entre dos fechas (excluye domingos) ─────────────────────
+// Usado por el Disfrute de Vacaciones: tanto para restar del acumulado
+// disponible como para valorar el goce pagado en Nómina — consistente con
+// que el acumulado anual (14/18 días) ya es en "días laborables" (Art. 177).
+export function contarDiasLaborables(inicio: Date, fin: Date): number {
+  let dias = 0
+  const cur = new Date(inicio)
+  while (cur <= fin) {
+    if (cur.getDay() !== 0) dias++  // 0 = domingo
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dias
+}
+
 // ─── Cálculo ISR anual ────────────────────────────────────────────────────────
 export function calcularISRAnual(ingresoGravableAnual: number): number {
   if (ingresoGravableAnual <= TRAMOS_ISR[0].hasta) return 0
@@ -136,6 +179,9 @@ export function calcularNomina(
     ingresosPersonalizadosTotal        = 0,
     ingresosPersonalizadosGravablesISR = 0,
     ingresosPersonalizadosCotizablesTSS = 0,
+    vacacionesGoce      = 0,
+    vacacionesVendidas  = 0,
+    diasIngresoPendientes = 0,
   } = params
 
   // Salario proporcional a días trabajados
@@ -154,7 +200,16 @@ export function calcularNomina(
 
   // Base "legado" — todo lo que ya era gravable ISR y cotizable TSS por igual
   // antes del catálogo configurable (sin cambios para nóminas que no lo usan).
-  const totalBrutoLegado = salarioBruto + totalHorasExtras + importeNocturno + bonificaciones + comisiones
+  // vacacionesGoce (Disfrute) y vacacionesVendidas (Venta) se tratan igual
+  // que bonificaciones/comisiones — salario ordinario, cotizable TSS y
+  // gravable ISR (Art. 178). vacacionesVendidas es un pago EXTRA sobre el
+  // salario normal completo (el empleado sigue trabajando), a diferencia de
+  // vacacionesGoce que sustituye el salario de días no trabajados.
+  // diasIngresoPendientes (días arrastrados de un ingreso a mitad del
+  // período ANTERIOR, valorados a la tarifa diaria legal) es igualmente un
+  // pago EXTRA sobre el sueldo normal completo de este período — mismo
+  // tratamiento que vacacionesVendidas.
+  const totalBrutoLegado = salarioBruto + totalHorasExtras + importeNocturno + bonificaciones + comisiones + vacacionesGoce + vacacionesVendidas + diasIngresoPendientes
   const ingresosPersonalizados = ingresosPersonalizadosTotal
   const totalBruto = totalBrutoLegado + ingresosPersonalizados
 
@@ -236,7 +291,7 @@ export function calcularNomina(
 
   // Vacaciones acumuladas por mes
   const hoy = new Date()
-  const fechaIngreso = new Date(empleado.fechaIngreso)
+  const fechaIngreso = parseFechaLocal(empleado.fechaIngreso)
   const anosServicio = (hoy.getTime() - fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000)
   const diasVacacionesAnuales = anosServicio >= 5
     ? DIAS_VACACIONES_MAS_5_ANOS
@@ -264,6 +319,9 @@ export function calcularNomina(
     sfsDependientes,
     otrosDescuentos,
     aporteVoluntarioAFPEmpleado,
+    vacacionesGoce,
+    vacacionesVendidas,
+    diasIngresoPendientes,
     totalDescuentos,
     grossingUpEmpresa,
     saldoISRAplicado: 0,  // se aplica después, vía aplicarSaldoISRFavor() — no depende del empleado/empresa
@@ -322,6 +380,14 @@ export function calcularNominaQuincenal(
     sfsDependientes:          sfsDep,
     otrosDescuentos:          otros,
     aporteVoluntarioAFPEmpleado: aporteVolEmp,
+    // El llamador (diasVacacionEnPeriodo en nomina/page.tsx) ya pre-dobla el
+    // monto antes de pasarlo como vacacionesGoce cuando el período es
+    // quincenal — exactamente para que este /2 lo devuelva al monto real
+    // correspondiente a esa quincena específica (mismo mecanismo que ya
+    // aplica automáticamente a bonificaciones/comisiones).
+    vacacionesGoce:           m.vacacionesGoce / 2,
+    vacacionesVendidas:       m.vacacionesVendidas / 2,
+    diasIngresoPendientes:    m.diasIngresoPendientes / 2,
     totalDescuentos:          totalDesc,
     grossingUpEmpresa:        grossingUp,
     salarioNeto:              bruto - totalDesc + grossingUp,
@@ -376,25 +442,49 @@ export function aplicarSaldoISRFavor(
   }
 }
 
+// ─── Desglose del cálculo de una prestación (días × tarifa = total) ─────────
+// Expone el detalle intermedio del cálculo (no solo el monto final) para que
+// la UI de Liquidación pueda mostrarle al usuario de dónde salió cada cifra
+// — el mismo principio que ya se documenta en cada tramo legal de abajo,
+// ahora como datos estructurados en vez de solo comentarios.
+export interface DetalleTramoPrestacion {
+  dias: number
+  tarifaDiaria: number
+  total: number
+  tramo: string   // descripción legible del tramo aplicado, ej. "5+ años — 23 días × 5 año(s) completo(s)"
+}
+
 // ─── Cesantía (Art. 80, Código de Trabajo Ley 16-92) ─────────────────────────
 // Salario diario = salario mensual ÷ divisor laboral (23.83 ordinario, 26
 // régimen intermitente) — NO ÷30 días calendario. Usa getDivisorSalarioDiario().
+export function calcularCesantiaDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+  const tarifaDiaria = salarioMensual / divisor
+  if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no genera cesantía' }
+  if (anosServicio < 0.5)  return { dias: 6, tarifaDiaria, total: tarifaDiaria * 6, tramo: '3–6 meses de servicio — 6 días' }
+  if (anosServicio < 1)    return { dias: 13, tarifaDiaria, total: tarifaDiaria * 13, tramo: '6–12 meses de servicio — 13 días' }
+  if (anosServicio < 5) {
+    const anios = Math.floor(anosServicio)
+    return { dias: 21 * anios, tarifaDiaria, total: tarifaDiaria * 21 * anios, tramo: `1–5 años — 21 días × ${anios} año(s) completo(s)` }
+  }
+  const anios = Math.floor(anosServicio)
+  return { dias: 23 * anios, tarifaDiaria, total: tarifaDiaria * 23 * anios, tramo: `5+ años — 23 días × ${anios} año(s) completo(s)` }
+}
+
 export function calcularCesantia(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
-  const salarioDiario = salarioMensual / divisor
-  if (anosServicio < 0.25) return 0
-  if (anosServicio < 0.5)  return salarioDiario * 6                          // 3–6 meses: 6 días
-  if (anosServicio < 1)    return salarioDiario * 13                         // 6–12 meses: 13 días
-  if (anosServicio < 5)    return salarioDiario * 21 * Math.floor(anosServicio) // 1–5 años: 21 días/año
-  return salarioDiario * 23 * Math.floor(anosServicio)                      // 5+ años: 23 días/año
+  return calcularCesantiaDetalle(salarioMensual, anosServicio, divisor).total
 }
 
 // ─── Preaviso (Art. 76, Código de Trabajo) ───────────────────────────────────
+export function calcularPreavisoDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+  const tarifaDiaria = salarioMensual / divisor
+  if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no genera preaviso' }
+  if (anosServicio < 0.5)  return { dias: 7, tarifaDiaria, total: tarifaDiaria * 7, tramo: '3–6 meses de servicio — 7 días' }
+  if (anosServicio < 1)    return { dias: 14, tarifaDiaria, total: tarifaDiaria * 14, tramo: '6–12 meses de servicio — 14 días' }
+  return { dias: 28, tarifaDiaria, total: tarifaDiaria * 28, tramo: '12+ meses de servicio — 28 días fijo' }
+}
+
 export function calcularPreaviso(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
-  const salarioDiario = salarioMensual / divisor
-  if (anosServicio < 0.25) return 0
-  if (anosServicio < 0.5)  return salarioDiario * 7   // 3–6 meses: 7 días
-  if (anosServicio < 1)    return salarioDiario * 14  // 6–12 meses: 14 días
-  return salarioDiario * 28                           // 12+ meses: 28 días fijo
+  return calcularPreavisoDetalle(salarioMensual, anosServicio, divisor).total
 }
 
 // Mismos tramos de calcularPreaviso, pero como días exigidos (no monto en
@@ -408,10 +498,82 @@ export function getDiasPreavisoRequeridos(anosServicio: number): number {
   return 28                           // 12+ meses fijo
 }
 
+// Etiquetas de MotivoLiquidacion — usadas por Liquidación y por el
+// mini-formulario de "salida pendiente" en Empleados, para no divergir.
+export const MOTIVO_LIQUIDACION_LABELS: Record<MotivoLiquidacion, string> = {
+  renuncia: 'Renuncia Voluntaria',
+  despido_sin_causa: 'Despido Sin Causa (Art. 87)',
+  despido_con_causa: 'Despido Con Causa (Art. 88)',
+  mutuo_acuerdo: 'Mutuo Acuerdo',
+  vencimiento_contrato: 'Vencimiento de Contrato (Art. 74/82)',
+}
+
+// ─── Rango de fechas calendario de un período de nómina ────────────────────
+// El mes completo para mensual, o la mitad correspondiente (1-15 / 16-fin)
+// para quincenal. Usado por Liquidación para ubicar el fin del último
+// período pagado de un empleado (ver calcularDiasTrabajadosPendientes).
+export function rangoPeriodo(
+  mes: number, anio: number, tipo: TipoPeriodo, quincena: 1 | 2 = 1,
+): { inicio: Date; fin: Date } {
+  const diasEnMes = new Date(anio, mes, 0).getDate()
+  if (tipo === 'mensual') return { inicio: new Date(anio, mes - 1, 1), fin: new Date(anio, mes - 1, diasEnMes) }
+  return quincena === 1
+    ? { inicio: new Date(anio, mes - 1, 1), fin: new Date(anio, mes - 1, 15) }
+    : { inicio: new Date(anio, mes - 1, 16), fin: new Date(anio, mes - 1, diasEnMes) }
+}
+
+// ─── Días trabajados pendientes de pago al momento de la liquidación ───────
+// Cuando Empleado.pagoDiasTrabajadosPendiente === 'liquidacion': cuenta los
+// días calendario entre el fin del último período de Nómina en que el
+// empleado fue efectivamente procesado (empleadosProcesados) y su fecha de
+// terminación — o desde fechaIngreso si nunca se le procesó ninguno. `null`
+// si no hay días pendientes (ej. la fecha de terminación cae dentro o antes
+// de un período ya procesado — no le queda nada suelto por pagar).
+//
+// diasLaborablesMes usa los días del mes calendario de la fecha de
+// terminación como denominador del prorrateo — correcto para el caso normal
+// (el hueco cabe dentro de un solo mes). Si el hueco excepcionalmente
+// abarcara más de un mes (nómina sin correr por varios ciclos), se topa al
+// propio diasTrabajados para nunca prorratear por encima de un mes completo
+// de salario.
+export function calcularDiasTrabajadosPendientes(
+  empleado: Empleado,
+  periodos: PeriodoNomina[],
+  fechaTerminacion: Date,
+): { diasTrabajados: number; diasLaborablesMes: number; fechaInicio: Date } | null {
+  const msPorDia = 24 * 3600 * 1000
+
+  // Igual criterio que calcularSalarioPromedioUltimos12Meses: si el período
+  // trackea quién fue procesado, respeta esa membresía; si no la trackea
+  // (períodos antiguos, o datos de demo), asume que todo período
+  // procesada/cerrada incluyó al empleado — de lo contrario nunca se
+  // encontraría el último período pagado y se caería al fallback de
+  // fechaIngreso, inflando artificialmente los días pendientes.
+  const procesados = periodos
+    .filter(p =>
+      (p.estado === 'procesada' || p.estado === 'cerrada') &&
+      (p.empleadosProcesados ? p.empleadosProcesados.includes(empleado.id) : true)
+    )
+    .sort((a, b) => (b.anio - a.anio) || (b.mes - a.mes) || ((b.quincena ?? 1) - (a.quincena ?? 1)))
+
+  const ultimoFin = procesados.length
+    ? rangoPeriodo(procesados[0].mes, procesados[0].anio, procesados[0].tipo, procesados[0].quincena ?? 1).fin
+    : new Date(parseFechaLocal(empleado.fechaIngreso).getTime() - msPorDia)
+
+  const fechaInicio = new Date(ultimoFin.getTime() + msPorDia)
+  if (fechaInicio > fechaTerminacion) return null
+
+  const diasTrabajados = Math.floor((fechaTerminacion.getTime() - fechaInicio.getTime()) / msPorDia) + 1
+  const diasEnMesTerm = new Date(fechaTerminacion.getFullYear(), fechaTerminacion.getMonth() + 1, 0).getDate()
+  const diasLaborablesMes = Math.max(diasEnMesTerm, diasTrabajados)
+
+  return { diasTrabajados, diasLaborablesMes, fechaInicio }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 export function getAnosServicio(fechaIngreso: string): number {
   const hoy = new Date()
-  const fi  = new Date(fechaIngreso)
+  const fi  = parseFechaLocal(fechaIngreso)
   return (hoy.getTime() - fi.getTime()) / (365.25 * 24 * 3600 * 1000)
 }
 
@@ -419,15 +581,85 @@ export function getMesesServicio(fechaIngreso: string): number {
   return Math.floor(getAnosServicio(fechaIngreso) * 12)
 }
 
+// ─── Tiempo suspendido (pausa de acumulación de Regalía/Vacaciones) ──────────
+// Durante una suspensión de contrato no se devenga salario, así que tampoco
+// se genera derecho a Regalía Pascual ni a vacaciones — pero la ANTIGÜEDAD
+// legal (Cesantía/Preaviso/Asistencia Económica) sigue corriendo continua,
+// por eso getAnosServicio NO se toca: estas funciones solo se restan donde
+// se calcula acumulación de derechos.
+type EmpleadoSuspensiones = Pick<Empleado, 'historialSuspensiones' | 'suspendido' | 'fechaSuspension'>
+
+// Intervalos [inicio, finExclusivo). fechaFin es el día de reactivación (ese
+// día ya se trabaja). suspender() ya agrega la suspensión vigente al
+// historial (sin fechaFin), así que fechaSuspension solo se suma aparte si
+// no aparece ahí — registros previos a la existencia de historialSuspensiones.
+function intervalosSuspension(empleado: EmpleadoSuspensiones, hasta: Date): { inicio: Date; fin: Date }[] {
+  // La suspensión vigente corre hasta `hasta` inclusive.
+  const finAbierto = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1)
+  const historial = empleado.historialSuspensiones ?? []
+  const intervalos = historial.map(r => ({
+    inicio: parseFechaLocal(r.fechaInicio),
+    fin: r.fechaFin ? parseFechaLocal(r.fechaFin) : finAbierto,
+  }))
+  if (empleado.suspendido && empleado.fechaSuspension
+      && !historial.some(r => !r.fechaFin && r.fechaInicio === empleado.fechaSuspension)) {
+    intervalos.push({ inicio: parseFechaLocal(empleado.fechaSuspension), fin: finAbierto })
+  }
+  // Nada posterior a `hasta` (ej. liquidación a una fecha pasada).
+  return intervalos
+    .map(({ inicio, fin }) => ({ inicio, fin: fin > finAbierto ? finAbierto : fin }))
+    .filter(({ inicio, fin }) => fin > inicio)
+}
+
+// Meses fraccionales suspendidos dentro del año calendario `anio`, contados
+// mes a mes como (días suspendidos ÷ días del mes) — así un tramo de meses
+// completos (ej. 1-ene → 1-abr) da exactamente 3.0, sin el error de un
+// divisor promedio de 30.44 días.
+export function mesesSuspendidosEnAnio(empleado: EmpleadoSuspensiones, anio: number, hasta: Date = new Date()): number {
+  const DIA = 24 * 3600 * 1000
+  let meses = 0
+  for (const { inicio, fin } of intervalosSuspension(empleado, hasta)) {
+    for (let m = 0; m < 12; m++) {
+      const inicioMes = new Date(anio, m, 1)
+      const finMes    = new Date(anio, m + 1, 1)
+      const desde = inicio > inicioMes ? inicio : inicioMes
+      const a     = fin < finMes ? fin : finMes
+      if (a <= desde) continue
+      // Math.round: absorbe la hora de diferencia en cambios de horario.
+      meses += Math.round((a.getTime() - desde.getTime()) / DIA) / Math.round((finMes.getTime() - inicioMes.getTime()) / DIA)
+    }
+  }
+  return Math.min(12, Math.max(0, meses))
+}
+
+// Años fraccionales suspendidos en TODO el historial (sin acotar a un año),
+// misma escala que getAnosServicio (365.25 días/año) para poder restarlos.
+export function aniosSuspendidosTotal(empleado: EmpleadoSuspensiones, hasta: Date = new Date()): number {
+  const total = intervalosSuspension(empleado, hasta)
+    .reduce((s, { inicio, fin }) => s + (fin.getTime() - inicio.getTime()), 0)
+  return Math.max(0, total / (365.25 * 24 * 3600 * 1000))
+}
+
+// Monto de Empleado.regaliaPagadaEsteAnio realmente vigente para `anio` — ver
+// el comentario del campo en types/index.ts. Sin regaliaPagadaAnio (registros
+// previos a este campo), se asume vigente solo para el año calendario actual,
+// para no alterar el comportamiento ya existente de golpe ni requerir migrar
+// datos, dejando que el descuento deje de aplicar por sí solo al año siguiente.
+export function regaliaPagadaVigente(empleado: Pick<Empleado, 'regaliaPagadaEsteAnio' | 'regaliaPagadaAnio'>, anio: number): number {
+  if (!empleado.regaliaPagadaEsteAnio) return 0
+  const anioVigente = empleado.regaliaPagadaAnio ?? new Date().getFullYear()
+  return anioVigente === anio ? empleado.regaliaPagadaEsteAnio : 0
+}
+
 // ─── Asistencia Económica (Art. 82, Código de Trabajo) ───────────────────────
 // Distinta de la cesantía: aplica en terminación de contratos por tiempo
 // determinado/obra, o en casos de terminación sin responsabilidad de las partes.
 // Salario diario = salario mensual ÷ divisor laboral (23.83/26), no ÷30.
-export function calcularAsistenciaEconomica(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
-  const salarioDiario = salarioMensual / divisor
-  if (anosServicio < 0.25) return 0                              // < 3 meses: no aplica
-  if (anosServicio < 0.5)  return salarioDiario * 5              // 3–6 meses: 5 días
-  if (anosServicio < 1)    return salarioDiario * 10             // 6–12 meses: 10 días
+export function calcularAsistenciaEconomicaDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+  const tarifaDiaria = salarioMensual / divisor
+  if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no aplica' }
+  if (anosServicio < 0.5)  return { dias: 5, tarifaDiaria, total: tarifaDiaria * 5, tramo: '3–6 meses de servicio — 5 días' }
+  if (anosServicio < 1)    return { dias: 10, tarifaDiaria, total: tarifaDiaria * 10, tramo: '6–12 meses de servicio — 10 días' }
 
   // 12+ meses: 15 días por cada año cumplido, más los días proporcionales
   // de los meses del año en curso al momento de otorgarla (acumulativo).
@@ -435,23 +667,76 @@ export function calcularAsistenciaEconomica(salarioMensual: number, anosServicio
   const mesesAnioEnCurso    = Math.floor((anosServicio - aniosCompletos) * 12)
   const diasPorAniosCompletos = aniosCompletos * 15
   const diasProporcionales    = (15 / 12) * mesesAnioEnCurso
-  return salarioDiario * (diasPorAniosCompletos + diasProporcionales)
+  const dias = diasPorAniosCompletos + diasProporcionales
+  return {
+    dias, tarifaDiaria, total: tarifaDiaria * dias,
+    tramo: `12+ meses — 15 días × ${aniosCompletos} año(s) completo(s) + proporcional de ${mesesAnioEnCurso} mes(es) del año en curso`,
+  }
+}
+
+export function calcularAsistenciaEconomica(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
+  return calcularAsistenciaEconomicaDetalle(salarioMensual, anosServicio, divisor).total
 }
 
 // ─── Helpers de agregación de períodos (compartidos entre Reportería y Liquidación) ─
-export function ajustesToParams(ajustes: AjusteLinea[]): ParametrosNomina {
+// `tipo` decide si hay que PRE-DOBLAR los ajustes manuales antes de que
+// calcularNominaQuincenal divida TODO el bruto/descuentos entre 2 (ver
+// CLAUDE.md "Quincenal"). Bug real encontrado por el usuario: un ajuste de
+// bono/otro ingreso/comisión/horas extra/otro descuento de RD$1,000
+// agregado a un período QUINCENAL aparecía como solo RD$500 — porque el
+// usuario captura ese monto como EXACTAMENTE lo que corresponde a ESA
+// quincena específica, nunca como un total mensual, pero el motor lo
+// trataba como si fuera mensual y lo partía a la mitad sin que nada lo
+// compensara. Mismo mecanismo ya usado para vacacionesGoce/vacacionesVendidas/
+// diasIngresoPendientes (nomina-shared.ts): se pre-dobla aquí para que
+// sobreviva esa división automática.
+//
+// Dos excepciones que NO se pre-doblan por el factor genérico porque tienen
+// su propia regla de escala:
+// - `prestamo` con `prestamoId` y `prestamoFrecuencia !== 'quincenal'`
+//   (cuota MENSUAL real de Préstamos, el caso más común — incluye registros
+//   sin este campo, de sesiones anteriores a su creación): se pre-carga
+//   íntegra en AMBAS quincenas del mes al crear cada período — la división
+//   automática es justo lo que reparte la cuota mensual 50/50 entre ambas.
+// - `prestamo` con `prestamoId` y `prestamoFrecuencia === 'quincenal'`
+//   (el préstamo se otorgó con descuento QUINCENAL — Préstamos permite
+//   elegir esa frecuencia por empleado): `cuotaBase` ya es el monto de UNA
+//   quincena, no de un mes — aplicarlo con la división automática lo
+//   partiría otra vez a la mitad (bug real reportado por el usuario, quien
+//   recordó que la frecuencia del descuento es configurable). Se pre-dobla
+//   ×2 SIEMPRE (sin importar el tipo del período): en un período quincenal
+//   el ×2 sobrevive la división automática y neta la cuota íntegra de esa
+//   quincena; en un período mensual (sin ninguna división automática) el ×2
+//   representa las 2 quincenas de cuota que se acumularon ese mes.
+// - `prestamo` SIN `prestamoId` (ajuste manual "+ Ajuste" para un préstamo
+//   que no está registrado en el módulo de Préstamos) es exactamente igual
+//   de ad-hoc que "Otro Desc." — el monto capturado es el de ESA quincena
+//   específica, así que SÍ se pre-dobla con el factor genérico (bug real
+//   reportado por el usuario: un descuento manual de RD$3,000 con concepto
+//   "Préstamo" para un empleado sin préstamo registrado se aplicaba como
+//   solo RD$1,500 en la quincena).
+// - `dependiente_sfs`: ya se pre-divide en `prorratearMontoFijo` al crear
+//   el período (RD$1,919.78 → RD$959.89/quincena), así que ajustesToParams
+//   ya recibe el monto correcto por quincena, sin nada que doblar.
+export function ajustesToParams(ajustes: AjusteLinea[], tipo: TipoPeriodo): ParametrosNomina {
   let horasExtras35 = 0, horasExtras100 = 0, horasNocturnas = 0, bonificaciones = 0
-  let comisiones = 0, sfsDependientes = 0, otrosDescuentos = 0
+  let comisiones = 0, sfsDependientes = 0
+  let otrosDescuentosPrestamoMensual = 0, otrosDescuentosPrestamoQuincenal = 0, otrosDescuentosManual = 0
   let ingresosPersonalizadosTotal = 0, ingresosPersonalizadosGravablesISR = 0, ingresosPersonalizadosCotizablesTSS = 0
 
   for (const a of ajustes) {
-    if (a.concepto === 'horas_extras_35')                             horasExtras35   += a.valor
-    if (a.concepto === 'horas_extras_100')                            horasExtras100  += a.valor
-    if (a.concepto === 'recargo_nocturno')                            horasNocturnas  += a.valor
-    if (a.concepto === 'bono' || a.concepto === 'otro_ingreso')       bonificaciones  += a.valor
-    if (a.concepto === 'comision')                                    comisiones      += a.valor
-    if (a.concepto === 'dependiente_sfs')                             sfsDependientes += a.valor
-    if (a.concepto === 'prestamo' || a.concepto === 'otro_descuento') otrosDescuentos += a.valor
+    if (a.concepto === 'horas_extras_35')  horasExtras35   += a.valor
+    if (a.concepto === 'horas_extras_100') horasExtras100  += a.valor
+    if (a.concepto === 'recargo_nocturno') horasNocturnas  += a.valor
+    if (a.concepto === 'bono' || a.concepto === 'otro_ingreso') bonificaciones += a.valor
+    if (a.concepto === 'comision')         comisiones      += a.valor
+    if (a.concepto === 'dependiente_sfs')  sfsDependientes += a.valor
+    if (a.concepto === 'prestamo') {
+      if (!a.prestamoId) otrosDescuentosManual += a.valor
+      else if (a.prestamoFrecuencia === 'quincenal') otrosDescuentosPrestamoQuincenal += a.valor
+      else otrosDescuentosPrestamoMensual += a.valor
+    }
+    if (a.concepto === 'otro_descuento')   otrosDescuentosManual += a.valor
     // Concepto del catálogo configurable (Configuración → Ingresos y
     // Deducciones). Los ingresos personalizados siempre suman a totalBruto;
     // solo la porción con el flag correspondiente activo entra a la base de
@@ -462,12 +747,21 @@ export function ajustesToParams(ajustes: AjusteLinea[]): ParametrosNomina {
       if (a.afectaISR) ingresosPersonalizadosGravablesISR += a.valor
       if (a.afectaTSS) ingresosPersonalizadosCotizablesTSS += a.valor
     }
-    if (a.concepto === 'personalizado' && a.tipo === 'deduccion') otrosDescuentos += a.valor
+    if (a.concepto === 'personalizado' && a.tipo === 'deduccion') otrosDescuentosManual += a.valor
   }
 
+  const factor = tipo === 'quincenal' ? 2 : 1
   return {
-    horasExtras35, horasExtras100, horasNocturnas, bonificaciones, comisiones, sfsDependientes, otrosDescuentos,
-    ingresosPersonalizadosTotal, ingresosPersonalizadosGravablesISR, ingresosPersonalizadosCotizablesTSS,
+    horasExtras35: horasExtras35 * factor,
+    horasExtras100: horasExtras100 * factor,
+    horasNocturnas: horasNocturnas * factor,
+    bonificaciones: bonificaciones * factor,
+    comisiones: comisiones * factor,
+    sfsDependientes,
+    otrosDescuentos: otrosDescuentosPrestamoMensual + otrosDescuentosPrestamoQuincenal * 2 + otrosDescuentosManual * factor,
+    ingresosPersonalizadosTotal: ingresosPersonalizadosTotal * factor,
+    ingresosPersonalizadosGravablesISR: ingresosPersonalizadosGravablesISR * factor,
+    ingresosPersonalizadosCotizablesTSS: ingresosPersonalizadosCotizablesTSS * factor,
   }
 }
 
@@ -497,8 +791,32 @@ export const CONCEPTOS_LEY: ConceptoLeyInfo[] = [
   { concepto: 'otro_descuento',   nombre: 'Otro Descuento',      tipo: 'deduccion', afectaISR: false, afectaTSS: false, nota: 'Descuento post-impuesto, no reduce ISR ni TSS' },
 ]
 
+// Resultado en cero — usado cuando un período de Regalía Pascual no tiene
+// snapshot para un empleado (nunca formó parte del pago, ej. acumulado en
+// 0 al momento de liquidar). Evita que calcularConPeriodo caiga al motor
+// normal de nómina, que fabricaría un salario mensual completo inexistente
+// bajo la etiqueta de ese período.
+function resultadoVacio(empleadoId: string): ResultadoNomina {
+  return {
+    empleadoId,
+    salarioBruto: 0, importeHE35: 0, importeHE100: 0, totalHorasExtras: 0, importeNocturno: 0,
+    bonificaciones: 0, comisiones: 0, ingresosPersonalizados: 0, totalBruto: 0,
+    salarioCotizable: 0,
+    afpEmpleado: 0, sfsEmpleado: 0, isrMensual: 0, sfsDependientes: 0, otrosDescuentos: 0,
+    aporteVoluntarioAFPEmpleado: 0, vacacionesGoce: 0, vacacionesVendidas: 0, diasIngresoPendientes: 0, totalDescuentos: 0,
+    grossingUpEmpresa: 0, saldoISRAplicado: 0,
+    salarioNeto: 0,
+    afpEmpleador: 0, sfsEmpleador: 0, srlEmpleador: 0, infotepEmpleador: 0,
+    aporteVoluntarioAFPEmpresa: 0, totalAportesEmpleador: 0,
+    totalCostoEmpleador: 0,
+    regaliaPascual: 0, vacacionesMensualesDias: 0, vacacionesMensualesValor: 0,
+    anosServicio: 0,
+  }
+}
+
 export function calcularConPeriodo(emp: Empleado, ajustes: AjusteLinea[], periodo: PeriodoNomina): ResultadoNomina {
-  const params = ajustesToParams(ajustes)
+  if (periodo.tipo === 'regalia' || periodo.tipo === 'bonificacion') return resultadoVacio(emp.id)
+  const params = ajustesToParams(ajustes, periodo.tipo)
   return periodo.tipo === 'quincenal'
     ? calcularNominaQuincenal(emp, periodo.quincena ?? 1, params)
     : calcularNomina(emp, params)
@@ -521,6 +839,13 @@ export function calcularSalarioPromedioUltimos12Meses(
   haceUnAnio.setFullYear(haceUnAnio.getFullYear() - 1)
 
   const relevantes = periodos.filter(p =>
+    // La Regalía Pascual (Art. 219, 100% exenta) y la Bonificación por
+    // Utilidades (Art. 223, pago anual único y discrecional según haya o no
+    // utilidades ese año) NUNCA son "salario ordinario" — incluirlas aquí
+    // inflaría artificialmente el promedio usado para Cesantía/Preaviso/
+    // Asistencia Económica, sumando un pago anual grande como si fuera
+    // salario adicional de ese mes puntual.
+    p.tipo !== 'regalia' && p.tipo !== 'bonificacion' &&
     (p.estado === 'procesada' || p.estado === 'cerrada') &&
     new Date(p.fechaGeneracion) >= haceUnAnio &&
     new Date(p.fechaGeneracion) <= fechaReferencia
@@ -544,13 +869,382 @@ export function calcularSalarioPromedioUltimos12Meses(
     totalPorMes.set(key, (totalPorMes.get(key) ?? 0) + totalBruto)
   }
 
-  // Sin historial real en el sistema (recién migrado): usa el salario
-  // histórico de referencia capturado en la carga inicial, si existe.
-  if (totalPorMes.size === 0) {
-    return Math.max(empleado.salarioHistoricoReferencia ?? empleado.salarioBase, empleado.salarioBase)
+  // Blende los meses reales encontrados con el salario histórico de
+  // referencia (o el salarioBase actual si no hay referencia capturada)
+  // para los meses de la ventana de 12 que todavía no tienen nómina real
+  // procesada en el sistema — el divisor SIEMPRE es 12, nunca la cantidad
+  // de meses reales encontrados. Antes, con solo 1-2 meses reales
+  // acumulados (el caso normal de toda empresa recién migrada, antes de
+  // completar su primer año en Cielo Cloud), el promedio se calculaba
+  // ÚNICAMENTE sobre esos pocos meses — un solo mes atípico (ej. un bono
+  // grande puntual) podía duplicar la Cesantía/Preaviso de un empleado,
+  // ignorando por completo salarioHistoricoReferencia pese a que la propia
+  // documentación del campo promete protegerlo "mientras no acumule 12
+  // meses reales". Con `totalPorMes.size === 0` (recién migrado, nada real
+  // todavía) esta fórmula colapsa exactamente al salario histórico puro;
+  // con `size === 12` (historial completo) colapsa al promedio real puro —
+  // ambos casos límite ya verificados, este cambio solo corrige los casos
+  // intermedios (1-11 meses reales).
+  const MESES_VENTANA = 12
+  const salarioReferenciaMesFaltante = empleado.salarioHistoricoReferencia ?? empleado.salarioBase
+  const mesesFaltantes = Math.max(0, MESES_VENTANA - totalPorMes.size)
+  const sumaTotal = [...totalPorMes.values()].reduce((s, v) => s + v, 0)
+    + mesesFaltantes * salarioReferenciaMesFaltante
+  const promedio = sumaTotal / MESES_VENTANA
+  return Math.max(promedio, empleado.salarioBase)
+}
+
+// ─── Bonificación por Utilidades — ejercicio fiscal (Art. 223-224, Código de
+// Trabajo) ───────────────────────────────────────────────────────────────────
+// El mes de cierre del ejercicio (Empresa.cierreFiscal) determina la ventana
+// de 12 meses sobre la que se reparte el 10% de utilidades netas. "Año
+// fiscal N" se nombra por su año de CIERRE — ej. con cierreFiscal='junio',
+// el año fiscal 2026 es el ejercicio del 01-jul-2025 al 30-jun-2026. Con el
+// valor por defecto 'diciembre', el año fiscal N es simplemente el año
+// calendario N (comportamiento idéntico al que ya existía antes de este
+// campo, sin necesidad de migrar datos).
+const MES_CIERRE: Record<CierreFiscal, number> = {
+  // 0-indexado (Date.getMonth()) — mes en que CIERRA el ejercicio
+  diciembre: 11, marzo: 2, junio: 5, septiembre: 8,
+}
+
+export function rangoEjercicioFiscal(anioFiscal: number, cierreFiscal: CierreFiscal = 'diciembre'): { inicio: Date; fin: Date } {
+  const mesCierre = MES_CIERRE[cierreFiscal]
+  const fin = new Date(anioFiscal, mesCierre + 1, 0)  // último día del mes de cierre
+  const inicio = new Date(fin)
+  inicio.setFullYear(inicio.getFullYear() - 1)
+  inicio.setDate(inicio.getDate() + 1)
+  return { inicio, fin }
+}
+
+// Fecha límite legal de pago de la Bonificación — Art. 224: "a más tardar
+// entre los noventa y los ciento veinte días después del cierre de cada
+// ejercicio económico." Se usa el límite superior (120 días) como fecha de
+// vencimiento para la alerta — el margen 90-120 es una ventana permitida,
+// no dos fechas distintas a advertir por separado.
+export function fechaLimitePagoBonificacion(finEjercicio: Date): Date {
+  const limite = new Date(finEjercicio)
+  limite.setDate(limite.getDate() + 120)
+  return limite
+}
+
+// Meses (fraccionales, sin truncar) que un empleado trabajó DENTRO de un
+// ejercicio fiscal específico — usado para prorratear tanto el peso en el
+// reparto proporcional como el tope individual de 45/60 días cuando el
+// empleado no trabajó el ejercicio completo. Cubre dos casos reales: (1)
+// ingresó a mitad del ejercicio (fechaSalida = null, sigue activo), y (2) se
+// desvinculó a mitad del ejercicio (fechaSalida = fecha de terminación) —
+// Art. 223: "Cuando el trabajador no preste servicios durante todo el año...
+// la participación individual será proporcional al salario del tiempo
+// trabajado." La ley no especifica la fórmula exacta de proporción; aquí se
+// usa días trabajados dentro del ejercicio ÷ días totales del ejercicio × 12
+// (interpretación propia de Cielo Cloud, consistente con cómo ya se
+// prorratea Regalía Pascual/vacaciones en el resto del sistema).
+export function mesesEnEjercicioFiscal(
+  fechaIngreso: Date, fechaSalida: Date | null, inicioEjercicio: Date, finEjercicio: Date,
+): number {
+  const inicioEfectivo = fechaIngreso > inicioEjercicio ? fechaIngreso : inicioEjercicio
+  const finEfectivo = fechaSalida && fechaSalida < finEjercicio ? fechaSalida : finEjercicio
+  if (inicioEfectivo > finEfectivo) return 0
+  const msPorDia = 24 * 3600 * 1000
+  const diasTrabajados = (finEfectivo.getTime() - inicioEfectivo.getTime()) / msPorDia + 1
+  const diasEjercicio  = (finEjercicio.getTime() - inicioEjercicio.getTime()) / msPorDia + 1
+  return Math.max(0, Math.min(12, (diasTrabajados / diasEjercicio) * 12))
+}
+
+export interface BonificacionPendiente {
+  anio: number
+  fin: Date
+  limite: Date
+  diasRestantes: number   // negativo = ya vencido
+}
+
+// Ejercicios fiscales ya cerrados (fin <= hoy) que todavía no tienen un
+// período de Bonificación pagado ('cerrada') — ordenados por urgencia (menor
+// diasRestantes primero). Extraído de /bonificacion para que el Dashboard
+// (Centro de Alertas) pueda reutilizar exactamente la misma regla sin
+// duplicar la lógica de ventana fiscal. Acotado a ejercicios que se solapan
+// con la antigüedad del empleado más antiguo conocido — sin este límite, una
+// empresa recién migrada a Cielo Cloud (sin historial de bonificación
+// cargado) vería "vencido hace miles de días" para ejercicios anteriores a
+// que la empresa tuviera empleados, un falso positivo sin sentido práctico.
+export function getBonificacionesPendientes(
+  empleados: Pick<Empleado, 'fechaIngreso'>[],
+  periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
+  cierreFiscal: CierreFiscal,
+  aniosCandidatos: number[],
+): BonificacionPendiente[] {
+  // Sin ningún empleado conocido no hay nada que pudiera deberse — evita el
+  // caso borde de una cuenta recién creada: `primerIngresoConocido` sería
+  // `null`, lo que DESACTIVA el guard de abajo (`primerIngresoConocido &&
+  // ...`) en vez de bloquear todo, mostrando ejercicios fiscales "vencidos"
+  // de hace años antes de que la empresa tuviera un solo empleado.
+  if (empleados.length === 0) return []
+
+  const hoy = new Date()
+  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => parseFechaLocal(e.fechaIngreso).getTime())))
+
+  return aniosCandidatos
+    .map(a => {
+      const { fin } = rangoEjercicioFiscal(a, cierreFiscal)
+      if (fin > hoy) return null
+      if (fin < primerIngresoConocido) return null
+      const pagado = periodos.some(p => p.tipo === 'bonificacion' && p.anio === a && p.estado === 'cerrada')
+      if (pagado) return null
+      const limite = fechaLimitePagoBonificacion(fin)
+      const diasRestantes = Math.ceil((limite.getTime() - hoy.getTime()) / (1000 * 3600 * 24))
+      return { anio: a, fin, limite, diasRestantes }
+    })
+    .filter((x): x is BonificacionPendiente => x !== null)
+    .sort((a, b) => a.diasRestantes - b.diasRestantes)
+}
+
+export interface RegaliaPendiente {
+  anio: number
+  limite: Date
+  diasRestantes: number  // negativo = ya vencida
+}
+
+// Años calendario con Regalía Pascual (Art. 219, vence el 20 de diciembre)
+// todavía sin pagar — a diferencia de getBonificacionesPendientes, aquí
+// "fin del período que se evalúa" y "fecha límite de pago" son el mismo día
+// (20 de diciembre de ESE año), no hay ventana de 90-120 días aparte. Barre
+// hacia atrás igual que Bonificación (ANIOS_FISCALES) para no perder de
+// vista un año que quedó sin pagar y ya no es el año en curso — antes la
+// alerta solo evaluaba `anioActual`, así que un atraso desaparecía
+// silenciosamente en cuanto el calendario avanzaba al año siguiente.
+export function getRegaliaPendientes(
+  empleados: Pick<Empleado, 'fechaIngreso'>[],
+  periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
+  aniosCandidatos: number[],
+): RegaliaPendiente[] {
+  if (empleados.length === 0) return []
+
+  const hoy = new Date()
+  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => parseFechaLocal(e.fechaIngreso).getTime())))
+
+  return aniosCandidatos
+    .map(anio => {
+      const limite = new Date(anio, 11, 20)
+      if (limite < primerIngresoConocido) return null
+      const pagada = periodos.some(p => p.tipo === 'regalia' && p.anio === anio && p.estado === 'cerrada')
+      if (pagada) return null
+      const diasRestantes = Math.ceil((limite.getTime() - hoy.getTime()) / (1000 * 3600 * 24))
+      return { anio, limite, diasRestantes }
+    })
+    .filter((x): x is RegaliaPendiente => x !== null)
+    .sort((a, b) => a.diasRestantes - b.diasRestantes)
+}
+
+// ─── Retribuciones Complementarias — Impuesto Sustitutivo 27% (Formulario
+// IR-17) ─────────────────────────────────────────────────────────────────
+export const TASA_IMPUESTO_SUSTITUTIVO_RETRIBUCIONES = 0.27
+
+// Fecha límite de declaración/pago del IR-17 para las retribuciones
+// complementarias otorgadas en un mes/año dado — vence el día 10 del mes
+// SIGUIENTE, junto con las demás retenciones del mes (Guía del Contribuyente
+// No.14, DGII). Si el día 10 cae sábado o domingo se traslada al siguiente
+// día hábil (lunes) — la guía no detalla el manejo de feriados nacionales,
+// así que esta función solo ajusta fines de semana, no feriados.
+export function fechaLimiteIR17(mes: number, anio: number): Date {
+  let mesSig = mes + 1
+  let anioSig = anio
+  if (mesSig > 12) { mesSig = 1; anioSig += 1 }
+  const fecha = new Date(anioSig, mesSig - 1, 10)
+  const dow = fecha.getDay()  // 0 = domingo, 6 = sábado
+  if (dow === 6) fecha.setDate(fecha.getDate() + 2)
+  if (dow === 0) fecha.setDate(fecha.getDate() + 1)
+  return fecha
+}
+
+export interface RetribucionPendiente {
+  mes: number
+  anio: number
+  total: number
+  impuesto: number
+  limite: Date
+  diasRestantes: number  // negativo = ya vencido
+}
+
+// Meses/años con retribuciones registradas cuya declaración IR-17 todavía no
+// se marcó como sometida — ordenados por urgencia (menor diasRestantes
+// primero). Un mes cuenta como "declarado" solo si TODAS sus líneas lo
+// están (una sola declaración mensual cubre todos los conceptos del mes).
+export function getRetribucionesPendientes(
+  lineasCrudas: RetribucionComplementaria[],
+): RetribucionPendiente[] {
+  // Base gravable real (desglose de vivienda/vehículo + regla del vehículo
+  // menos costoso) — mismo número que muestra /retribuciones-complementarias.
+  const lineas = conBaseGravableRetribuciones(lineasCrudas)
+  const grupos = new Map<string, { mes: number; anio: number; total: number; declarada: boolean }>()
+  for (const l of lineas) {
+    const key = `${l.anio}-${l.mes}`
+    const g = grupos.get(key) ?? { mes: l.mes, anio: l.anio, total: 0, declarada: true }
+    g.total += l.valorMensual
+    if (!l.declarada) g.declarada = false
+    grupos.set(key, g)
+  }
+  const hoy = new Date()
+  const pendientes: RetribucionPendiente[] = []
+  for (const g of grupos.values()) {
+    if (g.declarada || g.total <= 0) continue
+    const limite = fechaLimiteIR17(g.mes, g.anio)
+    const diasRestantes = Math.ceil((limite.getTime() - hoy.getTime()) / (1000 * 3600 * 24))
+    pendientes.push({ mes: g.mes, anio: g.anio, total: g.total, impuesto: g.total * TASA_IMPUESTO_SUSTITUTIVO_RETRIBUCIONES, limite, diasRestantes })
+  }
+  return pendientes.sort((a, b) => a.diasRestantes - b.diasRestantes)
+}
+
+// ─── Retribuciones Complementarias — desglose de Vivienda/Vehículo ───────────
+
+export const CONCEPTO_RETRIB_VEHICULO = 'Vehículo de la empresa'
+export const CONCEPTO_RETRIB_VIVIENDA = 'Vivienda'
+export const CONCEPTO_RETRIB_DIFERENCIAL_INTERES = 'Diferencial de Interés (Art. 318)'
+
+// % de uso personal presunto de un vehículo asignado.
+// ⚠️ INTERPRETACIÓN PROPIA DE CIELO CLOUD, PENDIENTE DE CONFIRMAR CON UN
+// ASESOR FISCAL: la Guía del Contribuyente No.14 (DGII) indica que el % depende
+// de si el empleado es de oficina y de si el vehículo es propiedad de la
+// empresa o del empleado (mencionando 40%/20%), pero no se dispone aquí de la
+// tabla oficial completa. Matriz sugerida:
+//   - 40% → vehículo propiedad de la empresa Y empleado que NO es de oficina
+//           (uso más extendido / menos controlado).
+//   - 20% → cualquier otra combinación (empleado de oficina, o vehículo del
+//           propio empleado con mantenimiento/combustible pagado por la empresa).
+// El % es solo una SUGERENCIA — cada línea guarda el % realmente aplicado
+// (`vehiculoPorcentajeAplicado`), editable a mano por el contador.
+export function porcentajeUsoPersonalVehiculoSugerido(
+  esEmpleadoDeOficina: boolean,
+  propiedadDe: 'empresa' | 'empleado',
+): number {
+  return propiedadDe === 'empresa' && !esEmpleadoDeOficina ? 40 : 20
+}
+
+export interface BaseGravableRetribucion {
+  base: number                 // base gravable efectiva sobre la que se aplica el 27%
+  reduccionVehiculo: boolean   // true si esta línea de vehículo recibió el % de uso personal
+  excedenteVehiculo: boolean   // true si es un vehículo de la empresa adicional, gravado al 100%
+}
+
+function esVehiculoConDesglose(l: RetribucionComplementaria): boolean {
+  return l.concepto === CONCEPTO_RETRIB_VEHICULO && typeof l.vehiculoValorMensual === 'number'
+}
+
+// Resuelve la base gravable de cada línea (por id):
+//  - Vivienda con desglose → suma depreciación/alquiler + mantenimiento + servicios.
+//  - Vehículo con desglose → vehiculoValorMensual × % aplicado. REGLA DE VARIOS
+//    VEHÍCULOS (Guía DGII No.14): si a un mismo empleado se le asignan varios
+//    vehículos de la empresa en el mismo mes/año, solo el MENOS COSTOSO recibe
+//    la proporcionalidad; los demás se gravan al 100% de su valor. Es un cálculo
+//    derivado — se recalcula cada vez que cambian las líneas, nunca se marca a
+//    mano. Líneas de vehículo sin empleado asignado no se pueden agrupar por
+//    persona, así que cada una recibe su % de forma independiente.
+//  - Cualquier otra línea (o registros previos sin desglose) → valorMensual plano.
+export function resolverBaseGravableRetribuciones(
+  lineas: RetribucionComplementaria[],
+): Map<string, BaseGravableRetribucion> {
+  const out = new Map<string, BaseGravableRetribucion>()
+
+  // Agrupar vehículos de la EMPRESA por empleado/mes/año para la regla del
+  // menos costoso (un vehículo del propio empleado no es "vehículo asignado").
+  const gruposVehiculos = new Map<string, RetribucionComplementaria[]>()
+  for (const l of lineas) {
+    if (!esVehiculoConDesglose(l) || !l.empleadoId || l.vehiculoPropiedadDe !== 'empresa') continue
+    const key = `${l.empleadoId}|${l.anio}|${l.mes}`
+    const arr = gruposVehiculos.get(key) ?? []
+    arr.push(l)
+    gruposVehiculos.set(key, arr)
+  }
+  const excedentes = new Set<string>()
+  for (const arr of gruposVehiculos.values()) {
+    if (arr.length < 2) continue
+    // Menos costoso por valor mensual; empate → el id menor (determinístico)
+    const masBarato = [...arr].sort((a, b) =>
+      (a.vehiculoValorMensual! - b.vehiculoValorMensual!) || a.id.localeCompare(b.id))[0]
+    for (const l of arr) if (l.id !== masBarato.id) excedentes.add(l.id)
   }
 
-  const sumaTotal = [...totalPorMes.values()].reduce((s, v) => s + v, 0)
-  const promedio   = sumaTotal / totalPorMes.size
-  return Math.max(promedio, empleado.salarioBase)
+  for (const l of lineas) {
+    if (esVehiculoConDesglose(l)) {
+      const valor = l.vehiculoValorMensual ?? 0
+      if (excedentes.has(l.id)) {
+        out.set(l.id, { base: valor, reduccionVehiculo: false, excedenteVehiculo: true })
+      } else {
+        const pct = l.vehiculoPorcentajeAplicado ?? porcentajeUsoPersonalVehiculoSugerido(
+          !!l.vehiculoEsEmpleadoDeOficina, l.vehiculoPropiedadDe ?? 'empresa')
+        out.set(l.id, {
+          base: Math.round(valor * pct) / 100,
+          reduccionVehiculo: pct < 100,
+          excedenteVehiculo: false,
+        })
+      }
+      continue
+    }
+    const tieneDesgloseVivienda =
+      l.viviendaDepreciacionAlquiler != null || l.viviendaMantenimiento != null || l.viviendaServicios != null
+    const base = tieneDesgloseVivienda
+      ? (l.viviendaDepreciacionAlquiler ?? 0) + (l.viviendaMantenimiento ?? 0) + (l.viviendaServicios ?? 0)
+      : l.valorMensual
+    out.set(l.id, { base, reduccionVehiculo: false, excedenteVehiculo: false })
+  }
+  return out
+}
+
+// Conveniencia: devuelve las mismas líneas con `valorMensual` reemplazado por
+// la base gravable efectiva — para consumidores (Reportería, alertas) que solo
+// suman valorMensual y no necesitan conocer el desglose.
+export function conBaseGravableRetribuciones(lineas: RetribucionComplementaria[]): RetribucionComplementaria[] {
+  const bases = resolverBaseGravableRetribuciones(lineas)
+  return lineas.map(l => ({ ...l, valorMensual: bases.get(l.id)?.base ?? l.valorMensual }))
+}
+
+// ─── Diferencial de interés de préstamos a tasa preferencial (Art. 318) ─────
+
+export interface DiferencialInteresPrestamo {
+  prestamoId: string
+  empleadoId: string
+  saldoPendiente: number
+  tasaMensualPrestamo: number   // % mensual tal cual se guarda en Prestamo.tasaInteres
+  tasaAnualPrestamo: number     // tasaMensual × 12 (nominal), comparable contra la referencia anual
+  tasaReferenciaAnual: number
+  diferencialMensual: number    // RD$ de interés no cobrado este mes → retribución complementaria
+}
+
+// Préstamos activos cuyo interés está por debajo de la tasa de mercado de
+// referencia configurada por la empresa. El diferencial no cobrado es una
+// retribución complementaria gravable (Art. 318, Código de Trabajo).
+//
+// NOTA DE UNIDADES: en Cielo Cloud `Prestamo.tasaInteres` es una tasa MENSUAL
+// (así la captura el formulario "Tasa Interés % mensual" y así la usa la
+// amortización francesa/simple), mientras la referencia es ANUAL. Para
+// compararlas se anualiza la del préstamo de forma nominal (× 12):
+//   diferencialMensual = saldoPendiente × (refAnual − tasaMensual×12) / 100 / 12
+//
+// Los AVANCES de salario (`tipo === 'avance'`) se excluyen: son un adelanto de
+// un solo período, deducido completo en la nómina siguiente — no una línea de
+// crédito sostenida mes a mes que genere un beneficio financiero recurrente.
+export function calcularDiferencialesInteresPrestamos(
+  prestamos: Pick<Prestamo, 'id' | 'empleadoId' | 'saldoPendiente' | 'tasaInteres' | 'estado' | 'tipo'>[],
+  tasaReferenciaAnual: number | undefined,
+): DiferencialInteresPrestamo[] {
+  if (!tasaReferenciaAnual || tasaReferenciaAnual <= 0) return []
+  const out: DiferencialInteresPrestamo[] = []
+  for (const p of prestamos) {
+    if (p.estado !== 'activo' || p.tipo === 'avance' || p.saldoPendiente <= 0) continue
+    const tasaMensual = Number.isFinite(p.tasaInteres) && p.tasaInteres > 0 ? p.tasaInteres : 0
+    const tasaAnual = tasaMensual * 12
+    if (tasaAnual >= tasaReferenciaAnual) continue
+    const diferencialMensual = Math.round(p.saldoPendiente * (tasaReferenciaAnual - tasaAnual) / 100 / 12 * 100) / 100
+    if (diferencialMensual <= 0) continue
+    out.push({
+      prestamoId: p.id,
+      empleadoId: p.empleadoId,
+      saldoPendiente: p.saldoPendiente,
+      tasaMensualPrestamo: tasaMensual,
+      tasaAnualPrestamo: tasaAnual,
+      tasaReferenciaAnual,
+      diferencialMensual,
+    })
+  }
+  return out
 }
