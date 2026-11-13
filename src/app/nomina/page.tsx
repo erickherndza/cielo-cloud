@@ -42,7 +42,7 @@ import {
 import type { PlantillaComprobante } from '@/lib/comprobante-email'
 import { calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, aplicarSaldoISRFavor, prorratearMontoFijo, ajustesToParams } from '@/lib/dominican-labor'
 import { useConceptosPersonalizados } from '@/lib/conceptos-personalizados-context'
-import { formatRD, fullName, formatCedula, formatDate, BTN_PRIMARY, cn } from '@/lib/utils'
+import { formatRD, fullName, formatCedula, formatDate, BTN_PRIMARY, cn, csvCell } from '@/lib/utils'
 import jsPDF from 'jspdf'
 import type {
   Empleado,
@@ -68,7 +68,7 @@ const hoy = new Date()
 function exportarCSV(filename: string, headers: string[], rows: (string | number)[][]) {
   const bom = '﻿'
   const csv = [headers, ...rows]
-    .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .map(r => r.map(csvCell).join(','))
     .join('\r\n')
   const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)

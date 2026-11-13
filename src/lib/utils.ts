@@ -145,3 +145,12 @@ export const CONTRATO_DGT_INFO: Partial<Record<string, { formulario: string; pla
 // (cuota total del navegador ~5 MB). Evita llenarla con un solo adjunto.
 export const MAX_ADJUNTO_BYTES = 1024 * 1024 // 1 MB
 export const MAX_ADJUNTO_LABEL = '1 MB'
+
+// Celda CSV segura: neutraliza inyección de fórmulas (=, +, -, @) que Excel
+// ejecutaría al abrir el archivo. Los números reales (incluidos negativos) no
+// se tocan.
+export function csvCell(c: string | number): string {
+  let v = String(c)
+  if (typeof c === 'string' && /^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = `'${v}`
+  return `"${v.replace(/"/g, '""')}"`
+}

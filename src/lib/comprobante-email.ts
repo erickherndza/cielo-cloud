@@ -24,8 +24,9 @@ export interface EnvioComprobante {
 // primero de un mismo gesto de usuario — por eso el llamador NO debe asumir
 // éxito y debe revisar este valor antes de marcar el envío como completado.
 export function enviarComprobante(envio: EnvioComprobante): boolean {
-  const params = new URLSearchParams({ subject: envio.asunto, body: envio.cuerpo })
-  const ventana = window.open(`mailto:${envio.destinatarioEmail}?${params.toString()}`, '_blank')
+  const q = (t: string) => encodeURIComponent(t)
+  const destino = q(envio.destinatarioEmail).replace(/%40/g, '@')
+  const ventana = window.open(`mailto:${destino}?subject=${q(envio.asunto)}&body=${q(envio.cuerpo)}`, '_blank')
   return ventana !== null
 }
 
