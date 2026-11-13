@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context'
 import { firebaseAuthMsg } from '@/lib/firebase-errors'
 import { GoogleIcon } from '@/components/auth/GoogleIcon'
 import { MicrosoftIcon } from '@/components/auth/MicrosoftIcon'
+import { MICROSOFT_LOGIN_ENABLED } from '@/lib/firebase'
 import { AuthBrandPanel, MobileLogo } from '@/components/auth/AuthBrandPanel'
 
 const INPUT = 'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] pl-11 pr-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-[#1B2980]/8 dark:focus:ring-indigo-500/10 transition-all'
@@ -140,10 +141,9 @@ export default function RegistroPage() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#1B2980] dark:text-indigo-400">
                   Cielo Cloud · Nómina
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">Crea tu cuenta</h2>
-                <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">Es gratis, siempre.</p>
 
                 {/* Microsoft (Outlook / Microsoft 365) */}
+                {MICROSOFT_LOGIN_ENABLED && (
                 <button
                   onClick={() => handleSSO('microsoft')}
                   disabled={gLoading}
@@ -152,12 +152,13 @@ export default function RegistroPage() {
                   <MicrosoftIcon />
                   {gLoading ? 'Conectando…' : 'Continuar con Microsoft'}
                 </button>
+                )}
 
                 {/* Google */}
                 <button
                   onClick={() => handleSSO('google')}
                   disabled={gLoading}
-                  className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#20243a] hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all"
+                  className={`${MICROSOFT_LOGIN_ENABLED ? '' : 'mt-7 '}w-full flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#20243a] hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all`}
                 >
                   <GoogleIcon />
                   {gLoading ? 'Conectando…' : 'Continuar con Google'}

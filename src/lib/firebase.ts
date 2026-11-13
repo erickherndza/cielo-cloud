@@ -40,6 +40,11 @@ export function getFirebaseAuth() {
   return getFirebaseAuthNamed(DEFAULT_APP_NAME)
 }
 
+// Botón "Continuar con Microsoft": oculto hasta registrar la app en Microsoft
+// Entra y activar el proveedor en Firebase. Para mostrarlo: construir con
+// NEXT_PUBLIC_MICROSOFT_LOGIN=true.
+export const MICROSOFT_LOGIN_ENABLED = process.env.NEXT_PUBLIC_MICROSOFT_LOGIN === 'true'
+
 export const googleProvider = new GoogleAuthProvider()
 
 // Microsoft (Outlook / Microsoft 365). Tenant "common" (por defecto) acepta
