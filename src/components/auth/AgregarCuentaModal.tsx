@@ -5,6 +5,7 @@ import { X, ArrowLeft, Eye, EyeOff, AlertCircle, CheckCircle2, LogIn, UserPlus2,
 import { useAuth } from '@/lib/auth-context'
 import { firebaseAuthMsg } from '@/lib/firebase-errors'
 import { GoogleIcon } from './GoogleIcon'
+import { MicrosoftIcon } from './MicrosoftIcon'
 
 const INPUT = 'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
 
@@ -38,7 +39,7 @@ function PasswordStrength({ pwd }: { pwd: string }) {
 type Paso = 'elegir' | 'login' | 'registro'
 
 export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
-  const { agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle } = useAuth()
+  const { agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft } = useAuth()
 
   const [paso, setPaso] = useState<Paso>('elegir')
   const [nombre, setNombre]     = useState('')
@@ -84,10 +85,10 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function handleGoogle() {
+  async function handleSSO(proveedor: 'google' | 'microsoft') {
     setError(''); setGLoading(true)
     try {
-      await agregarCuentaGoogle()
+      await (proveedor === 'google' ? agregarCuentaGoogle() : agregarCuentaMicrosoft())
       onClose()
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
@@ -215,9 +216,18 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
               <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">Con la cuenta de la empresa que quieres agregar.</p>
 
               <button
-                onClick={handleGoogle}
+                onClick={() => handleSSO('microsoft')}
                 disabled={gLoading}
                 className="mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-[#1a1d2e] disabled:opacity-60 transition-colors"
+              >
+                <MicrosoftIcon />
+                {gLoading ? 'Conectando…' : 'Continuar con Microsoft'}
+              </button>
+
+              <button
+                onClick={() => handleSSO('google')}
+                disabled={gLoading}
+                className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-[#1a1d2e] disabled:opacity-60 transition-colors"
               >
                 <GoogleIcon />
                 {gLoading ? 'Conectando…' : 'Continuar con Google'}
@@ -283,9 +293,18 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
                   <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">Para la empresa que quieres agregar. Es gratis.</p>
 
                   <button
-                    onClick={handleGoogle}
+                    onClick={() => handleSSO('microsoft')}
                     disabled={gLoading}
                     className="mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-[#1a1d2e] disabled:opacity-60 transition-colors"
+                  >
+                    <MicrosoftIcon />
+                    {gLoading ? 'Conectando…' : 'Continuar con Microsoft'}
+                  </button>
+
+                  <button
+                    onClick={() => handleSSO('google')}
+                    disabled={gLoading}
+                    className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-[#1a1d2e] disabled:opacity-60 transition-colors"
                   >
                     <GoogleIcon />
                     {gLoading ? 'Conectando…' : 'Continuar con Google'}

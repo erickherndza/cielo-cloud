@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, OAuthProvider } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -41,4 +41,13 @@ export function getFirebaseAuth() {
 }
 
 export const googleProvider = new GoogleAuthProvider()
+
+// Microsoft (Outlook / Microsoft 365). Tenant "common" (por defecto) acepta
+// cuentas de trabajo/escuela (correo corporativo) y personales. Requiere
+// activar el proveedor "Microsoft" en Firebase Console → Authentication →
+// Sign-in method, con el ID/secreto de una app registrada en Microsoft Entra.
+export const microsoftProvider = new OAuthProvider('microsoft.com')
+microsoftProvider.addScope('email')
+microsoftProvider.addScope('profile')
+microsoftProvider.setCustomParameters({ prompt: 'select_account' })
 

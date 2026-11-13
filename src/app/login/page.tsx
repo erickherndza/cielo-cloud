@@ -7,13 +7,14 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock } from 'l
 import { useAuth } from '@/lib/auth-context'
 import { firebaseAuthMsg } from '@/lib/firebase-errors'
 import { GoogleIcon } from '@/components/auth/GoogleIcon'
+import { MicrosoftIcon } from '@/components/auth/MicrosoftIcon'
 import { AuthBrandPanel, MobileLogo } from '@/components/auth/AuthBrandPanel'
 
 const INPUT = 'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] pl-11 pr-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-[#1B2980]/8 dark:focus:ring-indigo-500/10 transition-all'
 const FIELD_ICON = 'pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-600'
 
 export default function LoginPage() {
-  const { signIn, signInGoogle, resetPassword } = useAuth()
+  const { signIn, signInGoogle, signInMicrosoft, resetPassword } = useAuth()
   const router = useRouter()
 
   const [email, setEmail]         = useState('')
@@ -43,11 +44,11 @@ export default function LoginPage() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleSSO(proveedor: 'google' | 'microsoft') {
     setError('')
     setGLoading(true)
     try {
-      await signInGoogle()
+      await (proveedor === 'google' ? signInGoogle() : signInMicrosoft())
       router.replace('/')
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? ''
@@ -236,9 +237,19 @@ export default function LoginPage() {
                   <div className="flex-1 border-t border-zinc-200 dark:border-[#252840]" />
                 </div>
 
+                {/* Microsoft (Outlook / Microsoft 365) */}
+                <button
+                  onClick={() => handleSSO('microsoft')}
+                  disabled={gLoading}
+                  className="mb-3 w-full flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#20243a] hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all"
+                >
+                  <MicrosoftIcon />
+                  {gLoading ? 'Conectando…' : 'Continuar con Microsoft'}
+                </button>
+
                 {/* Google */}
                 <button
-                  onClick={handleGoogle}
+                  onClick={() => handleSSO('google')}
                   disabled={gLoading}
                   className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#20243a] hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all"
                 >

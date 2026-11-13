@@ -15,7 +15,7 @@ import {
   reload,
   updateProfile,
 } from 'firebase/auth'
-import { getFirebaseAuthNamed, googleProvider, FIREBASE_ENABLED, DEFAULT_APP_NAME } from './firebase'
+import { getFirebaseAuthNamed, googleProvider, microsoftProvider, FIREBASE_ENABLED, DEFAULT_APP_NAME } from './firebase'
 
 // ─── Multicuenta ────────────────────────────────────────────────────────────
 // Cada empresa vinculada en este dispositivo es una cuenta REAL de Firebase
@@ -66,6 +66,7 @@ interface AuthCtx {
   signIn:                 (email: string, password: string) => Promise<void>
   signUp:                 (email: string, password: string, nombre: string) => Promise<void>
   signInGoogle:           () => Promise<void>
+  signInMicrosoft:        () => Promise<void>
   logout:                 () => Promise<void>
   resetPassword:          (email: string) => Promise<void>
   sendVerification:       () => Promise<void>
@@ -74,6 +75,7 @@ interface AuthCtx {
   agregarCuentaLogin:     (email: string, password: string) => Promise<void>
   agregarCuentaRegistro:  (email: string, password: string, nombre: string) => Promise<void>
   agregarCuentaGoogle:    () => Promise<void>
+  agregarCuentaMicrosoft: () => Promise<void>
   quitarCuenta:           (appName: string) => Promise<void>
 }
 
@@ -85,6 +87,7 @@ const Ctx = createContext<AuthCtx>({
   signIn:                 async () => {},
   signUp:                 async () => {},
   signInGoogle:           async () => {},
+  signInMicrosoft:        async () => {},
   logout:                 async () => {},
   resetPassword:          async () => {},
   sendVerification:       async () => {},
@@ -93,6 +96,7 @@ const Ctx = createContext<AuthCtx>({
   agregarCuentaLogin:     async () => {},
   agregarCuentaRegistro:  async () => {},
   agregarCuentaGoogle:    async () => {},
+  agregarCuentaMicrosoft: async () => {},
   quitarCuenta:           async () => {},
 })
 
@@ -157,6 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signInGoogle() {
     await signInWithRedirect(getFirebaseAuthNamed(activaAppName), googleProvider)
+  }
+
+  async function signInMicrosoft() {
+    await signInWithRedirect(getFirebaseAuthNamed(activaAppName), microsoftProvider)
   }
 
   async function logout() {
@@ -231,6 +239,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     upsertCuenta(appName, cred.user)
   }
 
+  async function agregarCuentaMicrosoft() {
+    asegurarCuentaActualRegistrada()
+    const appName = genAppName()
+    const cred = await signInWithPopup(getFirebaseAuthNamed(appName), microsoftProvider)
+    upsertCuenta(appName, cred.user)
+  }
+
   async function quitarCuenta(appName: string) {
     await signOut(getFirebaseAuthNamed(appName))
     setRegistro(prev => {
@@ -245,8 +260,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, loading,
       cuentasVinculadas: registro.cuentas,
       cuentaActivaAppName: activaAppName,
-      signIn, signUp, signInGoogle, logout, resetPassword, sendVerification, refreshUser,
-      cambiarCuenta, agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, quitarCuenta,
+      signIn, signUp, signInGoogle, signInMicrosoft, logout, resetPassword, sendVerification, refreshUser,
+      cambiarCuenta, agregarCuentaLogin, agregarCuentaRegistro, agregarCuentaGoogle, agregarCuentaMicrosoft, quitarCuenta,
     }}>
       {children}
     </Ctx.Provider>

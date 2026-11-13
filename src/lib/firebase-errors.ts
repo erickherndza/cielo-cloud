@@ -21,6 +21,10 @@ export function firebaseAuthMsg(code: string): string {
       return 'Sin conexión a internet. Verifica tu red e intenta de nuevo.'
     case 'auth/unauthorized-domain':
       return 'Este dominio no está autorizado en Firebase. Agrégalo en Firebase Console → Authentication → Settings → Dominios autorizados.'
+    case 'auth/account-exists-with-different-credential':
+      return 'Ya existe una cuenta con este correo que usa otro método (Google, Microsoft o contraseña). Inicia sesión con ese método.'
+    case 'auth/popup-blocked':
+      return 'El navegador bloqueó la ventana de inicio de sesión. Permite las ventanas emergentes para este sitio e intenta de nuevo.'
     case 'auth/operation-not-allowed':
       return 'Este método de inicio de sesión no está activado. Actívalo en Firebase Console → Authentication → Sign-in method.'
     default:
