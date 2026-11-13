@@ -46,7 +46,11 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   useEffect(() => {
-    if (!FIREBASE_ENABLED) return
+    // Sin Firebase no existe login: cualquier ruta pública vuelve al inicio.
+    if (!FIREBASE_ENABLED) {
+      if (isPublic) router.replace('/')
+      return
+    }
     if (loading) return
     if (!user && !isPublic) router.replace('/login')
     if (user  &&  isPublic) router.replace('/')

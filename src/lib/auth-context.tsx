@@ -179,6 +179,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    // Sin Firebase configurado no hay sesión que cerrar (getAuth lanzaría
+    // auth/invalid-api-key).
+    if (!FIREBASE_ENABLED) return
     await signOut(getFirebaseAuthNamed(activaAppName))
     // Si esta cuenta ya estaba registrada como una de varias vinculadas, se
     // quita de la lista al cerrar sesión — si no (el caso de siempre, una
