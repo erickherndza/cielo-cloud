@@ -140,3 +140,8 @@ export const CONTRATO_DGT_INFO: Partial<Record<string, { formulario: string; pla
     plazo: 'Contrato de aprendizaje (Art. 251–257, Código de Trabajo)',
   },
 }
+
+// Límite de tamaño para archivos guardados en localStorage como base64
+// (cuota total del navegador ~5 MB). Evita llenarla con un solo adjunto.
+export const MAX_ADJUNTO_BYTES = 1024 * 1024 // 1 MB
+export const MAX_ADJUNTO_LABEL = '1 MB'

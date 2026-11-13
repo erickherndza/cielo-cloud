@@ -17,7 +17,7 @@ import {
   calcularAmortizacionFrancesa, calcularAmortizacionSimple,
 } from '@/lib/prestamos-context'
 import type { FilaAmortizacion } from '@/lib/prestamos-context'
-import { formatRD, fullName, formatDate, BTN_PRIMARY } from '@/lib/utils'
+import { formatRD, fullName, formatDate, BTN_PRIMARY, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import type { Prestamo, EstadoPrestamo } from '@/types'
 // Default de referencia para la alerta de Capacidad de Pago — ver
 // PanelCapacidadPago. Configurable por empresa (Configuración → Reglas de
@@ -676,6 +676,11 @@ export default function PrestamosPage() {
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_ADJUNTO_BYTES) {
+      alert(`El archivo supera el límite de ${MAX_ADJUNTO_LABEL}.`)
+      e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string

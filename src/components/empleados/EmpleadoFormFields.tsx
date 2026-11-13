@@ -9,7 +9,7 @@ import {
 } from '@/lib/empleado-form'
 import type { Pais, EmpForm } from '@/lib/empleado-form'
 import { EmpleadoAvatar } from './EmpleadoAvatar'
-import { fullName } from '@/lib/utils'
+import { fullName, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import type { Empleado, TipoContrato, TipoDocumento, Banco } from '@/types'
 
 export const inputCls = 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
@@ -254,6 +254,11 @@ export function FileUploadRow({
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_ADJUNTO_BYTES) {
+      alert(`El archivo supera el límite de ${MAX_ADJUNTO_LABEL}.`)
+      e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string
@@ -315,6 +320,11 @@ export function EmpleadoFormFields({
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_ADJUNTO_BYTES) {
+      alert(`La foto supera el límite de ${MAX_ADJUNTO_LABEL}.`)
+      e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => set('fotoPerfil', reader.result as string)
     reader.readAsDataURL(file)

@@ -5,7 +5,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useEmpresa } from '@/lib/empresa-context'
 import { FIREBASE_ENABLED } from '@/lib/firebase'
-import { cargarDatosDemo } from '@/lib/seed-data'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard'
@@ -14,10 +13,6 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate'
 import { CommandPaletteProvider } from '@/lib/command-palette-context'
 
 const PUBLIC_PATHS = ['/login', '/registro']
-
-// Cuenta de uso personal/pruebas: sin verificación de correo y con datos
-// demo precargados automáticamente, sin pasar por el wizard de onboarding.
-const ADMIN_EMAIL = 'admin@admin.com'
 
 function LoadingScreen() {
   return (
@@ -49,7 +44,6 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname            = usePathname()
 
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
-  const esAdmin  = user?.email === ADMIN_EMAIL
 
   useEffect(() => {
     if (!FIREBASE_ENABLED) return
@@ -60,14 +54,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
 
   const needsOnboarding = empresaCargada && !empresa.onboardingCompleto
   const needsConfiguracionInicial =
-    empresaCargada && empresa.onboardingCompleto && !empresa.configuracionInicialOfrecida && !esAdmin
-
-  // Cuenta admin de uso personal — precarga datos demo y salta el onboarding
-  useEffect(() => {
-    if (!FIREBASE_ENABLED || !esAdmin || !needsOnboarding) return
-    cargarDatosDemo(user?.uid)
-    window.location.reload()
-  }, [esAdmin, needsOnboarding, user?.uid])
+    empresaCargada && empresa.onboardingCompleto && !empresa.configuracionInicialOfrecida
 
   // Firebase not configured → skip auth, only gate on onboarding
   if (!FIREBASE_ENABLED) {
@@ -95,13 +82,12 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   if (!user) return null
 
   const esCuentaPassword  = user.providerData.some(p => p.providerId === 'password')
-  const needsVerification = esCuentaPassword && !user.emailVerified && !esAdmin
+  const needsVerification = esCuentaPassword && !user.emailVerified
 
   // Verificación de correo y onboarding se muestran a pantalla completa, sin sidebar
   if (needsVerification) return <EmailVerificationGate />
   if (!empresaCargada)   return <LoadingScreen />
-  // Admin: mientras se precargan los datos demo y recarga la página, solo loading
-  if (needsOnboarding)    return esAdmin ? <LoadingScreen /> : <OnboardingWizard />
+  if (needsOnboarding)    return <OnboardingWizard />
   if (needsConfiguracionInicial) return <PromptConfiguracionInicial />
 
   // Protected pages — fully set up, show app chrome
