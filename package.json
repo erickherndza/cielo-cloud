@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:firebase": "BASE_PATH= next build",
+    "build:firebase": "BASE_PATH= NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=cielo-nomina-prueba.web.app next build",
     "start": "next start",
     "lint": "next lint"
   },

@@ -141,7 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!FIREBASE_ENABLED || !registroListo) return
     const auth = getFirebaseAuthNamed(activaAppName)
-    getRedirectResult(auth).catch(() => {})
+    // Un fallo aquí (dominio no autorizado, almacenamiento bloqueado…) deja al
+    // usuario de vuelta en /login sin sesión: se registra en consola para poder
+    // diagnosticarlo en vez de tragarlo.
+    getRedirectResult(auth).catch(e => console.error('[auth] getRedirectResult:', e?.code ?? e))
     setLoading(true)
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u)

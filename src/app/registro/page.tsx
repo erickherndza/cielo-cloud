@@ -163,6 +163,9 @@ export default function RegistroPage() {
                   <GoogleIcon />
                   {gLoading ? 'Conectando…' : 'Continuar con Google'}
                 </button>
+                <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
+                  Si creas tu cuenta con Google, el siguiente paso es registrar los datos de tu empresa.
+                </p>
 
                 {/* Divider */}
                 <div className="my-5 flex items-center gap-3">

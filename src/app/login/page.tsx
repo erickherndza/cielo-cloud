@@ -259,6 +259,12 @@ export default function LoginPage() {
                   <GoogleIcon />
                   {gLoading ? 'Conectando…' : 'Continuar con Google'}
                 </button>
+                <p className="mt-3 text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
+                  Con Google solo puedes entrar si ya creaste tu cuenta.{' '}
+                  <Link href="/registro" className="font-semibold text-[#1B2980] hover:underline dark:text-indigo-400">
+                    ¿Primera vez? Crea tu cuenta
+                  </Link>
+                </p>
               </>
             )}
           </div>
