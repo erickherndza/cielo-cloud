@@ -4,8 +4,8 @@ import { buildApp } from '../src/index.js'
 import { pool } from '../src/db.js'
 
 // Servidor real en un puerto; el cliente (src/lib/storage.ts) habla con él por fetch.
-const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email } }
-const app = buildApp({ projectId: 'x', origins: [], verify })
+const verify = async (t) => { const [uid, email, flag] = t.split(':'); return { uid, email, emailVerified: flag !== 'sinverificar' } }
+const app = buildApp({ projectId: 'x', origins: [], verify, logger: false })
 await app.listen({ port: 0, host: '127.0.0.1' })
 const port = app.server.address().port
 
