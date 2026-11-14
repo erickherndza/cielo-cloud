@@ -11,12 +11,43 @@ import {
   Check,
   Plus,
   X,
+  ShieldAlert,
+  Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth, type CuentaVinculada } from '@/lib/auth-context'
 import { AgregarCuentaModal } from '@/components/auth/AgregarCuentaModal'
 import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
 import { DevCredit } from '@/components/ui/DevCredit'
+import { useRemoteStore } from '@/lib/remote-store'
+import { salirDeEmpresa } from '@/lib/storage'
+
+// Accesos de multiempresa: panel del super admin y cambio de empresa para
+// quien trabaja con más de una (contadores).
+function EmpresaLinks({ wide }: { wide: boolean }) {
+  const { acceso } = useRemoteStore()
+  const pathname = usePathname()
+  if (!acceso?.activa) return null
+  const fila = 'flex w-full items-center py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] border-l-[3px] border-transparent '
+  return (
+    <>
+      {acceso.esSuperadmin && (
+        <Link href="/admin" prefetch={false} title={wide ? undefined : 'Administración'}
+          className={cn(fila, wide ? 'gap-3 px-4' : 'justify-center', pathname.startsWith('/admin') && 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-semibold')}>
+          <ShieldAlert className="h-4 w-4 shrink-0 text-zinc-400" />
+          {wide && <span className="min-w-0 flex-1 truncate">Administración</span>}
+        </Link>
+      )}
+      {(acceso.empresas.length > 1 || acceso.esSuperadmin) && (
+        <button onClick={salirDeEmpresa} title={wide ? undefined : 'Cambiar de empresa'}
+          className={cn(fila, wide ? 'gap-3 px-4 text-left' : 'justify-center')}>
+          <Building2 className="h-4 w-4 shrink-0 text-zinc-400" />
+          {wide && <span className="min-w-0 flex-1 truncate">Cambiar de empresa</span>}
+        </button>
+      )}
+    </>
+  )
+}
 
 // Lee el nombre de empresa guardado para OTRA cuenta vinculada, directo de
 // localStorage — sin pasar por React ni "cambiar" de cuenta de verdad, solo
@@ -353,6 +384,7 @@ export function Sidebar() {
 
         {/* ── Footer ───────────────────────────────────────────────── */}
         <div className="border-t border-zinc-200 dark:border-[#252840] py-1">
+          <EmpresaLinks wide={wide} />
           <Link
             href={CONFIGURACION_ITEM.href}
             prefetch={false}

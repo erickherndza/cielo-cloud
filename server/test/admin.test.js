@@ -8,6 +8,7 @@ const SUP = `super${Date.now()}@cielo.test`
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP], autoregistro: false,
   limites: { general: 10_000, escritura: 10_000, empresas: 5, correos: 600 } })
 const tok = (uid, email) => ({ authorization: `Bearer ${uid}:${email ?? uid + '@t.com'}` })
+const RUN = Date.now()
 const S = tok('sa1', SUP)
 const call = (method, url, headers, payload) => app.inject({ method, url, headers, payload })
 test.after(async () => { await app.close(); await pool.end() })
@@ -41,7 +42,7 @@ test('invitación: el invitado entra con su correo y queda con el rol; no se reu
   assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'dios' })).statusCode, 400)
 
   // Antes de entrar no tiene acceso; al listar sus empresas se acepta la invitación.
-  const U = tok('c1', mail)
+  const U = tok('c1'+RUN, mail)
   assert.equal((await call('GET', `/api/empresas/${id}/documentos`, U)).statusCode, 403)
   const lista = (await call('GET', '/api/empresas', U)).json()
   assert.deepEqual(lista.map(e => [e.id, e.rol]), [[id, 'contador']])
@@ -58,8 +59,8 @@ test('un contador con varias empresas las ve todas; otro usuario no ve ninguna',
     await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'contador' })
     ids.push(id)
   }
-  assert.deepEqual((await call('GET', '/api/empresas', tok('c2', mail))).json().map(e => e.id).sort(), ids.sort())
-  assert.deepEqual((await call('GET', '/api/empresas', tok('x9'))).json(), [])
+  assert.deepEqual((await call('GET', '/api/empresas', tok('c2'+RUN, mail))).json().map(e => e.id).sort(), ids.sort())
+  assert.deepEqual((await call('GET', '/api/empresas', tok('x9'+RUN))).json(), [])
 })
 
 test('revocar invitación impide la entrada', async () => {
@@ -67,14 +68,14 @@ test('revocar invitación impide la entrada', async () => {
   const mail = `rev${Date.now()}@t.com`
   const inv = (await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'rrhh' })).json()
   assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones/${inv.id}/revocar`, S)).statusCode, 200)
-  assert.deepEqual((await call('GET', '/api/empresas', tok('r1', mail))).json(), [])
+  assert.deepEqual((await call('GET', '/api/empresas', tok('r1'+RUN, mail))).json(), [])
 })
 
 test('suspender bloquea a los usuarios de la empresa, no al super admin; reactivar restaura', async () => {
   const id = (await call('POST', '/api/admin/empresas', S, { nombre: 'Sus', rnc: rnc() })).json().id
   const mail = `sus${Date.now()}@t.com`
   await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'admin' })
-  const U = tok('s1', mail)
+  const U = tok('s1'+RUN, mail)
   await call('GET', '/api/empresas', U)
   assert.equal((await call('GET', `/api/empresas/${id}/documentos`, U)).statusCode, 200)
   await call('PUT', `/api/admin/empresas/${id}`, S, { estado: 'suspendida' })

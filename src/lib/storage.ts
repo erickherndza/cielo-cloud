@@ -63,37 +63,97 @@ async function api(path: string, init: RequestInit = {}, keepalive = false): Pro
   })
 }
 
+// ── Acceso: qué empresas tiene la persona y cuál está activa ────────────────
+export interface EmpresaAcceso { id: string; nombre: string; rnc: string | null; estado: string; rol: string }
+export interface AccesoInfo {
+  esSuperadmin: boolean
+  email: string | null
+  empresas: EmpresaAcceso[]
+  /** Empresa cuyos datos están cargados; null = hay que elegir (o no tiene ninguna). */
+  activa: { id: string; nombre: string; rnc: string | null } | null
+  /** Un super admin dentro de una empresa de la que no es miembro. */
+  soporte: boolean
+}
+let acceso: AccesoInfo | null = null
+export function getAcceso(): AccesoInfo | null { return acceso }
+
+const claveActiva = (uid: string) => `cielo-empresa-activa::${uid}`
+let uidActual = ''
+
+// El navegador solo recuerda QUÉ empresa estaba activa (id y nombre), nunca datos.
+export function elegirEmpresa(e: { id: string; nombre: string; rnc: string | null }) {
+  localStorage.setItem(claveActiva(uidActual), JSON.stringify(e))
+  window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/`)
+}
+export function salirDeEmpresa() {
+  localStorage.removeItem(claveActiva(uidActual))
+  window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/`)
+}
+
+// Llamada JSON a la API con el token de la sesión (panel de administración).
+export async function apiJson<T = unknown>(path: string, init: RequestInit = {}): Promise<{ ok: boolean; status: number; data: T }> {
+  const r = await api(path, init)
+  const data = await r.json().catch(() => ({})) as T
+  return { ok: r.ok, status: r.status, data }
+}
+
 // ── Inicialización (al iniciar sesión) ──────────────────────────────────────
 export async function initRemoteStore(uid: string, token: GetToken): Promise<void> {
   getToken = token
   cache = new Map()
   dirty.clear()
+  empresaId = null
+  uidActual = uid
 
-  const lista = await (await api('/api/empresas')).json() as { id: string }[]
-  if (lista.length) {
-    empresaId = lista[0].id
-  } else {
+  const yo = await (await api('/api/yo')).json() as { email: string | null; esSuperadmin: boolean }
+  const lista = await (await api('/api/empresas')).json() as EmpresaAcceso[]
+  acceso = { esSuperadmin: yo.esSuperadmin, email: yo.email, empresas: lista, activa: null, soporte: false }
+
+  // 1) la que la persona dejó activa (un super admin puede tener una ajena)
+  let elegida: { id: string; nombre: string; rnc: string | null } | null = null
+  try {
+    const g = JSON.parse(localStorage.getItem(claveActiva(uid)) ?? 'null')
+    if (g?.id && (lista.some(e => e.id === g.id) || yo.esSuperadmin)) elegida = { id: g.id, nombre: g.nombre ?? '', rnc: g.rnc ?? null }
+  } catch { /* guardado dañado: se ignora */ }
+  // 2) si solo tiene una, esa
+  if (!elegida && lista.length === 1) elegida = { id: lista[0].id, nombre: lista[0].nombre, rnc: lista[0].rnc }
+
+  let recienCreada = false
+  // 3) sin ninguna: si el servidor lo permite (transición), crea la suya; el
+  //    super admin nunca crea una "personal": administra desde su panel.
+  if (!elegida && lista.length === 0 && !yo.esSuperadmin) {
     const r = await api('/api/empresas', { method: 'POST', body: JSON.stringify({ nombre: '' }) })
-    if (!r.ok) throw new Error('No se pudo crear la empresa')
-    empresaId = (await r.json()).id
+    if (r.ok) { elegida = { id: (await r.json()).id, nombre: '', rnc: null }; recienCreada = true }
+    else if (r.status !== 403) throw new Error('No se pudo crear la empresa')
   }
+  if (!elegida) return   // el SyncGate muestra el selector / «sin empresa» / panel
 
-  const res = await api(`/api/empresas/${empresaId}/documentos`)
-  if (!res.ok) throw new Error('No se pudieron cargar los datos')
+  const res = await api(`/api/empresas/${elegida.id}/documentos`)
+  if (!res.ok) {
+    // La empresa guardada ya no existe o se perdió el acceso: se olvida y se vuelve a elegir.
+    if (res.status === 403 || res.status === 404) { localStorage.removeItem(claveActiva(uid)); return }
+    throw new Error('No se pudieron cargar los datos')
+  }
+  empresaId = elegida.id
   const docs = await res.json() as Record<string, { datos: unknown; version: number }>
   for (const [col, d] of Object.entries(docs)) {
     cache.set(col, { raw: JSON.stringify(d.datos), version: d.version })
   }
+  const soporte = yo.esSuperadmin && !lista.some(e => e.id === elegida!.id)
+  acceso.activa = elegida
+  acceso.soporte = soporte
 
-  // Migración única: lo que esta cuenta ya tenía en este navegador se sube
-  // SOLO para colecciones que el servidor todavía no tiene (nunca pisa datos
-  // remotos). La copia local no se borra aquí.
-  for (const col of SYNC) {
-    if (cache.has(col)) continue
-    const legacy = localStorage.getItem(`cielo-${col}::${uid}`)
-    if (legacy) {
-      cache.set(col, { raw: legacy, version: 0 })
-      markDirty(col)
+  // Migración única de datos locales viejos: SOLO para quien tiene una única
+  // empresa propia (o la acaba de crear), nunca al entrar a otra distinta —
+  // si no, los datos locales de una empresa terminarían en otra.
+  if (!soporte && (recienCreada || lista.length === 1)) {
+    for (const col of SYNC) {
+      if (cache.has(col)) continue
+      const legacy = localStorage.getItem(`cielo-${col}::${uid}`)
+      if (legacy) {
+        cache.set(col, { raw: legacy, version: 0 })
+        markDirty(col)
+      }
     }
   }
 }
@@ -117,6 +177,7 @@ export async function enviarComprobantesServidor(items: ItemComprobanteServidor[
 export function resetRemoteStore() {
   void flushStorage()
   empresaId = null
+  acceso = null
   getToken = null
   cache = new Map()
   dirty.clear()
