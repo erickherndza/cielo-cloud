@@ -1,5 +1,4 @@
-# App Platform — API de Cielo Cloud. Los secretos NO van aquí: se pegan en el
-# panel de DigitalOcean (App → Settings → Environment Variables).
+# App Platform — API de Cielo Cloud. Ningún secreto va en este archivo.
 name: cielo-cloud
 region: nyc
 services:
@@ -20,7 +19,18 @@ services:
         value: cielo-nomina-prueba
       - key: ALLOWED_ORIGINS
         value: https://cielo-nomina-prueba.web.app
+      # Se enlazan al clúster gestionado con el usuario sin privilegios
+      # cielo_app: no hay que pegar ninguna contraseña a mano.
       - key: DATABASE_URL
-        type: SECRET
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
       - key: DATABASE_CA_CERT
-        type: SECRET
+        scope: RUN_TIME
+        value: ${db.CA_CERT}
+databases:
+  - name: db
+    engine: PG
+    production: true
+    cluster_name: cielo-cloud-db
+    db_name: defaultdb
+    db_user: cielo_app

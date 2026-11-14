@@ -7,12 +7,24 @@ const { DATABASE_URL, DATABASE_CA_CERT } = process.env
 // se acepta en desarrollo local.
 function sslConfig() {
   if (DATABASE_CA_CERT) return { ca: DATABASE_CA_CERT, rejectUnauthorized: true }
-  if (/sslmode=require/.test(DATABASE_URL ?? '')) return { rejectUnauthorized: false }
+  if (/sslmode=/.test(DATABASE_URL ?? '')) {
+    console.warn('[db] DATABASE_CA_CERT no definido: TLS cifrado pero sin verificar el servidor')
+    return { rejectUnauthorized: false }
+  }
   return undefined
 }
 
+// `sslmode` en la URL tiene prioridad sobre la opción `ssl` de pg y fuerza
+// verificación completa; se quita para que mande sslConfig().
+function urlSinSslmode(url) {
+  if (!url) return url
+  const u = new URL(url)
+  u.searchParams.delete('sslmode')
+  return u.toString()
+}
+
 export const pool = new pg.Pool({
-  connectionString: DATABASE_URL,
+  connectionString: urlSinSslmode(DATABASE_URL),
   ssl: sslConfig(),
   max: 10,
 })
