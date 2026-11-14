@@ -10,7 +10,7 @@ import { useEmpresa } from '@/lib/empresa-context'
 import {
   useLicencias, DIAS_LICENCIA, DIAS_SUGERIDOS_SUBSIDIO, labelLicencia, esLicenciaConSubsidio,
 } from '@/lib/licencias-context'
-import { formatRD, formatDate, fullName, BTN_PRIMARY, parseFechaLocal } from '@/lib/utils'
+import { formatRD, formatDate, fullName, BTN_PRIMARY, parseFechaLocal, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import { downloadBase64 } from '@/lib/empleado-form'
 import type { TipoLicencia, EstadoReclamoSubsidio } from '@/types'
 import {
@@ -93,6 +93,11 @@ export default function LicenciasPage() {
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > MAX_ADJUNTO_BYTES) {
+      alert(`El archivo supera el límite de ${MAX_ADJUNTO_LABEL}.`)
+      e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string
