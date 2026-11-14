@@ -5,6 +5,7 @@ import { Mail, X, Send, Download, CheckCircle2 } from 'lucide-react'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useEmpresa } from '@/lib/empresa-context'
 import { usePeriodos } from '@/lib/periodos-context'
+import { REMOTE_ENABLED, enviarComprobantesServidor } from '@/lib/storage'
 import {
   enviarComprobante, plantillaComprobanteDeEmpresa, resolverPlantilla, PLACEHOLDERS_COMPROBANTE,
 } from '@/lib/comprobante-email'
@@ -12,7 +13,7 @@ import type { PlantillaComprobante } from '@/lib/comprobante-email'
 import { getAnosServicio } from '@/lib/dominican-labor'
 import { formatRD, fullName, formatDate, BTN_PRIMARY } from '@/lib/utils'
 import {
-  labelPeriodo, resultadoRegalia, resultadoBonificacion, descargarComprobantePDF, calcularParaPeriodo,
+  labelPeriodo, resultadoRegalia, resultadoBonificacion, descargarComprobantePDF, generarComprobantePDF, calcularParaPeriodo,
 } from '@/lib/nomina-shared'
 import { useVacaciones } from '@/lib/vacaciones-context'
 import { useLicencias } from '@/lib/licencias-context'
@@ -89,6 +90,9 @@ export function EnvioComprobantesModal({
   const { periodos } = usePeriodos()
   const [plantillaComprobante, setPlantillaComprobante] = useState<PlantillaComprobante>(plantillaComprobanteDeEmpresa(empresa))
   const [enviadosComprobante, setEnviadosComprobante] = useState<Set<string>>(new Set())
+  const [fallidos, setFallidos] = useState<Record<string, string>>({})
+  const [enviando, setEnviando] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
 
   const periodoLabel = labelPeriodo(periodo)
   const concepto = periodo.tipo === 'regalia'
@@ -118,13 +122,50 @@ export function EnvioComprobantesModal({
     return abierto
   }
 
+  // Envío real desde el servidor (Resend), con el PDF adjunto. Lotes de 25.
+  async function enviarPorServidor(seleccion: typeof filas) {
+    setEnviando(true); setConfirmando(false)
+    try {
+      for (let i = 0; i < seleccion.length; i += 25) {
+        const lote = seleccion.slice(i, i + 25)
+        const items = lote.map(({ empleado: emp, resultado }) => {
+          const { asunto, cuerpo } = resolverPlantilla(plantillaComprobante, {
+            '{nombre}': fullName(emp), '{periodo}': periodoLabel, '{concepto}': concepto,
+            '{neto}': formatRD(resultado.salarioNeto), '{fechaPago}': fechaPagoTexto,
+            '{empresa}': empresa.nombre || 'la empresa',
+          })
+          const pdfBase64 = generarComprobantePDF(emp, resultado, periodoLabel, empresa)
+            .output('datauristring').split(',')[1]
+          return { empleadoId: emp.id, asunto, cuerpo, pdfBase64 }
+        })
+        const res = await enviarComprobantesServidor(items)
+        setEnviadosComprobante(prev => { const n = new Set(prev); res.filter(r => r.ok).forEach(r => n.add(r.empleadoId)); return n })
+        setFallidos(prev => {
+          const n = { ...prev }
+          for (const r of res) { if (r.ok) delete n[r.empleadoId]; else n[r.empleadoId] = r.error ?? 'Error' }
+          return n
+        })
+      }
+      onToast('Envío terminado — revisa el estado de cada empleado')
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'No se pudo enviar')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   function handleEnviar(emp: Empleado, resultado: ResultadoNomina) {
+    if (REMOTE_ENABLED) { void enviarPorServidor(filas.filter(f => f.empleado.id === emp.id)); return }
     if (!intentarEnviar(emp, resultado)) {
       onToast(`El navegador bloqueó la ventana de correo para ${fullName(emp)} — permite ventanas emergentes o envíalo individualmente`)
     }
   }
 
   function handleEnviarTodos() {
+    if (REMOTE_ENABLED) {
+      void enviarPorServidor(filas.filter(f => f.empleado.email && !enviadosComprobante.has(f.empleado.id)))
+      return
+    }
     const pendientes = filas.filter(f => f.empleado.email && !enviadosComprobante.has(f.empleado.id))
     const bloqueados = pendientes.filter(({ empleado: emp, resultado }) => !intentarEnviar(emp, resultado)).length
     if (bloqueados > 0) {
@@ -156,11 +197,17 @@ export function EnvioComprobantesModal({
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 px-4 py-3 text-[11px] text-amber-800 dark:text-amber-300">
-              Cielo Cloud no tiene servidor de correo propio todavía: cada "Enviar" abre tu propio
-              cliente de correo con el mensaje listo. Descarga el PDF de cada empleado y adjúntalo
-              antes de dar clic en enviar desde tu correo.
-            </div>
+            {REMOTE_ENABLED ? (
+              <div className="rounded-lg bg-[#eef0fb] dark:bg-[#1a1d2e] border border-[#1B2980]/15 dark:border-[#252840] px-4 py-3 text-[11px] text-[#1B2980] dark:text-indigo-300">
+                Los correos salen de la cuenta del sistema (no-responder) con el PDF del comprobante adjunto.
+                Los empleados no pueden responder a ese correo.
+              </div>
+            ) : (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 px-4 py-3 text-[11px] text-amber-800 dark:text-amber-300">
+                Este modo no tiene servidor de correo: cada "Enviar" abre tu propio cliente de correo
+                con el mensaje listo. Descarga el PDF de cada empleado y adjúntalo antes de enviarlo.
+              </div>
+            )}
 
             {/* Plantilla editable */}
             <div className="space-y-3">
@@ -194,14 +241,23 @@ export function EnvioComprobantesModal({
                 {sinCorreo > 0 && ` · ${sinCorreo} sin correo registrado`}
               </p>
               <button
-                onClick={handleEnviarTodos}
-                disabled={pendientesEnvio === 0}
+                onClick={() => (REMOTE_ENABLED ? setConfirmando(true) : handleEnviarTodos())}
+                disabled={pendientesEnvio === 0 || enviando}
                 className="flex items-center gap-1.5 rounded-lg bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs font-semibold text-white transition-colors"
               >
                 <Send className="h-3.5 w-3.5" />
-                Enviar a Todos ({pendientesEnvio})
+                {enviando ? 'Enviando…' : `Enviar a Todos (${pendientesEnvio})`}
               </button>
             </div>
+            {confirmando && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+                <span>Se enviarán {pendientesEnvio} correo{pendientesEnvio === 1 ? '' : 's'} a los empleados. Esta acción no se puede deshacer.</span>
+                <span className="flex gap-2 shrink-0">
+                  <button onClick={() => setConfirmando(false)} className="rounded-lg border border-amber-300 px-3 py-1 font-medium">Cancelar</button>
+                  <button onClick={handleEnviarTodos} className="rounded-lg bg-[#1B2980] px-3 py-1 font-semibold text-white">Confirmar envío</button>
+                </span>
+              </div>
+            )}
             <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
               <table className="w-full text-xs">
                 <thead>
@@ -218,6 +274,7 @@ export function EnvioComprobantesModal({
                       <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(emp)}</td>
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400">
                         {emp.email || <span className="text-rose-500 dark:text-rose-400">Sin correo registrado</span>}
+                        {fallidos[emp.id] && <span className="block text-[10px] text-rose-500 dark:text-rose-400">{fallidos[emp.id]}</span>}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-zinc-600 dark:text-zinc-300">
                         {formatRD(resultado.salarioNeto)}
@@ -233,7 +290,7 @@ export function EnvioComprobantesModal({
                           </button>
                           <button
                             onClick={() => handleEnviar(emp, resultado)}
-                            disabled={!emp.email}
+                            disabled={!emp.email || enviando}
                             title={emp.email ? 'Enviar por correo' : 'Empleado sin correo registrado'}
                             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors ${
                               enviadosComprobante.has(emp.id)
@@ -242,7 +299,7 @@ export function EnvioComprobantesModal({
                             }`}
                           >
                             {enviadosComprobante.has(emp.id) ? (
-                              <><CheckCircle2 className="h-3.5 w-3.5" /> Abierto</>
+                              <><CheckCircle2 className="h-3.5 w-3.5" /> {REMOTE_ENABLED ? 'Enviado' : 'Abierto'}</>
                             ) : (
                               <><Send className="h-3.5 w-3.5" /> Enviar</>
                             )}

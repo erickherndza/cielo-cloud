@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { conContexto, pool } from './db.js'
 import { verificarToken } from './auth.js'
+import { crearEnviadorResend } from './correo.js'
 
 // Colecciones que el frontend puede sincronizar (las mismas claves que hoy
 // usa localStorage, sin el prefijo `cielo-`). Todo lo demás se rechaza.
@@ -45,7 +46,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function buildApp({
   projectId, origins, verify = verificarToken,
-  limites = { general: 240, escritura: 40, empresas: 5 }, logger = true,
+  limites = { general: 240, escritura: 40, empresas: 5, correos: 600 }, logger = true,
+  enviarCorreo = null,
 } = {}) {
   const app = Fastify({
     logger: logger && { redact: ['req.headers.authorization', 'req.headers.cookie'] },
@@ -236,6 +238,58 @@ export function buildApp({
       return r.rowCount ? r.rows[0] : reply.code(404).send({ error: 'No encontrado' })
     }))
 
+  // Envía comprobantes de pago por correo desde la cuenta del sistema. El
+  // destinatario NUNCA viene del cliente: se toma del correo del empleado ya
+  // guardado en la empresa, para que la API no sirva de relé de spam.
+  const MAX_ITEMS_ENVIO = 50
+  const MAX_PDF_B64 = 1_500_000
+  app.post('/api/empresas/:empresaId/comprobantes/enviar', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (!ROLES_ESCRITURA.has(rol)) return reply.code(403).send({ error: 'Rol sin permiso' })
+      if (!enviarCorreo) return reply.code(503).send({ error: 'El envío de correo no está configurado' })
+      const items = req.body?.items
+      if (!Array.isArray(items) || !items.length || items.length > MAX_ITEMS_ENVIO) {
+        return reply.code(400).send({ error: `Envía entre 1 y ${MAX_ITEMS_ENVIO} comprobantes por petición` })
+      }
+      if (excede(`m:${req.user.uid}`, limites.correos ?? 600, 3_600_000 / Math.max(1, items.length))) {
+        return reply.code(429).send({ error: 'Límite de correos por hora alcanzado' })
+      }
+      const doc = await c.query(
+        "SELECT datos FROM documentos WHERE empresa_id = $1 AND coleccion = 'empleados'", [req.params.empresaId])
+      const empleados = Array.isArray(doc.rows[0]?.datos) ? doc.rows[0].datos : []
+      const porId = new Map(empleados.map(e => [String(e.id), e]))
+      const EMAIL = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/
+
+      const resultados = []
+      const cola = [...items]
+      async function trabajador() {
+        for (let it = cola.shift(); it; it = cola.shift()) {
+          const empleadoId = String(it?.empleadoId ?? '')
+          const fallo = (error) => resultados.push({ empleadoId, ok: false, error })
+          const emp = porId.get(empleadoId)
+          const pdf = typeof it?.pdfBase64 === 'string' ? it.pdfBase64 : ''
+          if (!emp) { fallo('Empleado no encontrado'); continue }
+          if (!EMAIL.test(emp.email ?? '') || emp.email.length > 254) { fallo('Empleado sin correo válido'); continue }
+          if (typeof it.asunto !== 'string' || typeof it.cuerpo !== 'string' || !it.asunto.trim() || !it.cuerpo.trim()) { fallo('Asunto o cuerpo vacío'); continue }
+          if (!/^[A-Za-z0-9+/=]+$/.test(pdf) || pdf.length > MAX_PDF_B64 || !pdf.startsWith('JVBER')) { fallo('PDF inválido'); continue }
+          try {
+            await enviarCorreo({
+              to: emp.email,
+              subject: it.asunto.replace(/[\r\n]+/g, ' ').slice(0, 200),
+              text: it.cuerpo.slice(0, 5000),
+              attachments: [{ filename: 'comprobante-de-pago.pdf', content: pdf }],
+            })
+            resultados.push({ empleadoId, ok: true })
+          } catch (e) {
+            req.log.error({ err: e, detalle: e.detalle }, 'fallo al enviar correo')
+            fallo('No se pudo enviar')
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: 4 }, trabajador))
+      return { resultados }
+    }))
+
   return app
 }
 
@@ -243,6 +297,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const projectId = process.env.FIREBASE_PROJECT_ID
   if (!projectId) throw new Error('Falta FIREBASE_PROJECT_ID')
   const origins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean)
-  const app = buildApp({ projectId, origins })
+  const enviarCorreo = crearEnviadorResend({ apiKey: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM })
+  const app = buildApp({ projectId, origins, enviarCorreo })
   await app.listen({ port: Number(process.env.PORT ?? 8080), host: '0.0.0.0' })
 }

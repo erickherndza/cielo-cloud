@@ -98,6 +98,22 @@ export async function initRemoteStore(uid: string, token: GetToken): Promise<voi
   }
 }
 
+export interface ItemComprobanteServidor {
+  empleadoId: string; asunto: string; cuerpo: string; pdfBase64: string
+}
+export interface ResultadoEnvio { empleadoId: string; ok: boolean; error?: string }
+
+// Envía comprobantes por correo desde el servidor (Resend). El destinatario lo
+// resuelve el servidor a partir del empleado; aquí nunca se manda un correo.
+export async function enviarComprobantesServidor(items: ItemComprobanteServidor[]): Promise<ResultadoEnvio[]> {
+  if (!empresaId) throw new Error('sin empresa')
+  const r = await api(`/api/empresas/${empresaId}/comprobantes/enviar`, { method: 'POST', body: JSON.stringify({ items }) })
+  if (r.status === 503) throw new Error('El envío de correo aún no está configurado en el servidor')
+  if (r.status === 429) throw new Error('Límite de correos alcanzado, intenta en unos minutos')
+  if (!r.ok) throw new Error('No se pudo enviar')
+  return (await r.json()).resultados as ResultadoEnvio[]
+}
+
 export function resetRemoteStore() {
   void flushStorage()
   empresaId = null

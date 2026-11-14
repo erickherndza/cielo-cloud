@@ -71,6 +71,17 @@ export function descargarComprobantePDF(
   label: string,
   empresa: Empresa,
 ) {
+  generarComprobantePDF(empleado, nomina, label, empresa)
+    .save(`comprobante-${empleado.cedula}-${label.replace(/\s+/g, '-')}.pdf`)
+}
+
+// Genera el PDF en memoria (sin descargarlo) — lo usa el envío por correo.
+export function generarComprobantePDF(
+  empleado: Empleado,
+  nomina: ResultadoNomina,
+  label: string,
+  empresa: Empresa,
+): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const W = 210
   const NR = 27, NG = 41, NB = 128
@@ -294,7 +305,7 @@ export function descargarComprobantePDF(
   doc.setTextColor(170, 170, 170)
   doc.text(`Generado el ${new Date().toLocaleDateString('es-DO')} — documento de uso interno`, W - 14, pageH - 8, { align: 'right' })
 
-  doc.save(`comprobante-${empleado.cedula}-${label.replace(/\s+/g, '-')}.pdf`)
+  return doc
 }
 
 // ── Motor de "cálculo para un período específico" ─────────────────────────
