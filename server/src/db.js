@@ -31,12 +31,15 @@ export const pool = new pg.Pool({
 
 // Ejecuta fn dentro de una transacción con el contexto de seguridad fijado
 // (set_config local a la transacción): las políticas RLS leen estos valores.
-export async function conContexto({ uid, empresaId }, fn) {
+export async function conContexto({ uid, empresaId, email, superadmin }, fn) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
     await client.query("SELECT set_config('app.uid', $1, true)", [uid])
     await client.query("SELECT set_config('app.empresa_id', $1, true)", [empresaId ?? ''])
+    // Solo la API (tras verificar el token) puede fijar estos dos valores.
+    await client.query("SELECT set_config('app.email', $1, true)", [(email ?? '').toLowerCase()])
+    await client.query("SELECT set_config('app.superadmin', $1, true)", [superadmin ? 'on' : 'off'])
     const result = await fn(client)
     await client.query('COMMIT')
     return result

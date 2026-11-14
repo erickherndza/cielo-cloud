@@ -48,7 +48,15 @@ export function buildApp({
   projectId, origins, verify = verificarToken,
   limites = { general: 240, escritura: 40, empresas: 5, correos: 600 }, logger = true,
   enviarCorreo = null,
+  // Correos (verificados) de los super admin de la plataforma. Vienen de la
+  // variable SUPERADMIN_EMAILS del servidor, nunca del código ni de la base.
+  superadmins = [],
+  // Transición: mientras el frontend no tenga la pantalla "sin empresa", un
+  // usuario sin empresa puede seguir creando la suya. Apagar con
+  // AUTOREGISTRO_EMPRESAS=false cuando las empresas se creen solo por el super admin.
+  autoregistro = true,
 } = {}) {
+  const SUPER = new Set(superadmins.map(e => e.trim().toLowerCase()).filter(Boolean))
   const app = Fastify({
     logger: logger && { redact: ['req.headers.authorization', 'req.headers.cookie'] },
     bodyLimit: 25 * 1024 * 1024,
@@ -97,6 +105,7 @@ export function buildApp({
     if (!req.user.emailVerified) {
       return reply.code(403).send({ error: 'Verifica tu correo para usar la plataforma' })
     }
+    req.user.esSuperadmin = !!req.user.email && SUPER.has(req.user.email.toLowerCase())
     const uid = req.user.uid
     const escribe = req.method === 'PUT' || req.method === 'POST'
     const limitado =
@@ -109,12 +118,32 @@ export function buildApp({
     }
   })
 
-  // Empresas a las que pertenece el usuario.
+  const ctx = (req, extra = {}) => ({
+    uid: req.user.uid, email: req.user.email, superadmin: req.user.esSuperadmin, ...extra,
+  })
+
+  app.get('/api/yo', async (req) => ({
+    uid: req.user.uid, email: req.user.email, esSuperadmin: req.user.esSuperadmin,
+  }))
+
+  // Empresas a las que pertenece el usuario. Antes acepta las invitaciones
+  // pendientes dirigidas a su correo (ya verificado por el token).
   app.get('/api/empresas', async (req) => {
-    const { uid } = req.user
-    return conContexto({ uid }, async (c) => {
+    const { uid, email } = req.user
+    return conContexto(ctx(req, { superadmin: false }), async (c) => {
+      if (email) {
+        const pend = await c.query(
+          `SELECT id, empresa_id, rol FROM invitaciones
+            WHERE email = $1 AND estado = 'pendiente' AND expira_en > now()`, [email.toLowerCase()])
+        for (const inv of pend.rows) {
+          await c.query(
+            `INSERT INTO miembros (empresa_id, uid, email, rol) VALUES ($1, $2, $3, $4)
+             ON CONFLICT (empresa_id, uid) DO NOTHING`, [inv.empresa_id, uid, email, inv.rol])
+          await c.query("UPDATE invitaciones SET estado = 'aceptada' WHERE id = $1", [inv.id])
+        }
+      }
       const r = await c.query(
-        `SELECT e.id, e.nombre, m.rol
+        `SELECT e.id, e.nombre, e.rnc, e.estado, m.rol
            FROM miembros m JOIN empresas e ON e.id = m.empresa_id
           WHERE m.uid = $1 ORDER BY e.creado_en`, [uid])
       return r.rows
@@ -123,6 +152,7 @@ export function buildApp({
 
   // Crea una empresa y deja al creador como admin.
   app.post('/api/empresas', async (req, reply) => {
+    if (!autoregistro) return reply.code(403).send({ error: 'Las empresas las crea el administrador de Cielo' })
     const { uid, email } = req.user
     const nombre = String(req.body?.nombre ?? '').slice(0, 200)
     const id = await conContexto({ uid }, async (c) => {
@@ -141,15 +171,39 @@ export function buildApp({
     return reply.code(201).send({ id, nombre, rol: 'admin' })
   })
 
-  // Resuelve la empresa de la URL y confirma que el usuario es miembro.
+  // Registra que un super admin entró a una empresa ajena. Las lecturas se
+  // deduplican 10 minutos; toda escritura se registra siempre.
+  async function registrarAcceso(c, req, empresaId) {
+    const accion = `${req.method} ${req.routeOptions?.url ?? req.url}${req.params.coleccion ? ':' + req.params.coleccion : ''}`
+    if (req.method === 'GET') {
+      const ya = await c.query(
+        `SELECT 1 FROM accesos_log WHERE empresa_id = $1 AND uid = $2 AND accion = $3
+            AND creado_en > now() - interval '10 minutes' LIMIT 1`, [empresaId, req.user.uid, accion])
+      if (ya.rowCount) return
+    }
+    await c.query(
+      'INSERT INTO accesos_log (empresa_id, uid, email, accion) VALUES ($1, $2, $3, $4)',
+      [empresaId, req.user.uid, req.user.email, accion])
+  }
+
+  // Resuelve la empresa de la URL y confirma que el usuario es miembro. El
+  // super admin entra a cualquier empresa (con rol admin) y queda registrado.
   async function conEmpresa(req, reply, fn) {
     const empresaId = req.params.empresaId
     if (!UUID.test(empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
-    const { uid } = req.user
-    return conContexto({ uid, empresaId }, async (c) => {
+    const { uid, esSuperadmin } = req.user
+    return conContexto(ctx(req, { empresaId }), async (c) => {
+      if (esSuperadmin) {
+        const e = await c.query('SELECT 1 FROM empresas WHERE id = $1', [empresaId])
+        if (!e.rowCount) return reply.code(404).send({ error: 'No encontrado' })
+        await registrarAcceso(c, req, empresaId)
+        return fn(c, 'admin')
+      }
       const m = await c.query(
-        'SELECT rol FROM miembros WHERE empresa_id = $1 AND uid = $2', [empresaId, uid])
+        `SELECT m.rol, e.estado FROM miembros m JOIN empresas e ON e.id = m.empresa_id
+          WHERE m.empresa_id = $1 AND m.uid = $2`, [empresaId, uid])
       if (!m.rowCount) return reply.code(403).send({ error: 'Sin acceso a esta empresa' })
+      if (m.rows[0].estado === 'suspendida') return reply.code(403).send({ error: 'Empresa suspendida — contacta a Cielo' })
       return fn(c, m.rows[0].rol)
     })
   }
@@ -290,6 +344,119 @@ export function buildApp({
       return { resultados }
     }))
 
+  // ── Administración de la plataforma (solo super admin) ────────────────────
+  const soloSuper = (req, reply) => {
+    if (req.user.esSuperadmin) return false
+    reply.code(404).send({ error: 'No encontrado' })   // no revela que la ruta existe
+    return true
+  }
+  const normRnc = (v) => String(v ?? '').replace(/[\s-]/g, '')
+  const RNC_OK = /^([0-9]{9}|[0-9]{11})$/
+  const ROLES = new Set(['admin', 'gerente', 'rrhh', 'contador'])
+  const unico = (err) => err?.code === '23505'
+
+  app.get('/api/admin/empresas', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    const q = String(req.query?.q ?? '').trim().slice(0, 100).replace(/[\\%_]/g, m => '\\' + m)
+    return conContexto(ctx(req), async (c) => (await c.query(
+      `SELECT e.id, e.nombre, e.rnc, e.estado, e.creado_en,
+              (SELECT count(*)::int FROM miembros m WHERE m.empresa_id = e.id) AS miembros
+         FROM empresas e
+        WHERE $1 = '' OR e.nombre ILIKE '%' || $1 || '%' OR e.rnc LIKE $1 || '%'
+        ORDER BY e.creado_en DESC LIMIT 200`, [q])).rows)
+  })
+
+  app.post('/api/admin/empresas', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    const nombre = String(req.body?.nombre ?? '').trim().slice(0, 200)
+    const rnc = normRnc(req.body?.rnc)
+    if (!nombre) return reply.code(400).send({ error: 'Falta el nombre' })
+    if (!RNC_OK.test(rnc)) return reply.code(400).send({ error: 'RNC inválido (9 dígitos; 11 si es cédula)' })
+    try {
+      const r = await conContexto(ctx(req), (c) => c.query(
+        'INSERT INTO empresas (nombre, rnc, owner_uid) VALUES ($1, $2, $3) RETURNING id, nombre, rnc, estado',
+        [nombre, rnc, req.user.uid]))
+      return reply.code(201).send(r.rows[0])
+    } catch (e) {
+      if (unico(e)) return reply.code(409).send({ error: 'Ya existe una empresa con ese RNC' })
+      throw e
+    }
+  })
+
+  app.put('/api/admin/empresas/:empresaId', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    const { estado, nombre } = req.body ?? {}
+    const rnc = req.body?.rnc === undefined ? undefined : normRnc(req.body.rnc)
+    if (estado !== undefined && !['activa', 'suspendida'].includes(estado)) return reply.code(400).send({ error: 'Estado inválido' })
+    if (rnc !== undefined && !RNC_OK.test(rnc)) return reply.code(400).send({ error: 'RNC inválido (9 dígitos; 11 si es cédula)' })
+    if (nombre !== undefined && !String(nombre).trim()) return reply.code(400).send({ error: 'Nombre vacío' })
+    try {
+      const r = await conContexto(ctx(req), (c) => c.query(
+        `UPDATE empresas SET estado = COALESCE($2, estado), nombre = COALESCE($3, nombre), rnc = COALESCE($4, rnc)
+          WHERE id = $1 RETURNING id, nombre, rnc, estado`,
+        [req.params.empresaId, estado ?? null, nombre === undefined ? null : String(nombre).trim().slice(0, 200), rnc ?? null]))
+      return r.rowCount ? r.rows[0] : reply.code(404).send({ error: 'No encontrado' })
+    } catch (e) {
+      if (unico(e)) return reply.code(409).send({ error: 'Ya existe una empresa con ese RNC' })
+      throw e
+    }
+  })
+
+  app.get('/api/admin/empresas/:empresaId/invitaciones', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    return conContexto(ctx(req, { empresaId: req.params.empresaId }), async (c) => ({
+      invitaciones: (await c.query(
+        `SELECT id, email, rol, estado, creado_en, expira_en FROM invitaciones
+          WHERE empresa_id = $1 ORDER BY creado_en DESC`, [req.params.empresaId])).rows,
+      miembros: (await c.query(
+        'SELECT uid, email, rol, creado_en FROM miembros WHERE empresa_id = $1 ORDER BY creado_en', [req.params.empresaId])).rows,
+    }))
+  })
+
+  app.post('/api/admin/empresas/:empresaId/invitaciones', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    const email = String(req.body?.email ?? '').trim().toLowerCase()
+    const rol = req.body?.rol
+    if (!/^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/.test(email) || email.length > 254) return reply.code(400).send({ error: 'Correo inválido' })
+    if (!ROLES.has(rol)) return reply.code(400).send({ error: 'Rol inválido' })
+    try {
+      const r = await conContexto(ctx(req, { empresaId: req.params.empresaId }), async (c) => {
+        const e = await c.query('SELECT 1 FROM empresas WHERE id = $1', [req.params.empresaId])
+        if (!e.rowCount) return null
+        return c.query(
+          `INSERT INTO invitaciones (empresa_id, email, rol, creado_por) VALUES ($1, $2, $3, $4)
+           RETURNING id, email, rol, estado, expira_en`, [req.params.empresaId, email, rol, req.user.uid])
+      })
+      return r ? reply.code(201).send(r.rows[0]) : reply.code(404).send({ error: 'No encontrado' })
+    } catch (e) {
+      if (unico(e)) return reply.code(409).send({ error: 'Ya hay una invitación pendiente para ese correo' })
+      throw e
+    }
+  })
+
+  app.post('/api/admin/empresas/:empresaId/invitaciones/:id/revocar', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId) || !UUID.test(req.params.id)) return reply.code(400).send({ error: 'Id inválido' })
+    const r = await conContexto(ctx(req, { empresaId: req.params.empresaId }), (c) => c.query(
+      "UPDATE invitaciones SET estado = 'revocada' WHERE id = $1 AND empresa_id = $2 AND estado = 'pendiente' RETURNING id",
+      [req.params.id, req.params.empresaId]))
+    return r.rowCount ? { ok: true } : reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  app.get('/api/admin/accesos', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    const empresaId = req.query?.empresaId
+    if (empresaId !== undefined && !UUID.test(empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    return conContexto(ctx(req), async (c) => (await c.query(
+      `SELECT l.id, l.empresa_id, e.nombre AS empresa, e.rnc, l.email, l.accion, l.creado_en
+         FROM accesos_log l JOIN empresas e ON e.id = l.empresa_id
+        WHERE $1::uuid IS NULL OR l.empresa_id = $1::uuid
+        ORDER BY l.creado_en DESC LIMIT 200`, [empresaId ?? null])).rows)
+  })
+
   return app
 }
 
@@ -298,6 +465,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (!projectId) throw new Error('Falta FIREBASE_PROJECT_ID')
   const origins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean)
   const enviarCorreo = crearEnviadorResend({ apiKey: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM })
-  const app = buildApp({ projectId, origins, enviarCorreo })
+  const superadmins = (process.env.SUPERADMIN_EMAILS ?? '').split(',')
+  const autoregistro = (process.env.AUTOREGISTRO_EMPRESAS ?? 'true') !== 'false'
+  const app = buildApp({ projectId, origins, enviarCorreo, superadmins, autoregistro })
   await app.listen({ port: Number(process.env.PORT ?? 8080), host: '0.0.0.0' })
 }
