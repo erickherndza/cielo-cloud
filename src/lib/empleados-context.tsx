@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { Empleado, MotivoLiquidacion } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -55,7 +56,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setEmpleados(raw ? JSON.parse(raw) as Empleado[] : [])
     } catch {
       setEmpleados([])
@@ -66,7 +67,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
     const nuevo: Empleado = { ...data, id: genId() }
     setEmpleados(prev => {
       const next = [...prev, nuevo]
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
     return nuevo
@@ -75,7 +76,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   function update(id: string, changes: Partial<Empleado>) {
     setEmpleados(prev => {
       const next = prev.map(e => e.id === id ? { ...e, ...changes } : e)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -83,7 +84,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   function remove(id: string) {
     setEmpleados(prev => {
       const next = prev.filter(e => e.id !== id)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -103,7 +104,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
             historialSuspensiones: [...(e.historialSuspensiones ?? []), { fechaInicio: fecha, motivo }],
           }
         : e)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -118,7 +119,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
         )
         return { ...e, suspendido: false, fechaSuspension: undefined, motivoSuspension: undefined, historialSuspensiones: historial }
       })
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }

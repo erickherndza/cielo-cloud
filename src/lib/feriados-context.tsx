@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { FeriadosAnio, FeriadoNacional } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -34,7 +35,7 @@ export function FeriadosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setEstados(raw ? JSON.parse(raw) as FeriadosPorAnio : {})
     } catch {
       setEstados({})
@@ -42,7 +43,7 @@ export function FeriadosProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: FeriadosPorAnio) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function getFeriados(anio: number): FeriadoNacional[] {

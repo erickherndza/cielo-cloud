@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { Prestamo, CuotaPago } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -133,7 +134,7 @@ export function PrestamosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setPrestamos(raw ? JSON.parse(raw) as Prestamo[] : [])
     } catch {
       setPrestamos([])
@@ -141,7 +142,7 @@ export function PrestamosProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: Prestamo[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function otorgar(data: Omit<Prestamo, 'id' | 'saldoPendiente' | 'pagos' | 'estado'>): Prestamo {

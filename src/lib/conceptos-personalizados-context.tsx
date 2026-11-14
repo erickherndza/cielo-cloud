@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { ConceptoPersonalizado } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -31,7 +32,7 @@ export function ConceptosPersonalizadosProvider({ children }: { children: ReactN
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setConceptos(raw ? JSON.parse(raw) as ConceptoPersonalizado[] : [])
     } catch {
       setConceptos([])
@@ -39,7 +40,7 @@ export function ConceptosPersonalizadosProvider({ children }: { children: ReactN
   }, [key, ready])
 
   function persist(next: ConceptoPersonalizado[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function crear(data: Omit<ConceptoPersonalizado, 'id' | 'creadoEn' | 'activo'>) {

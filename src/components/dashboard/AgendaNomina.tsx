@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from '@/lib/storage'
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -86,9 +87,9 @@ export function AgendaNomina() {
   useEffect(() => {
     if (!ready) return
     try {
-      const c = localStorage.getItem(keyCustom)
+      const c = storage.getItem(keyCustom)
       setCustom(c ? JSON.parse(c) : [])
-      const d = localStorage.getItem(keyDone)
+      const d = storage.getItem(keyDone)
       setDone(d ? JSON.parse(d) : [])
     } catch {}
     setMounted(true)
@@ -125,7 +126,7 @@ export function AgendaNomina() {
   function toggleDone(id: string) {
     const next = done.includes(id) ? done.filter(x => x !== id) : [...done, id]
     setDone(next)
-    if (mounted) localStorage.setItem(keyDone, JSON.stringify(next))
+    if (mounted) storage.setItem(keyDone, JSON.stringify(next))
   }
 
   function deleteEvent(id: string) {
@@ -134,8 +135,8 @@ export function AgendaNomina() {
     setCustom(nextC)
     setDone(nextD)
     if (mounted) {
-      localStorage.setItem(keyCustom, JSON.stringify(nextC))
-      localStorage.setItem(keyDone,   JSON.stringify(nextD))
+      storage.setItem(keyCustom, JSON.stringify(nextC))
+      storage.setItem(keyDone,   JSON.stringify(nextD))
     }
   }
 
@@ -145,7 +146,7 @@ export function AgendaNomina() {
     const ev: Evento = { id, fecha: newFecha, titulo: newTitulo.trim(), tipo: 'custom' }
     const next = [...custom, ev]
     setCustom(next)
-    if (mounted) localStorage.setItem(keyCustom, JSON.stringify(next))
+    if (mounted) storage.setItem(keyCustom, JSON.stringify(next))
     setNewFecha('')
     setNewTitulo('')
   }

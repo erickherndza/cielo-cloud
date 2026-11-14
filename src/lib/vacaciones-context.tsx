@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { DisfruteVacaciones } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -43,7 +44,7 @@ export function VacacionesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setDisfrutes(raw ? JSON.parse(raw) as DisfruteVacaciones[] : [])
     } catch {
       setDisfrutes([])
@@ -51,7 +52,7 @@ export function VacacionesProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: DisfruteVacaciones[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function registrarDisfrute(empleadoId: string, fechaInicio: string, fechaFin: string, notas?: string): DisfruteVacaciones {

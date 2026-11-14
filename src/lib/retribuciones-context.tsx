@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { RetribucionComplementaria } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -39,7 +40,7 @@ export function RetribucionesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setRetribuciones(raw ? JSON.parse(raw) as RetribucionComplementaria[] : [])
     } catch {
       setRetribuciones([])
@@ -47,7 +48,7 @@ export function RetribucionesProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: RetribucionComplementaria[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function agregar(

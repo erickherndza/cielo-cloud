@@ -16,6 +16,8 @@ import { FeriadosProvider } from '@/lib/feriados-context'
 import { VacacionesProvider } from '@/lib/vacaciones-context'
 import { RetribucionesProvider } from '@/lib/retribuciones-context'
 import { AuthProvider } from '@/lib/auth-context'
+import { RemoteStoreProvider } from '@/lib/remote-store'
+import { SyncGate } from '@/components/layout/SyncGate'
 import { RouteGuard } from '@/components/auth/RouteGuard'
 
 const inter = Inter({
@@ -45,6 +47,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-[#0d0f1a] font-sans transition-colors duration-200">
         <ThemeProvider>
           <AuthProvider>
+            <RemoteStoreProvider>
+            <SyncGate>
             <EmpresaProvider>
               <EmpleadosProvider>
                 <BandasSalarialesProvider>
@@ -72,6 +76,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </BandasSalarialesProvider>
               </EmpleadosProvider>
             </EmpresaProvider>
+          </SyncGate>
+            </RemoteStoreProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

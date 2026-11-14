@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { SaldoISRFavor, AplicacionSaldoISR, TipoCreditoISR } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -31,7 +32,7 @@ export function SaldoISRProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setSaldos(raw ? JSON.parse(raw) as SaldoISRFavor[] : [])
     } catch {
       setSaldos([])
@@ -39,7 +40,7 @@ export function SaldoISRProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: SaldoISRFavor[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function registrar(data: { empleadoId: string; monto: number; motivo: string; tipo?: TipoCreditoISR; anio: number; fechaRegistro: string }): SaldoISRFavor {

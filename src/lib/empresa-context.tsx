@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { Empresa } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -31,7 +32,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setEmpresa(raw ? { ...DEFAULT, ...JSON.parse(raw) as Empresa } : DEFAULT)
     } catch {
       setEmpresa(DEFAULT)
@@ -42,7 +43,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
   function guardar(data: Empresa) {
     const conTimestamp = { ...data, actualizadoEn: new Date().toISOString() }
     setEmpresa(conTimestamp)
-    try { localStorage.setItem(key, JSON.stringify(conTimestamp)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(conTimestamp)) } catch { /* ignore */ }
   }
 
   return <Ctx.Provider value={{ empresa, cargado, guardar }}>{children}</Ctx.Provider>

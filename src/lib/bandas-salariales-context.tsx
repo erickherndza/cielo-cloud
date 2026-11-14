@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { BandaSalarial } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -36,7 +37,7 @@ export function BandasSalarialesProvider({ children }: { children: ReactNode }) 
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setBandas(raw ? JSON.parse(raw) as BandaSalarial[] : [])
     } catch {
       setBandas([])
@@ -44,7 +45,7 @@ export function BandasSalarialesProvider({ children }: { children: ReactNode }) 
   }, [key, ready])
 
   function persist(next: BandaSalarial[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function crear(data: Omit<BandaSalarial, 'id'>) {

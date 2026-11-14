@@ -18,6 +18,7 @@ import { useFeriados } from '@/lib/feriados-context'
 import { useConceptosPersonalizados } from '@/lib/conceptos-personalizados-context'
 import { Toast } from '@/components/ui/Toast'
 import { cargarDatosDemo } from '@/lib/seed-data'
+import { flushStorage } from '@/lib/storage'
 import { ConfiguracionInicialFlow } from '@/components/carga-inicial/ConfiguracionInicialFlow'
 import { PLACEHOLDERS_COMPROBANTE, plantillaComprobanteDefault } from '@/lib/comprobante-email'
 import {
@@ -467,8 +468,9 @@ export default function ConfiguracionPage() {
     setNuevoNombreFeriado('')
   }
 
-  function handleCargarDemo() {
+  async function handleCargarDemo() {
     cargarDatosDemo(user?.uid)
+    await flushStorage()
     window.location.reload()
   }
 

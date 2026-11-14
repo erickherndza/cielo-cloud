@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { RegistroLiquidacion } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -25,7 +26,7 @@ export function LiquidacionesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setLiquidaciones(raw ? JSON.parse(raw) as RegistroLiquidacion[] : [])
     } catch {
       setLiquidaciones([])
@@ -33,7 +34,7 @@ export function LiquidacionesProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: RegistroLiquidacion[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function registrar(data: Omit<RegistroLiquidacion, 'id' | 'fechaRegistro'>): RegistroLiquidacion {

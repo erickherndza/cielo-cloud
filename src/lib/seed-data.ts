@@ -1,3 +1,4 @@
+import { storage } from './storage'
 import { calcularNomina } from './dominican-labor'
 import { EMPLEADOS } from './mock-data'
 import { scopedKey } from './utils'
@@ -202,8 +203,8 @@ export function cargarDatosDemo(uid?: string | null): void {
   ]
 
   // ── 5. Persist to localStorage ────────────────────────────────────────────────
-  localStorage.setItem(scopedKey(EMPRESA_KEY, uid),   JSON.stringify(empresa))
-  localStorage.setItem(scopedKey(EMPLEADOS_KEY, uid), JSON.stringify(empleados))
-  localStorage.setItem(scopedKey(PRESTAMOS_KEY, uid), JSON.stringify(prestamos))
-  localStorage.setItem(scopedKey(PERIODOS_KEY, uid),  JSON.stringify(periodos))
+  storage.setItem(scopedKey(EMPRESA_KEY, uid),   JSON.stringify(empresa))
+  storage.setItem(scopedKey(EMPLEADOS_KEY, uid), JSON.stringify(empleados))
+  storage.setItem(scopedKey(PRESTAMOS_KEY, uid), JSON.stringify(prestamos))
+  storage.setItem(scopedKey(PERIODOS_KEY, uid),  JSON.stringify(periodos))
 }

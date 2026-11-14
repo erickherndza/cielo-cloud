@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { RegistroAumento, EstadoAumento } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -47,7 +48,7 @@ export function AumentosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setAumentos(raw ? JSON.parse(raw) as RegistroAumento[] : [])
     } catch {
       setAumentos([])
@@ -55,7 +56,7 @@ export function AumentosProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: RegistroAumento[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function solicitar(data: SolicitudAumentoInput): RegistroAumento {

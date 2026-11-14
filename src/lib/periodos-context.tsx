@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { PeriodoNomina, AjusteLinea, ResultadoNomina, CuentaBancariaSnapshot } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -64,7 +65,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setPeriodos(raw ? JSON.parse(raw) as PeriodoNomina[] : [])
     } catch {
       setPeriodos([])
@@ -80,7 +81,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
     }
     setPeriodos(prev => {
       const next = [nuevo, ...prev]
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
     return nuevo
@@ -95,7 +96,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
     if (!periodo || periodo.estado !== 'procesada') return
     setPeriodos(prev => {
       const next = prev.map(p => p.id === id ? { ...p, estado: 'cerrada' as const } : p)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -110,7 +111,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
     if (!periodo || periodo.estado === 'cerrada') return false
     setPeriodos(prev => {
       const next = prev.filter(p => p.id !== id)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
     return true
@@ -130,7 +131,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
           ? { ...p, ajustesPorEmpleado: { ...(p.ajustesPorEmpleado ?? {}), [empleadoId]: ajustes } }
           : p
       )
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -149,7 +150,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
     if (!periodo || periodo.estado !== 'en_proceso') return
     setPeriodos(prev => {
       const next = prev.map(p => p.id === periodoId ? { ...p, totales } : p)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -184,7 +185,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
           estado: todosProcesados ? 'procesada' as const : p.estado,
         }
       })
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -223,7 +224,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
           bitacoraDesposteos: [...(p.bitacoraDesposteos ?? []), registro],
         }
       })
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
     return true
@@ -234,7 +235,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
   function marcarPagada(id: string, fechaPago: string) {
     setPeriodos(prev => {
       const next = prev.map(p => p.id === id ? { ...p, pagada: true, fechaPago } : p)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -248,7 +249,7 @@ export function PeriodosProvider({ children }: { children: ReactNode }) {
   function desmarcarPagada(id: string) {
     setPeriodos(prev => {
       const next = prev.map(p => p.id === id ? { ...p, pagada: false, fechaPago: undefined } : p)
-      try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+      try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }

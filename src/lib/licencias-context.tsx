@@ -1,5 +1,6 @@
 'use client'
 
+import { storage } from './storage'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { Licencia, TipoLicencia, Empleado } from '@/types'
 import { useUserScopedKey } from './user-scoped-key'
@@ -96,7 +97,7 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return
     try {
-      const raw = localStorage.getItem(key)
+      const raw = storage.getItem(key)
       setLicencias(raw ? JSON.parse(raw) as Licencia[] : [])
     } catch {
       setLicencias([])
@@ -104,7 +105,7 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function persist(next: Licencia[]) {
-    try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+    try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
   }
 
   function registrar(
