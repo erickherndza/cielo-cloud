@@ -4827,3 +4827,35 @@ El código solo importa `firebase/app` y `firebase/auth`. Todo (empresa, emplead
 7. Reemplazar `xlsx` (sin parche) y limitar tamaño y filas en los 3 importadores; `npm audit` sigue con 15 vulnerabilidades.
 8. Revisión legal de la cesantía de más de 5 años (fracción de año, Art. 80).
 9. Nunca guardar contraseñas iniciales en archivos ni en este documento: se entregan al usuario en el chat.
+
+## Migración a DigitalOcean + PostgreSQL (2026-11-13, en curso)
+
+Decisión del usuario: sacar el proyecto de Firebase Hosting/`localStorage` y llevarlo a DigitalOcean con PostgreSQL. **Se mantiene Firebase Auth** (interpretación del «1» del usuario: login sin cambios; la API valida el token de Firebase).
+
+### Quién paga la cuenta de DigitalOcean (regla de proceso)
+- **El cliente debe pagar la cuenta de DigitalOcean**: el método de pago lo agrega el cliente (o Erick, con la tarjeta que corresponda) en el panel. **Claude nunca introduce datos de pago ni crea recursos de pago**; se detiene en «Add Payment Method and Create App» y lo avisa.
+- Estado de la cuenta al 2026-11-13: nueva, solo `first-project`, sin recursos y **sin método de pago** (aviso «Finish Account Set Up»). Conviene confirmar a nombre de quién queda la cuenta antes de crear nada y quién la facturará.
+- Costos vistos en el asistente: Managed PostgreSQL desde ~US$13/mes; App Platform propone 2 contenedores a US$24/mes → **bajar a 1 contenedor** para el piloto.
+
+### Repositorio propio
+- `https://github.com/erickherndza/cielo-cloud` (remoto local `mio`; `origin` sigue siendo el de Manuel y no se toca). `main` = rama `integracion/modulos-claude`; trabajo nuevo en `feat/digitalocean-postgres` (sin fusionar a `main` todavía).
+- DigitalOcean ya tiene conectada la cuenta de GitHub del usuario y ve ese repo. Aparece una rama `gh-pages` en el repo que NO subió Claude: revisar su origen.
+
+### Qué está hecho (verificado con Postgres 16 en Docker, 6 pruebas pasan, `tsc` y `npm run build` limpios)
+- **`server/`** — API Node (Fastify + `pg` + `jose`): `GET/POST /api/empresas`, `GET /api/empresas/:id/documentos` (carga masiva), `PUT .../documentos/:coleccion` (guarda una colección con control de versión; 409 si otra sesión escribió antes). Valida el ID token de Firebase con `jose` (no `firebase-admin`, para no arrastrar gRPC, ver auditoría de seguridad).
+- **`server/sql/001_init.sql`** — tablas `empresas`, `miembros` (rol `admin|gerente|rrhh|contador`) y `documentos` (una fila por colección y empresa, JSONB + versión), con **RLS forzada** (`FORCE ROW LEVEL SECURITY`) por `app.uid`/`app.empresa_id`. Un superusuario se salta RLS: **la API debe conectarse con un rol de aplicación sin privilegios, nunca con `doadmin`**.
+- **`src/lib/storage.ts`** — reemplaza a `localStorage` en los 13 módulos de datos y en `seed-data.ts`/`AgendaNomina`. Con `NEXT_PUBLIC_API_URL` + Firebase: caché en memoria cargada con una sola petición, escritura en segundo plano (debounce 400 ms, una petición por colección), sin copia en el navegador. **Sin `NEXT_PUBLIC_API_URL` se comporta exactamente como antes** (GitHub Pages y Firebase Hosting siguen funcionando).
+- **Migración de datos locales:** al primer acceso, lo que la cuenta ya tenía en `localStorage` se sube solo para colecciones que el servidor aún no tiene (nunca pisa datos remotos). La copia local **no se borra** automáticamente: borrarla es un paso aparte que debe aprobar el usuario.
+- `src/lib/remote-store.tsx` + `src/components/layout/SyncGate.tsx`: bloquean la app mientras cargan los datos (nadie escribe sobre una lista vacía) y muestran avisos de conflicto (409) y de falta de conexión.
+- `useUserScopedKey` espera a que los datos remotos estén cargados.
+
+### Pendiente
+1. El cliente/Erick agrega el método de pago en DigitalOcean (Claude no lo hace).
+2. Crear Managed PostgreSQL; crear un rol de aplicación sin privilegios (`CREATE ROLE ... NOSUPERUSER`) y correr `npm run migrate` en `server/`.
+3. Crear la app en App Platform (repo `erickherndza/cielo-cloud`, rama `feat/digitalocean-postgres`, carpeta `/server`, **1 contenedor**) con las variables `DATABASE_URL`, `DATABASE_CA_CERT`, `FIREBASE_PROJECT_ID=cielo-nomina-prueba`, `ALLOWED_ORIGINS`. Los valores se pegan en el panel de DO; **no se escriben en chat ni en archivos**.
+4. Desplegar el frontend (sitio estático en App Platform o seguir en Firebase Hosting) con `NEXT_PUBLIC_API_URL` apuntando a la API.
+5. **Prueba de punta a punta con login real de Firebase: SIN HACER.** Las pruebas actuales usan un verificador de token falso; la verificación real del token no está probada.
+6. Matriz de permisos por rol: hoy todo miembro lee y escribe (`ROLES_ESCRITURA` en `server/src/index.js`); definirla con el cliente.
+7. Una cuenta de Firebase = una empresa por ahora (se toma la primera de `GET /api/empresas`); pendiente el selector de empresas y la invitación de más usuarios.
+8. Adjuntos en base64 (documentos de empleado, fotos, préstamos) siguen dentro del JSON de cada colección (límite de 25 MB por petición); pasarlos a almacenamiento de objetos es trabajo futuro.
+9. Plazos de conservación y ubicación de los datos personales los define el abogado: no inventarlos.
