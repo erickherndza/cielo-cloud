@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
+import { DevCredit } from '@/components/ui/DevCredit'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
@@ -277,6 +278,7 @@ export default function LoginPage() {
               </Link>
             </p>
           )}
+          <DevCredit className="mt-4 text-center" />
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { useAuth, type CuentaVinculada } from '@/lib/auth-context'
 import { AgregarCuentaModal } from '@/components/auth/AgregarCuentaModal'
 import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
+import { DevCredit } from '@/components/ui/DevCredit'
 
 // Lee el nombre de empresa guardado para OTRA cuenta vinculada, directo de
 // localStorage — sin pasar por React ni "cambiar" de cuenta de verdad, solo
@@ -421,6 +422,7 @@ export function Sidebar() {
               </button>
             )}
           </div>
+          {wide && <DevCredit className="px-4 pb-2.5 -mt-1" />}
         </div>
       </aside>
     </>
