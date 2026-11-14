@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { dibujarLogoPDF } from '@/lib/branding'
 import jsPDF from 'jspdf'
 import { Header } from '@/components/layout/Header'
 import { Toast } from '@/components/ui/Toast'
@@ -99,13 +100,8 @@ function descargarPlanillaLiquidacionPDF(liquidacion: RegistroLiquidacion, emple
   doc.rect(0, 27, W, 1, 'F')
 
   let tX = 14
-  if (empresa.logo) {
-    try {
-      const fmt = empresa.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(empresa.logo, fmt, 14, 5, 18, 18)
-      tX = 36
-    } catch { /* logo corrupto o formato no soportado — se omite */ }
-  }
+  const logoW = dibujarLogoPDF(doc, empresa.logo, 14, 4, 40, 20)
+  if (logoW > 0) tX = 14 + logoW + 4
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
@@ -266,7 +262,7 @@ function descargarPlanillaLiquidacionPDF(liquidacion: RegistroLiquidacion, emple
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(NR, NG, NB)
-  doc.text('Cielo Cloud · Nómina', 14, pageH - 8)
+  doc.text(`${empresa.nombre || 'Empresa'} · Generado con Cielo Cloud`, 14, pageH - 8)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(170, 170, 170)
   doc.text('Ley 16-92 · Código de Trabajo — República Dominicana', W - 14, pageH - 8, { align: 'right' })
@@ -740,7 +736,7 @@ export default function LiquidacionPage() {
     if (totalPrestamosFinal > 0) filas.push(['Descuento Préstamos Pendientes', 'Saldo de préstamos/avances activos', '', -totalPrestamosFinal, -totalPrestamosFinal, 'No'])
     await exportarExcel({
       nombreArchivo: `liquidacion-${fullName(emp).replace(/\s+/g, '-')}-${fechaTerminacion}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Liquidación',
@@ -785,7 +781,7 @@ export default function LiquidacionPage() {
       liquidacionesOrdenadas.reduce((s, l) => s + f(l), 0)
     await exportarExcel({
       nombreArchivo: 'liquidaciones-registradas',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Liquidaciones',

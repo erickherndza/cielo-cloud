@@ -224,7 +224,7 @@ export default function LicenciasPage() {
     const totalSubsidio = licenciasOrdenadas.reduce((s, l) => s + (l.montoSubsidioEstimado ?? 0), 0)
     await exportarExcel({
       nombreArchivo: `licencias-${new Date().toISOString().split('T')[0]}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Licencias',

@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf'
+import { dibujarLogoPDF } from '@/lib/branding'
 import { formatRD, fullName, formatCedula, formatDate, parseFechaLocal } from '@/lib/utils'
 import { calcularNomina, calcularNominaQuincenal, ajustesToParams, getDivisorSalarioDiario, contarDiasLaborables } from '@/lib/dominican-labor'
 import type {
@@ -82,13 +83,8 @@ export function descargarComprobantePDF(
   doc.rect(0, 27, W, 1, 'F')
 
   let tX = 14
-  if (empresa.logo) {
-    try {
-      const fmt = empresa.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(empresa.logo, fmt, 14, 5, 18, 18)
-      tX = 36
-    } catch {}
-  }
+  const logoW = dibujarLogoPDF(doc, empresa.logo, 14, 4, 40, 20)
+  if (logoW > 0) tX = 14 + logoW + 4
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
@@ -293,7 +289,7 @@ export function descargarComprobantePDF(
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(NR, NG, NB)
-  doc.text('Cielo Cloud · Nómina', 14, pageH - 8)
+  doc.text(`${empresa.nombre || 'Empresa'} · Generado con Cielo Cloud`, 14, pageH - 8)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(170, 170, 170)
   doc.text(`Generado el ${new Date().toLocaleDateString('es-DO')} — documento de uso interno`, W - 14, pageH - 8, { align: 'right' })

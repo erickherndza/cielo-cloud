@@ -170,7 +170,7 @@ export default function VacacionesPage() {
     ])
     await exportarExcel({
       nombreArchivo: `vacaciones-${new Date().toISOString().slice(0, 10)}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Vacaciones',

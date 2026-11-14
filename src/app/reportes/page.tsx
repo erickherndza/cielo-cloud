@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { dibujarLogoPDF } from '@/lib/branding'
 import {
   BarChart3, Users, FileText, CreditCard, Shield,
   Download, FileSpreadsheet, ChevronRight, Loader2,
@@ -76,13 +77,8 @@ function pdfHeader(
   doc.rect(0, 0, pageW, 22, 'F')
 
   let textX = 14
-  if (empresa.logo) {
-    try {
-      const fmt = empresa.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-      doc.addImage(empresa.logo, fmt, 14, 3, 16, 16)
-      textX = 34
-    } catch { /* ignore malformed logo */ }
-  }
+  const logoW = dibujarLogoPDF(doc, empresa.logo, 14, 2, 36, 18)
+  if (logoW > 0) textX = 14 + logoW + 4
 
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(13)
@@ -276,7 +272,7 @@ function ReporteGerencial({
   function exportarXlsx() {
     exportarExcel({
       nombreArchivo: 'resumen-gerencial',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {
@@ -632,7 +628,7 @@ function ReporteNomina({
     if (!periodo || filas.length === 0) return
     exportarExcel({
       nombreArchivo: `nomina-${periodoLabel(periodo).replace(/\s+/g, '-').toLowerCase()}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Nómina',
@@ -829,7 +825,7 @@ function ReporteEmpleados({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: 'listado-empleados',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Empleados',
@@ -1026,7 +1022,7 @@ function ReportePrestamos({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: 'reporte-prestamos',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Préstamos',
@@ -1458,7 +1454,7 @@ function ReporteTSS({
     if (!periodo || filas.length === 0) return
     exportarExcel({
       nombreArchivo: `tss-${periodoLabel(periodo).replace(/\s+/g, '-').toLowerCase()}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {
@@ -1814,7 +1810,7 @@ function ReporteCostoPorDepto({
     if (!periodo || deptos.length === 0) return
     exportarExcel({
       nombreArchivo: `costo-departamento-${periodoLabel(periodo).replace(/\s+/g, '-').toLowerCase()}`,
-      empresa: empresa.nombre, rnc: empresa.rnc,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
       hojas: [{
         nombre: 'Por Departamento', titulo: 'Costo por Departamento', subtitulo: periodoLabel(periodo),
         encabezados: ['Departamento','Empleados','Sal. Bruto','Sal. Neto','TSS Empleador','Costo Total','% del Total'],
@@ -2081,7 +2077,7 @@ function ReportePlanillaACH({
     if (!periodo || filas.length === 0) return
     exportarExcel({
       nombreArchivo: `planilla-ach-${periodoLabel(periodo).replace(/\s+/g, '-').toLowerCase()}`,
-      empresa: empresa.nombre, rnc: empresa.rnc,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
       hojas: [{
         nombre: 'ACH', titulo: 'Planilla Bancaria / ACH', subtitulo: periodoLabel(periodo),
         encabezados: ['Nombre','Apellido','Departamento','Banco','# Cuenta','Monto RD$'],
@@ -2373,7 +2369,7 @@ function ReporteHorasExtras({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: `horas-extras-${anioFiltro}`,
-      empresa: empresa.nombre, rnc: empresa.rnc,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
       hojas: [{
         nombre: 'Horas Extras', titulo: 'Reporte de Horas Extras', subtitulo: `Año ${anioFiltro}`,
         encabezados: ['Empleado','Período','Horas 35%','Importe 35%','Horas 100%','Importe 100%','Horas Noct.','Importe Noct.','Total HE'],
@@ -2697,7 +2693,7 @@ function ReporteProyeccionAnual({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: `proyeccion-anual-${currentYear}`,
-      empresa: empresa.nombre, rnc: empresa.rnc,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
       hojas: [{
         nombre: 'Proyección', titulo: 'Proyección Anual de Nómina', subtitulo: `Año ${currentYear}`,
         encabezados: ['Empleado','Cargo','Departamento','Sal. Base','Bruto × 12','Regalía Proy.','Vacaciones Proy.','Costo Total Proy.','YTD Real','% Ejecutado'],
@@ -2894,7 +2890,7 @@ function ReportePreaviso({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: 'cumplimiento-preaviso-renuncias',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Preaviso',
@@ -3163,7 +3159,7 @@ function ReporteAntiguedad({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: 'antiguedad-plantilla',
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {
@@ -3515,7 +3511,7 @@ function ReporteSinIngresos({
     if (!periodo || filas.length === 0) return
     exportarExcel({
       nombreArchivo: `empleados-sin-ingresos-${periodoLabel(periodo).replace(/\s+/g, '-').toLowerCase()}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Sin Ingresos',
@@ -3749,7 +3745,7 @@ function ReporteLicencias({
     if (filas.length === 0) return
     exportarExcel({
       nombreArchivo: `salario-vs-licencias-${anioFiltro}`,
-      empresa: empresa.nombre, rnc: empresa.rnc,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
       hojas: [{
         nombre: 'Licencias', titulo: 'Salario vs. Licencias', subtitulo: `Año ${anioFiltro}`,
         encabezados: ['Empleado', 'Mes', 'Tipo de Licencia', 'Fecha Inicio', 'Días', 'Monto Pagado', 'Subsidio Estimado TSS/ARL'],

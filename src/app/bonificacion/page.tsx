@@ -312,7 +312,7 @@ export default function BonificacionPage() {
     ])
     await exportarExcel({
       nombreArchivo: `bonificacion-utilidades-${anioFiscal}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Bonificación',

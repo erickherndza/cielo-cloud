@@ -795,7 +795,7 @@ export default function NominaPage() {
       const totalMonto = Object.values(montos).reduce((s, m) => s + m, 0)
       await exportarExcel({
         nombreArchivo: `regalia-pascual-${periodoActual.anio}`,
-        empresa: empresa.nombre,
+        empresa: empresa.nombre, logo: empresa.logo,
         rnc: empresa.rnc,
         hojas: [{
           nombre: 'Regalía Pascual',
@@ -826,7 +826,7 @@ export default function NominaPage() {
       const suma = (i: number) => filas.reduce((s, f) => s + (f[i] as number), 0)
       await exportarExcel({
         nombreArchivo: `bonificacion-utilidades-${periodoActual.anio}`,
-        empresa: empresa.nombre,
+        empresa: empresa.nombre, logo: empresa.logo,
         rnc: empresa.rnc,
         hojas: [{
           nombre: 'Bonificación Utilidades',
@@ -883,7 +883,7 @@ export default function NominaPage() {
 
     await exportarExcel({
       nombreArchivo: `nomina-${slug}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {

@@ -170,7 +170,7 @@ export default function BandasSalarialesPage() {
 
     await exportarExcel({
       nombreArchivo: `bandas-salariales-${new Date().toISOString().split('T')[0]}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {

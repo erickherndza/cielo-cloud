@@ -1,4 +1,5 @@
 'use client'
+import { dimensionesImagen } from '@/lib/branding'
 import ExcelJS from 'exceljs'
 
 export interface ExcelHoja {
@@ -19,6 +20,7 @@ export interface OpcionesExcel {
   nombreArchivo: string   // without .xlsx extension
   empresa: string
   rnc?: string
+  logo?: string  // data URL de la empresa — se imprime arriba a la derecha de cada hoja
   hojas: ExcelHoja[]
 }
 
@@ -48,12 +50,37 @@ export async function exportarExcel(opciones: OpcionesExcel): Promise<void> {
   wb.creator = 'Cielo Cloud'
   wb.created = new Date()
 
+  // Logo de la empresa (branding por cuenta) — proporción respetada, alto fijo.
+  let logoId: number | null = null
+  let logoAncho = 0
+  const LOGO_ALTO = 56
+  if (opciones.logo) {
+    try {
+      const dim = await dimensionesImagen(opciones.logo)
+      if (dim) {
+        logoAncho = Math.min(Math.round(LOGO_ALTO * (dim.w / dim.h)), 160)
+        logoId = wb.addImage({
+          base64: opciones.logo,
+          extension: opciones.logo.startsWith('data:image/png') ? 'png' : 'jpeg',
+        })
+      }
+    } catch { /* logo inválido — se exporta sin él */ }
+  }
+
   for (const hoja of opciones.hojas) {
     const numCols = Math.max(hoja.encabezados.length, 1)
     const ws = wb.addWorksheet(hoja.nombre.slice(0, 31), {
       views: [{ state: 'frozen', ySplit: 5, showGridLines: false }],
     })
     ws.columns = (hoja.anchos ?? hoja.encabezados.map(() => 18)).map(w => ({ width: w }))
+
+    if (logoId !== null) {
+      ws.addImage(logoId, {
+        tl: { col: Math.max(numCols - 1, 0) + 0.02, row: 0.1 },
+        ext: { width: logoAncho, height: LOGO_ALTO },
+        editAs: 'oneCell',
+      })
+    }
 
     // Fila 1 — empresa
     const filaEmpresa = ws.addRow([opciones.empresa + (opciones.rnc ? ` | RNC: ${opciones.rnc}` : '')])

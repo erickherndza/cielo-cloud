@@ -219,7 +219,7 @@ export default function AumentosPage() {
     })
     await exportarExcel({
       nombreArchivo: `aumentos-salariales-${new Date().toISOString().slice(0, 10)}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Aumentos',

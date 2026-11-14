@@ -188,7 +188,7 @@ export default function RegaliaPage() {
     ])
     await exportarExcel({
       nombreArchivo: `regalia-pascual-${new Date().toISOString().slice(0, 10)}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Regalía Pascual',

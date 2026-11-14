@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { dibujarLogoPDF } from '@/lib/branding'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Badge } from '@/components/ui/Badge'
@@ -309,7 +310,7 @@ export default function RetribucionesComplementariasPage() {
     ])
     await exportarExcel({
       nombreArchivo: `retribuciones-complementarias-${anioSel}-${String(mesSel).padStart(2, '0')}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [
         {
@@ -359,13 +360,8 @@ export default function RetribucionesComplementariasPage() {
     doc.setFillColor(...NAVY)
     doc.rect(0, 0, pageW, 22, 'F')
     let textX = 14
-    if (empresa.logo) {
-      try {
-        const fmt = empresa.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-        doc.addImage(empresa.logo, fmt, 14, 3, 16, 16)
-        textX = 34
-      } catch { /* logo corrupto o formato no soportado — se omite */ }
-    }
+    const logoW = dibujarLogoPDF(doc, empresa.logo, 14, 2, 36, 18)
+    if (logoW > 0) textX = 14 + logoW + 4
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
@@ -453,7 +449,7 @@ export default function RetribucionesComplementariasPage() {
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...NAVY)
-    doc.text('Cielo Cloud · Nómina', 14, pageH - 8)
+    doc.text(`${empresa.nombre || 'Empresa'} · Generado con Cielo Cloud`, 14, pageH - 8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(170, 170, 170)
     doc.text(`Generado el ${new Date().toLocaleDateString('es-DO')}`, pageW - 14, pageH - 8, { align: 'right' })

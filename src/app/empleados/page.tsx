@@ -960,7 +960,7 @@ function EmpleadoDrawer({
             const slug = fullName(empleado).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-')
             await exportarExcel({
               nombreArchivo: `historial-nomina-${slug}`,
-              empresa: empresa.nombre,
+              empresa: empresa.nombre, logo: empresa.logo,
               rnc: empresa.rnc,
               hojas: [{
                 nombre: 'Historial Nómina',
@@ -1328,7 +1328,7 @@ export default function EmpleadosPage() {
     const hoy = new Date().toISOString().slice(0, 10)
     await exportarExcel({
       nombreArchivo: `empleados-${hoy}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Empleados',

@@ -386,7 +386,7 @@ function VistaDetalle({
     const slug = nombreEmpleado.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-')
     await exportarExcel({
       nombreArchivo: `amortizacion-${slug}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Amortización',
@@ -814,7 +814,7 @@ export default function PrestamosPage() {
     const hoy = new Date().toISOString().slice(0, 10)
     await exportarExcel({
       nombreArchivo: `prestamos-${hoy}`,
-      empresa: empresa.nombre,
+      empresa: empresa.nombre, logo: empresa.logo,
       rnc: empresa.rnc,
       hojas: [{
         nombre: 'Préstamos',
