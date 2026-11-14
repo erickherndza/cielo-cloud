@@ -19,11 +19,18 @@ export function dibujarLogoPDF(
     const fmt = logo.startsWith('data:image/png') ? 'PNG' : 'JPEG'
     const { width, height } = doc.getImageProperties(logo)
     const ratio = width / height
-    let w = maxH * ratio
-    let h = maxH
-    if (w > maxW) { w = maxW; h = maxW / ratio }
-    doc.addImage(logo, fmt, x, y + (maxH - h) / 2, w, h)
-    return w
+    const PAD = 1.5 // margen de la pastilla blanca (mm)
+    const innerH = maxH - PAD * 2
+    const innerMaxW = maxW - PAD * 2
+    let w = innerH * ratio
+    let h = innerH
+    if (w > innerMaxW) { w = innerMaxW; h = innerMaxW / ratio }
+    // Pastilla blanca: un logo con fondo transparente o de colores oscuros
+    // sigue legible sobre el encabezado azul.
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(x, y + (maxH - h) / 2 - PAD, w + PAD * 2, h + PAD * 2, 1.5, 1.5, 'F')
+    doc.addImage(logo, fmt, x + PAD, y + (maxH - h) / 2, w, h)
+    return w + PAD * 2
   } catch {
     return 0 // logo corrupto o formato no soportado — se omite
   }
