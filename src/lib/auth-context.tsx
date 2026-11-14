@@ -173,12 +173,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await sendEmailVerification(cred.user)
   }
 
+  // Popup en vez de redirect: el sitio (cieloerp.com) y el authDomain de Firebase
+  // (…web.app) son dominios distintos, y con redirect los navegadores modernos
+  // (almacenamiento particionado) no devuelven el resultado: el usuario volvía a
+  // /login sin sesión ni error. El redirect queda solo como respaldo si el
+  // navegador bloquea la ventana emergente.
+  async function signInConPopup(provider: typeof googleProvider) {
+    const auth = getFirebaseAuthNamed(activaAppName)
+    try {
+      await signInWithPopup(auth, provider)
+    } catch (e) {
+      if ((e as { code?: string }).code === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, provider)
+        return
+      }
+      throw e
+    }
+  }
+
   async function signInGoogle() {
-    await signInWithRedirect(getFirebaseAuthNamed(activaAppName), googleProvider)
+    await signInConPopup(googleProvider)
   }
 
   async function signInMicrosoft() {
-    await signInWithRedirect(getFirebaseAuthNamed(activaAppName), microsoftProvider)
+    await signInConPopup(microsoftProvider)
   }
 
   async function logout() {
