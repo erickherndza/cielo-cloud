@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Building2, Search, Plus, UserPlus, ShieldAlert, LogIn, Pause, Play, X, History } from 'lucide-react'
 import { apiJson, elegirEmpresa } from '@/lib/storage'
 import { formatDate } from '@/lib/utils'
+import { rncValido } from '@/lib/rnc'
+import { RncField } from '@/components/empresa/RncField'
 
 interface EmpresaAdmin { id: string; nombre: string; rnc: string | null; estado: 'activa' | 'suspendida'; creado_en: string; miembros: number }
 interface Invitacion { id: string; email: string; rol: string; estado: string; expira_en: string }
@@ -130,10 +132,11 @@ export function AdminPanel() {
           <div className="space-y-4">
             <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
               <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><Plus className="h-4 w-4" /> Nueva empresa</p>
-              <div className="grid gap-3 sm:grid-cols-[1fr_11rem_auto]">
+              <div className="grid items-start gap-3 sm:grid-cols-[1fr_20rem_auto]">
                 <input className={inputCls} placeholder="Nombre de la empresa" value={nuevo.nombre} onChange={e => setNuevo({ ...nuevo, nombre: e.target.value })} />
-                <input className={inputCls} placeholder="RNC (9 dígitos)" inputMode="numeric" value={nuevo.rnc} onChange={e => setNuevo({ ...nuevo, rnc: e.target.value })} />
-                <button onClick={crear} disabled={!nuevo.nombre.trim() || !nuevo.rnc.trim()}
+                <RncField id="rnc-nueva" value={nuevo.rnc} onChange={v => setNuevo(p => ({ ...p, rnc: v }))}
+                  onDatos={d => setNuevo(p => ({ ...p, nombre: p.nombre.trim() ? p.nombre : d.razonSocial }))} />
+                <button onClick={crear} disabled={!nuevo.nombre.trim() || !rncValido(nuevo.rnc)}
                   className="rounded-lg bg-[#1B2980] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Crear</button>
               </div>
             </div>

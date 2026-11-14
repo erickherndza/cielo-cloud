@@ -5,6 +5,8 @@ import { Building2, Users, UserCircle, Check, ArrowRight, ArrowLeft } from 'luci
 import { useEmpresa } from '@/lib/empresa-context'
 import { SALARIO_MINIMO } from '@/lib/dominican-labor'
 import { formatRD } from '@/lib/utils'
+import { rncValido, formatearRnc, type DatosDgii } from '@/lib/rnc'
+import { RncField } from '@/components/empresa/RncField'
 import type { CategoriaEmpresa, CierreFiscal, RangoEmpleados, RolUsuario, SectorEmpresa } from '@/types'
 
 const SECTORES: { value: SectorEmpresa; label: string; descripcion: string }[] = [
@@ -78,6 +80,7 @@ export function OnboardingWizard() {
 
   const [nombre, setNombre]     = useState(empresa.nombre ?? '')
   const [rnc, setRnc]           = useState(empresa.rnc ?? '')
+  const [datosDgii, setDatosDgii] = useState<DatosDgii | null>(null)
   const [ciudad, setCiudad]     = useState(empresa.ciudad ?? '')
   const [sector, setSector]     = useState<SectorEmpresa | null>(empresa.sectorEmpresa ?? null)
   const [zonaFranca, setZonaFranca] = useState(empresa.zonaFranca ?? false)
@@ -94,7 +97,7 @@ export function OnboardingWizard() {
     setCategoria(RANGOS.find(x => x.value === r)!.sugerida)
   }
 
-  const paso1Valido = nombre.trim() !== '' && sector !== null
+  const paso1Valido = nombre.trim() !== '' && rncValido(rnc) && sector !== null
   const paso2Valido = rango !== null && categoria !== null
   const paso3Valido = rol !== null
 
@@ -103,7 +106,14 @@ export function OnboardingWizard() {
     guardar({
       ...empresa,
       nombre: nombre.trim(),
-      rnc: rnc.trim(),
+      rnc: formatearRnc(rnc.trim()),
+      ...(datosDgii && {
+        nombreComercial: datosDgii.nombreComercial || undefined,
+        actividadEconomica: datosDgii.actividadEconomica || undefined,
+        regimenPagos: datosDgii.regimenPagos || undefined,
+        estadoDGII: datosDgii.estado || undefined,
+        rncValidadoEn: datosDgii.consultadoEn,
+      }),
       ciudad: ciudad.trim(),
       sectorEmpresa: sector ?? undefined,
       zonaFranca,
@@ -149,14 +159,15 @@ export function OnboardingWizard() {
             </p>
 
             <div className="mt-6 space-y-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Nombre de la empresa</label>
                   <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Distribuciones del Caribe, SRL" className={INPUT_CLASS} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">RNC (opcional)</label>
-                  <input value={rnc} onChange={e => setRnc(e.target.value)} placeholder="Ej. 101-12345-6" className={INPUT_CLASS} />
+                  <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">RNC <span className="text-rose-500">*</span></label>
+                  <RncField value={rnc} onChange={setRnc} nombreActual={nombre} onUsarNombre={setNombre}
+                    onDatos={d => { setDatosDgii(d); if (!nombre.trim()) setNombre(d.razonSocial) }} />
                 </div>
               </div>
               <div>

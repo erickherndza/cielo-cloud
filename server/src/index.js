@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit'
 import { conContexto, pool } from './db.js'
 import { verificarToken } from './auth.js'
 import { crearEnviadorResend } from './correo.js'
+import { crearConsultaConCache, rncValido, limpiarRnc } from './dgii.js'
 
 // Colecciones que el frontend puede sincronizar (las mismas claves que hoy
 // usa localStorage, sin el prefijo `cielo-`). Todo lo demás se rechaza.
@@ -48,6 +49,7 @@ export function buildApp({
   projectId, origins, verify = verificarToken,
   limites = { general: 240, escritura: 40, empresas: 5, correos: 600 }, logger = true,
   enviarCorreo = null,
+  consultarRnc = crearConsultaConCache(),
   // Correos (verificados) de los super admin de la plataforma. Vienen de la
   // variable SUPERADMIN_EMAILS del servidor, nunca del código ni de la base.
   superadmins = [],
@@ -343,6 +345,23 @@ export function buildApp({
       await Promise.all(Array.from({ length: 4 }, trabajador))
       return { resultados }
     }))
+
+  // Validación de RNC contra la DGII. Cualquier usuario autenticado (también en
+  // el asistente de su primera empresa); límite propio por usuario.
+  app.get('/api/dgii/rnc/:rnc', async (req, reply) => {
+    const rnc = limpiarRnc(req.params.rnc)
+    if (!rncValido(rnc)) return reply.code(400).send({ error: 'RNC inválido: revisa los dígitos (9 para empresa, 11 para cédula)' })
+    if (excede(`d:${req.user.uid}`, limites.dgii ?? 20, 60_000)) {
+      reply.header('Retry-After', '60')
+      return reply.code(429).send({ error: 'Demasiadas consultas, espera un minuto' })
+    }
+    try {
+      return await consultarRnc(rnc)
+    } catch (e) {
+      req.log.warn({ err: e }, 'consulta DGII fallida')
+      return reply.code(502).send({ error: 'No se pudo consultar la DGII en este momento' })
+    }
+  })
 
   // ── Administración de la plataforma (solo super admin) ────────────────────
   const soloSuper = (req, reply) => {

@@ -428,6 +428,12 @@ export type RangoEmpleados = '1-9' | '10-19' | '20-49' | '50+'
 export interface Empresa {
   nombre: string
   rnc: string
+  // Datos traídos de la DGII al validar el RNC (informativos; la DGII es la fuente)
+  nombreComercial?: string
+  actividadEconomica?: string
+  regimenPagos?: string
+  estadoDGII?: string
+  rncValidadoEn?: string
   direccion: string
   ciudad: string
   telefono: string

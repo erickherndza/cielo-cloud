@@ -1,5 +1,6 @@
 'use client'
 
+import { RncField } from '@/components/empresa/RncField'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
@@ -368,14 +369,6 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
       <span className="text-sm text-zinc-700 dark:text-zinc-300">{label}</span>
     </label>
   )
-}
-
-// El RNC dominicano de empresa tiene 9 dígitos; una cédula (persona física
-// con negocio de único dueño) tiene 11 — aceptamos ambos formatos. Solo
-// informativo, nunca bloquea el guardado.
-function rncEsValido(rnc: string): boolean {
-  const digitos = rnc.replace(/\D/g, '')
-  return digitos.length === 9 || digitos.length === 11
 }
 
 function FieldInput({ icon: Icon, className, ...props }: { icon?: LucideIcon } & React.InputHTMLAttributes<HTMLInputElement>) {
@@ -910,25 +903,22 @@ export default function ConfiguracionPage() {
                             </div>
 
                             <div>
-                              <label htmlFor="rnc" className={LABEL_CLASS}>RNC</label>
-                              <input
-                                id="rnc"
-                                name="rnc"
-                                type="text"
+                              <label htmlFor="rnc" className={LABEL_CLASS}>RNC <span className="text-rose-500">*</span></label>
+                              <RncField
                                 value={form.rnc}
-                                onChange={handleChange}
-                                placeholder="Ej. 101-12345-6"
-                                className={INPUT_CLASS}
+                                onChange={v => setForm(prev => ({ ...prev, rnc: v }))}
+                                nombreActual={form.nombre}
+                                onUsarNombre={n => setForm(prev => ({ ...prev, nombre: n }))}
+                                onDatos={d => setForm(prev => ({
+                                  ...prev,
+                                  nombre: prev.nombre.trim() ? prev.nombre : d.razonSocial,
+                                  nombreComercial: d.nombreComercial || undefined,
+                                  actividadEconomica: d.actividadEconomica || undefined,
+                                  regimenPagos: d.regimenPagos || undefined,
+                                  estadoDGII: d.estado || undefined,
+                                  rncValidadoEn: d.consultadoEn,
+                                }))}
                               />
-                              {form.rnc && (
-                                <p className={cn(
-                                  'mt-1.5 flex items-center gap-1.5 text-[11px]',
-                                  rncEsValido(form.rnc) ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400',
-                                )}>
-                                  {rncEsValido(form.rnc) ? <CheckCircle2 className="h-3 w-3" /> : <CircleAlert className="h-3 w-3" />}
-                                  {rncEsValido(form.rnc) ? 'Formato válido (9 u 11 dígitos)' : 'Verifica el formato — debe tener 9 dígitos (RNC) u 11 (cédula)'}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </CollapsibleCard>
