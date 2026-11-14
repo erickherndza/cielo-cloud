@@ -32,6 +32,10 @@ export function RemoteStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!REMOTE_ENABLED || loading) return
     if (!user) { resetRemoteStore(); setReady(false); setSinEmpresa(false); setAcceso(null); setError(null); return }
+    // Con el correo sin verificar la API rechaza todo (403): no se consulta;
+    // la pantalla de verificación del RouteGuard se muestra y, al verificar,
+    // este efecto vuelve a correr.
+    if (!user.emailVerified) { setReady(false); setSinEmpresa(false); setError(null); return }
     let cancelled = false
     setReady(false)
     setSinEmpresa(false)
@@ -45,7 +49,7 @@ export function RemoteStoreProvider({ children }: { children: ReactNode }) {
       })
       .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Error de conexión') })
     return () => { cancelled = true }
-  }, [user, loading])
+  }, [user, user?.emailVerified, loading])
 
   return <Ctx.Provider value={{ ready, sinEmpresa, acceso, error, status }}>{children}</Ctx.Provider>
 }

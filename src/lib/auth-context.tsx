@@ -227,8 +227,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cu = getFirebaseAuthNamed(activaAppName).currentUser
     if (!cu) return
     await reload(cu)
-    // Firebase mutates `cu` in place — spread into a new object so React detects the change
-    setUser({ ...cu } as User)
+    // Firebase mutates `cu` in place — copia nueva para que React detecte el cambio.
+    // Se conserva el prototipo: con `{ ...cu }` se perdían métodos como getIdToken().
+    setUser(Object.assign(Object.create(Object.getPrototypeOf(cu)), cu) as User)
   }
 
   function cambiarCuenta(appName: string) {

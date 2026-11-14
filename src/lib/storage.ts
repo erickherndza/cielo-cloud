@@ -97,6 +97,13 @@ export async function apiJson<T = unknown>(path: string, init: RequestInit = {})
   return { ok: r.ok, status: r.status, data }
 }
 
+// Convierte una respuesta de error de la API en un Error legible (nunca se
+// trata un cuerpo de error como si fueran datos).
+async function errorDeApi(r: Response): Promise<Error> {
+  const msg = (await r.json().catch(() => ({})) as { error?: string }).error
+  return new Error(msg || `Error del servidor (${r.status})`)
+}
+
 // ── Inicialización (al iniciar sesión) ──────────────────────────────────────
 export async function initRemoteStore(uid: string, token: GetToken): Promise<void> {
   getToken = token
@@ -105,8 +112,13 @@ export async function initRemoteStore(uid: string, token: GetToken): Promise<voi
   empresaId = null
   uidActual = uid
 
-  const yo = await (await api('/api/yo')).json() as { email: string | null; esSuperadmin: boolean }
-  const lista = await (await api('/api/empresas')).json() as EmpresaAcceso[]
+  const ryo = await api('/api/yo')
+  if (!ryo.ok) throw await errorDeApi(ryo)
+  const yo = await ryo.json() as { email: string | null; esSuperadmin: boolean }
+  const rlista = await api('/api/empresas')
+  if (!rlista.ok) throw await errorDeApi(rlista)
+  const lista = await rlista.json() as EmpresaAcceso[]
+  if (!Array.isArray(lista)) throw new Error('Respuesta inesperada del servidor')
   acceso = { esSuperadmin: yo.esSuperadmin, email: yo.email, empresas: lista, activa: null, soporte: false }
 
   // 1) la que la persona dejó activa (un super admin puede tener una ajena)

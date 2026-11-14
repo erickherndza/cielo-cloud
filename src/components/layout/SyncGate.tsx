@@ -13,6 +13,9 @@ export function SyncGate({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const { ready, sinEmpresa, acceso, error, status } = useRemoteStore()
   if (!REMOTE_ENABLED || !user) return <>{children}</>
+  // Correo sin verificar: todavía no hay datos que cargar; el RouteGuard
+  // muestra la pantalla de verificación.
+  if (!user.emailVerified) return <>{children}</>
 
   // Sesión cargada pero sin empresa activa: panel (super admin), selector o aviso.
   if (!ready && sinEmpresa && acceso) {
@@ -30,7 +33,7 @@ export function SyncGate({ children }: { children: ReactNode }) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-50 p-6 dark:bg-[#0d0f1a]">
         <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-[#252840] dark:bg-[#141722]">
-          {acceso.empresas.length === 0 ? (
+          {!Array.isArray(acceso.empresas) || acceso.empresas.length === 0 ? (
             <>
               <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Tu cuenta aún no tiene una empresa asignada</p>
               <p className="mt-2 text-sm text-zinc-500">

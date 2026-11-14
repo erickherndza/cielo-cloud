@@ -4,7 +4,7 @@ import { buildApp } from '../src/index.js'
 import { pool } from '../src/db.js'
 
 const SUP = `super${Date.now()}@cielo.test`
-const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
+const verify = async (t) => { const [uid, email, flag] = t.split(':'); return { uid, email, emailVerified: flag !== 'sinverificar' } }
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP], autoregistro: false })
 await app.listen({ port: 0, host: '127.0.0.1' })
 process.env.NEXT_PUBLIC_API_URL = `http://127.0.0.1:${app.server.address().port}`
@@ -60,4 +60,11 @@ test('super admin: sin empresas va al panel; entrando a una ajena queda en modo 
   store.set(`cielo-empresa-activa::intruso${sfx}`, JSON.stringify({ id, nombre: 'Aj', rnc: null }))
   await entrar(`intruso${sfx}`, `intruso${sfx}@t.com`)
   assert.equal(getAcceso().activa, null)
+})
+
+test('correo sin verificar: init falla con el mensaje del servidor (no trata el error como datos)', async () => {
+  await assert.rejects(
+    initRemoteStore(`nv${sfx}`, async () => `nv${sfx}:nv${sfx}@t.com:sinverificar`),
+    /Verifica tu correo/,
+  )
 })
