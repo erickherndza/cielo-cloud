@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { leerHoja, descargarPlantillaXlsx, serialExcelAISO } from '@/lib/spreadsheet'
 import {
   Download, Upload, CheckCircle2, XCircle, FileSpreadsheet,
   ArrowLeft, ArrowRight, PartyPopper, Loader2, Check,
@@ -122,19 +122,15 @@ function celdaTexto(v: unknown): string {
   return String(v).trim()
 }
 
-// Acepta fechas ya parseadas por xlsx (Date), números seriales de Excel, o texto YYYY-MM-DD
+// Acepta fechas ya normalizadas (YYYY-MM-DD), números seriales de Excel (Date), números seriales de Excel, o texto YYYY-MM-DD
 function parsearFecha(v: unknown): string | null {
   if (v === null || v === undefined || v === '') return null
   if (v instanceof Date && !isNaN(v.getTime())) {
     return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
   }
   if (typeof v === 'number') {
-    // Excel serial date
-    const parsed = XLSX.SSF?.parse_date_code ? XLSX.SSF.parse_date_code(v) : null
-    if (parsed) {
-      return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`
-    }
-    return null
+    // Número de serie de Excel (celda de fecha sin formato)
+    return serialExcelAISO(v)
   }
   const str = String(v).trim()
   if (!str) return null
@@ -222,7 +218,6 @@ export function ImportadorExcel({ onFinish }: Props) {
   const [importados, setImportados] = useState(0)
 
   function descargarPlantilla() {
-    const wb = XLSX.utils.book_new()
     const wsData: (string | number | null)[][] = [
       [...ENCABEZADOS],
       [
@@ -247,10 +242,7 @@ export function ImportadorExcel({ onFinish }: Props) {
         7, 5000, '', 3500,
       ],
     ]
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    ws['!cols'] = [16, 14, 14, 22, 16, 14, 12, 16, 20, 16, 22, 26, 14, 16, 16, 14, 16, 20, 22, 18].map(w => ({ wch: w }))
-    XLSX.utils.book_append_sheet(wb, ws, 'Saldos Iniciales')
-    XLSX.writeFile(wb, 'plantilla-carga-inicial-cielo-cloud.xlsx')
+    void descargarPlantillaXlsx('plantilla-carga-inicial-cielo-cloud.xlsx', 'Saldos Iniciales', wsData, [16, 14, 14, 22, 16, 14, 12, 16, 20, 16, 22, 26, 14, 16, 16, 14, 16, 20, 22, 18])
   }
 
   function resetArchivo() {
@@ -267,28 +259,8 @@ export function ImportadorExcel({ onFinish }: Props) {
     setArchivoNombre(file.name)
     setProcesando(true)
 
-    // .csv es texto plano (UTF-8) — leerlo como "binary string" corrompe
-    // cualquier acento/ñ (cada byte multi-byte de UTF-8 se lee como un
-    // carácter latin1 aparte, ej. "Cédula" → "CÃ©dula"), lo cual antes no
-    // se notaba porque ningún valor de columna necesitaba coincidir
-    // exactamente contra un catálogo (nombres/cédulas no se comparan por
-    // igualdad). Los nuevos catálogos (Tipo de Documento, Banco, etc.) sí
-    // lo necesitan, así que .csv se lee como texto UTF-8 real y .xlsx/.xls
-    // (formato binario ZIP) como ArrayBuffer — cada uno con el modo de
-    // lectura de xlsx que le corresponde.
-    const esCSV = /\.csv$/i.test(file.name) || file.type === 'text/csv'
-    const reader = new FileReader()
-    reader.onload = (ev) => {
+    const procesar = (rows: unknown[][]) => {
       try {
-        const data = ev.target?.result
-        if (!data) throw new Error('No se pudo leer el archivo')
-        const wb = esCSV
-          ? XLSX.read(data, { type: 'string', cellDates: true })
-          : XLSX.read(data, { type: 'array', cellDates: true })
-        const primeraHoja = wb.SheetNames[0]
-        if (!primeraHoja) throw new Error('El archivo no tiene hojas')
-        const ws = wb.Sheets[primeraHoja]
-        const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' })
 
         // Encuentra la fila de encabezados (la primera fila no vacía) y toma el resto como datos
         const dataRows = rows.slice(1)
@@ -409,17 +381,17 @@ export function ImportadorExcel({ onFinish }: Props) {
         setFilas(parsed)
         setPaso('previa')
       } catch {
-        setErrorArchivo('No se pudo leer el archivo. Verifica que sea un .xlsx, .xls o .csv válido.')
+        setErrorArchivo('No se pudo leer el archivo. Verifica que sea un .xlsx o .csv válido.')
       } finally {
         setProcesando(false)
       }
     }
-    reader.onerror = () => {
-      setErrorArchivo('No se pudo leer el archivo.')
-      setProcesando(false)
-    }
-    if (esCSV) reader.readAsText(file, 'UTF-8')
-    else reader.readAsArrayBuffer(file)
+    leerHoja(file)
+      .then(procesar)
+      .catch((err: unknown) => {
+        setErrorArchivo(err instanceof Error ? err.message : 'No se pudo leer el archivo.')
+        setProcesando(false)
+      })
   }
 
   const filasValidas = filas.filter(f => !f.error)
@@ -565,7 +537,7 @@ export function ImportadorExcel({ onFinish }: Props) {
             <div className="space-y-1">
               <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Sube tu archivo lleno</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                Aceptamos .xlsx, .xls o .csv. Antes de aplicar ningún cambio te mostraremos una vista
+                Aceptamos .xlsx o .csv. Antes de aplicar ningún cambio te mostraremos una vista
                 previa fila por fila para que confirmes.
               </p>
             </div>
@@ -575,7 +547,7 @@ export function ImportadorExcel({ onFinish }: Props) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.csv"
               className="hidden"
               onChange={handleArchivo}
             />
@@ -587,7 +559,7 @@ export function ImportadorExcel({ onFinish }: Props) {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               {archivoNombre || 'Haz clic para seleccionar un archivo, o arrástralo aquí'}
             </p>
-            <p className="text-xs text-zinc-400">.xlsx, .xls o .csv</p>
+            <p className="text-xs text-zinc-400">.xlsx o .csv</p>
           </label>
 
           {errorArchivo && (

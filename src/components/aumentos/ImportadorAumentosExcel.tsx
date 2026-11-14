@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import * as XLSX from 'xlsx'
+import { leerHoja, descargarPlantillaXlsx, serialExcelAISO } from '@/lib/spreadsheet'
 import {
   Download, Upload, CheckCircle2, XCircle, FileSpreadsheet,
   ArrowLeft, ArrowRight, PartyPopper, Loader2, Check,
@@ -99,16 +99,12 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
   const [enviados, setEnviados] = useState(0)
 
   function descargarPlantilla() {
-    const wb = XLSX.utils.book_new()
     const wsData: (string | number | null)[][] = [
       [...ENCABEZADOS],
       ['000-0000000-0 (ejemplo — bórrame)', 40000, '', 'Ajuste anual por desempeño'],
       ['000-0000001-1 (ejemplo — bórrame)', '', 8, 'Revisión de mercado — puesto de Ventas'],
     ]
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    ws['!cols'] = [20, 18, 16, 32].map(w => ({ wch: w }))
-    XLSX.utils.book_append_sheet(wb, ws, 'Aumentos')
-    XLSX.writeFile(wb, 'plantilla-aumentos-cielo-cloud.xlsx')
+    void descargarPlantillaXlsx('plantilla-aumentos-cielo-cloud.xlsx', 'Aumentos', wsData, [20, 18, 16, 32])
   }
 
   function resetArchivo() {
@@ -125,16 +121,8 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
     setArchivoNombre(file.name)
     setProcesando(true)
 
-    const reader = new FileReader()
-    reader.onload = (ev) => {
+    const procesar = (rows: unknown[][]) => {
       try {
-        const data = ev.target?.result
-        if (!data) throw new Error('No se pudo leer el archivo')
-        const wb = XLSX.read(data, { type: 'binary' })
-        const primeraHoja = wb.SheetNames[0]
-        if (!primeraHoja) throw new Error('El archivo no tiene hojas')
-        const ws = wb.Sheets[primeraHoja]
-        const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' })
         const dataRows = rows.slice(1)
 
         const pendientesActuales = getPendientes()
@@ -220,16 +208,17 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
         setFilas(parsed)
         setPaso('previa')
       } catch {
-        setErrorArchivo('No se pudo leer el archivo. Verifica que sea un .xlsx, .xls o .csv válido.')
+        setErrorArchivo('No se pudo leer el archivo. Verifica que sea un .xlsx o .csv válido.')
       } finally {
         setProcesando(false)
       }
     }
-    reader.onerror = () => {
-      setErrorArchivo('No se pudo leer el archivo.')
-      setProcesando(false)
-    }
-    reader.readAsBinaryString(file)
+    leerHoja(file)
+      .then(procesar)
+      .catch((err: unknown) => {
+        setErrorArchivo(err instanceof Error ? err.message : 'No se pudo leer el archivo.')
+        setProcesando(false)
+      })
   }
 
   const filasValidas = filas.filter(f => !f.error)
@@ -315,7 +304,7 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
             <div className="space-y-1">
               <p className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">Sube tu archivo lleno</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                Aceptamos .xlsx, .xls o .csv. Antes de enviar ninguna solicitud te mostraremos una vista
+                Aceptamos .xlsx o .csv. Antes de enviar ninguna solicitud te mostraremos una vista
                 previa fila por fila para que confirmes.
               </p>
             </div>
@@ -325,7 +314,7 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.csv"
               className="hidden"
               onChange={handleArchivo}
             />
@@ -337,7 +326,7 @@ export function ImportadorAumentosExcel({ onFinish }: Props) {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               {archivoNombre || 'Haz clic para seleccionar un archivo, o arrástralo aquí'}
             </p>
-            <p className="text-xs text-zinc-400">.xlsx, .xls o .csv</p>
+            <p className="text-xs text-zinc-400">.xlsx o .csv</p>
           </label>
 
           {errorArchivo && (
