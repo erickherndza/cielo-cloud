@@ -1,4 +1,5 @@
 import type { AjusteLinea, CategoriaEmpresa, CategoriaRiesgoSRL, CierreFiscal, ConceptoAjuste, Empleado, Empresa, MotivoLiquidacion, ParametrosNomina, PeriodoNomina, Prestamo, ResultadoNomina, RetribucionComplementaria, SectorEmpresa, TipoPeriodo } from '@/types'
+import { getParametros, type MotivoParam } from './parametros-legales'
 import { parseFechaLocal } from './utils'
 
 // ─── ISR Brackets 2024 (annual RD$) ──────────────────────────────────────────
@@ -91,8 +92,16 @@ export function prorratearMontoFijo(montoMensual: number, tipo: TipoPeriodo): nu
 
 // ─── Parámetros laborales (Código de Trabajo Ley 16-92) ──────────────────────
 export const HORAS_SEMANA = 44                     // Art. 147: semana de 44h
+// Valores por defecto del Art. 177. El motor lee los vigentes (editables por el
+// super admin en /admin → Parámetros legales) con getDiasVacacionesAnuales().
 export const DIAS_VACACIONES_HASTA_5_ANOS = 14     // Art. 177: 14 días laborables
 export const DIAS_VACACIONES_MAS_5_ANOS = 18       // Art. 177: 18 días laborables
+
+/** Días laborables de vacaciones por año según la antigüedad («más de N años»). */
+export function getDiasVacacionesAnuales(anosServicio: number): number {
+  const v = getParametros().vacaciones
+  return anosServicio > v.umbralAnios ? v.diasMas5 : v.diasHasta5
+}
 
 // ─── Régimen de trabajo intermitente (Resolución 04-93, Ministerio de Trabajo) ─
 // Jornada de hasta 10h/día y 60h/semana sin generar horas extras bajo esos
@@ -100,12 +109,22 @@ export const DIAS_VACACIONES_MAS_5_ANOS = 18       // Art. 177: 18 días laborab
 // gasolina, etc.) — distinto del régimen ordinario (8h/día, 44h/semana).
 export const HORAS_DIA_REGIMEN_INTERMITENTE    = 10
 export const HORAS_SEMANA_REGIMEN_INTERMITENTE = 60
+// Valores por defecto; los vigentes salen de getParametros().divisor.
 export const DIVISOR_DIA_ORDINARIO     = 23.83  // salario mensual ÷ días laborables promedio
 export const DIVISOR_DIA_INTERMITENTE  = 26     // salario mensual ÷ 26 (régimen intermitente)
 
 // Divisor correcto del salario diario según el régimen de jornada del empleado
 export function getDivisorSalarioDiario(empleado: Pick<Empleado, 'regimenIntermitente'>): number {
-  return empleado.regimenIntermitente ? DIVISOR_DIA_INTERMITENTE : DIVISOR_DIA_ORDINARIO
+  const d = getParametros().divisor
+  return empleado.regimenIntermitente ? d.intermitente : d.ordinario
+}
+
+/** Divisor del régimen ordinario vigente (valor por defecto de los parámetros de cálculo). */
+export function getDivisorOrdinario(): number { return getParametros().divisor.ordinario }
+
+/** ¿Este motivo de terminación genera la prestación? (configurable en /admin) */
+export function motivoGenera(motivo: MotivoParam, prestacion: 'cesantia' | 'preaviso' | 'asistencia'): boolean {
+  return getParametros().motivos[motivo]?.[prestacion] ?? false
 }
 
 // ─── Vacaciones acumuladas — compuestas a través de múltiples años ───────────
@@ -129,9 +148,9 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
     // Los primeros 5 años (i = 1..5) acreditan a 14 días — el salto a 18 solo
     // aplica al 6º año en adelante (i > 5), nunca al año 5 en sí (bug corregido:
     // antes usaba `i >= 5`, acreditando de más el año 5 completo).
-    dias += i > 5 ? DIAS_VACACIONES_MAS_5_ANOS : DIAS_VACACIONES_HASTA_5_ANOS
+    dias += getDiasVacacionesAnuales(i)
   }
-  const tasaActual = (aniosCompletos + 1) > 5 ? DIAS_VACACIONES_MAS_5_ANOS : DIAS_VACACIONES_HASTA_5_ANOS
+  const tasaActual = getDiasVacacionesAnuales(aniosCompletos + 1)
   dias += tasaActual * fraccionActual
   return Math.max(0, dias + saldoVacacionesInicial)
 }
@@ -293,9 +312,7 @@ export function calcularNomina(
   const hoy = new Date()
   const fechaIngreso = parseFechaLocal(empleado.fechaIngreso)
   const anosServicio = (hoy.getTime() - fechaIngreso.getTime()) / (365.25 * 24 * 3600 * 1000)
-  const diasVacacionesAnuales = anosServicio >= 5
-    ? DIAS_VACACIONES_MAS_5_ANOS
-    : DIAS_VACACIONES_HASTA_5_ANOS
+  const diasVacacionesAnuales = getDiasVacacionesAnuales(anosServicio)
   const vacacionesMensualesDias  = diasVacacionesAnuales / 12
   // Valor diario: 23.83 en régimen ordinario, 26 en régimen intermitente (Res. 04-93)
   const valorDiario              = empleado.salarioBase / getDivisorSalarioDiario(empleado)
@@ -457,33 +474,37 @@ export interface DetalleTramoPrestacion {
 // ─── Cesantía (Art. 80, Código de Trabajo Ley 16-92) ─────────────────────────
 // Salario diario = salario mensual ÷ divisor laboral (23.83 ordinario, 26
 // régimen intermitente) — NO ÷30 días calendario. Usa getDivisorSalarioDiario().
-export function calcularCesantiaDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+export function calcularCesantiaDetalle(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): DetalleTramoPrestacion {
   const tarifaDiaria = salarioMensual / divisor
+  const p = getParametros().cesantia
   if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no genera cesantía' }
-  if (anosServicio < 0.5)  return { dias: 6, tarifaDiaria, total: tarifaDiaria * 6, tramo: '3–6 meses de servicio — 6 días' }
-  if (anosServicio < 1)    return { dias: 13, tarifaDiaria, total: tarifaDiaria * 13, tramo: '6–12 meses de servicio — 13 días' }
+  if (anosServicio < 0.5)  return { dias: p.d3a6m, tarifaDiaria, total: tarifaDiaria * p.d3a6m, tramo: `3–6 meses de servicio — ${p.d3a6m} días` }
+  if (anosServicio < 1)    return { dias: p.d6a12m, tarifaDiaria, total: tarifaDiaria * p.d6a12m, tramo: `6–12 meses de servicio — ${p.d6a12m} días` }
   if (anosServicio < 5) {
     const anios = Math.floor(anosServicio)
-    return { dias: 21 * anios, tarifaDiaria, total: tarifaDiaria * 21 * anios, tramo: `1–5 años — 21 días × ${anios} año(s) completo(s)` }
+    const dias = p.diasAnio1a5 * anios
+    return { dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `1–5 años — ${p.diasAnio1a5} días × ${anios} año(s) completo(s)` }
   }
   const anios = Math.floor(anosServicio)
-  return { dias: 23 * anios, tarifaDiaria, total: tarifaDiaria * 23 * anios, tramo: `5+ años — 23 días × ${anios} año(s) completo(s)` }
+  const dias = p.diasAnio5mas * anios
+  return { dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `5+ años — ${p.diasAnio5mas} días × ${anios} año(s) completo(s)` }
 }
 
-export function calcularCesantia(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
+export function calcularCesantia(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): number {
   return calcularCesantiaDetalle(salarioMensual, anosServicio, divisor).total
 }
 
 // ─── Preaviso (Art. 76, Código de Trabajo) ───────────────────────────────────
-export function calcularPreavisoDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+export function calcularPreavisoDetalle(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): DetalleTramoPrestacion {
   const tarifaDiaria = salarioMensual / divisor
+  const p = getParametros().preaviso
   if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no genera preaviso' }
-  if (anosServicio < 0.5)  return { dias: 7, tarifaDiaria, total: tarifaDiaria * 7, tramo: '3–6 meses de servicio — 7 días' }
-  if (anosServicio < 1)    return { dias: 14, tarifaDiaria, total: tarifaDiaria * 14, tramo: '6–12 meses de servicio — 14 días' }
-  return { dias: 28, tarifaDiaria, total: tarifaDiaria * 28, tramo: '12+ meses de servicio — 28 días fijo' }
+  if (anosServicio < 0.5)  return { dias: p.d3a6m, tarifaDiaria, total: tarifaDiaria * p.d3a6m, tramo: `3–6 meses de servicio — ${p.d3a6m} días` }
+  if (anosServicio < 1)    return { dias: p.d6a12m, tarifaDiaria, total: tarifaDiaria * p.d6a12m, tramo: `6–12 meses de servicio — ${p.d6a12m} días` }
+  return { dias: p.d12mas, tarifaDiaria, total: tarifaDiaria * p.d12mas, tramo: `12+ meses de servicio — ${p.d12mas} días fijo` }
 }
 
-export function calcularPreaviso(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
+export function calcularPreaviso(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): number {
   return calcularPreavisoDetalle(salarioMensual, anosServicio, divisor).total
 }
 
@@ -492,10 +513,11 @@ export function calcularPreaviso(salarioMensual: number, anosServicio: number, d
 // (empleador → despido, empleado → renuncia). Usado por el reporte de
 // cumplimiento de preaviso en renuncias.
 export function getDiasPreavisoRequeridos(anosServicio: number): number {
+  const p = getParametros().preaviso
   if (anosServicio < 0.25) return 0
-  if (anosServicio < 0.5)  return 7   // 3–6 meses
-  if (anosServicio < 1)    return 14  // 6–12 meses
-  return 28                           // 12+ meses fijo
+  if (anosServicio < 0.5)  return p.d3a6m   // 3–6 meses
+  if (anosServicio < 1)    return p.d6a12m  // 6–12 meses
+  return p.d12mas                           // 12+ meses fijo
 }
 
 // Etiquetas de MotivoLiquidacion — usadas por Liquidación y por el
@@ -655,26 +677,27 @@ export function regaliaPagadaVigente(empleado: Pick<Empleado, 'regaliaPagadaEste
 // Distinta de la cesantía: aplica en terminación de contratos por tiempo
 // determinado/obra, o en casos de terminación sin responsabilidad de las partes.
 // Salario diario = salario mensual ÷ divisor laboral (23.83/26), no ÷30.
-export function calcularAsistenciaEconomicaDetalle(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): DetalleTramoPrestacion {
+export function calcularAsistenciaEconomicaDetalle(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): DetalleTramoPrestacion {
   const tarifaDiaria = salarioMensual / divisor
+  const p = getParametros().asistencia
   if (anosServicio < 0.25) return { dias: 0, tarifaDiaria, total: 0, tramo: 'Menos de 3 meses de servicio — no aplica' }
-  if (anosServicio < 0.5)  return { dias: 5, tarifaDiaria, total: tarifaDiaria * 5, tramo: '3–6 meses de servicio — 5 días' }
-  if (anosServicio < 1)    return { dias: 10, tarifaDiaria, total: tarifaDiaria * 10, tramo: '6–12 meses de servicio — 10 días' }
+  if (anosServicio < 0.5)  return { dias: p.d3a6m, tarifaDiaria, total: tarifaDiaria * p.d3a6m, tramo: `3–6 meses de servicio — ${p.d3a6m} días` }
+  if (anosServicio < 1)    return { dias: p.d6a12m, tarifaDiaria, total: tarifaDiaria * p.d6a12m, tramo: `6–12 meses de servicio — ${p.d6a12m} días` }
 
   // 12+ meses: 15 días por cada año cumplido, más los días proporcionales
   // de los meses del año en curso al momento de otorgarla (acumulativo).
   const aniosCompletos      = Math.floor(anosServicio)
   const mesesAnioEnCurso    = Math.floor((anosServicio - aniosCompletos) * 12)
-  const diasPorAniosCompletos = aniosCompletos * 15
-  const diasProporcionales    = (15 / 12) * mesesAnioEnCurso
+  const diasPorAniosCompletos = aniosCompletos * p.diasPorAnio
+  const diasProporcionales    = (p.diasPorAnio / 12) * mesesAnioEnCurso
   const dias = diasPorAniosCompletos + diasProporcionales
   return {
     dias, tarifaDiaria, total: tarifaDiaria * dias,
-    tramo: `12+ meses — 15 días × ${aniosCompletos} año(s) completo(s) + proporcional de ${mesesAnioEnCurso} mes(es) del año en curso`,
+    tramo: `12+ meses — ${p.diasPorAnio} días × ${aniosCompletos} año(s) completo(s) + proporcional de ${mesesAnioEnCurso} mes(es) del año en curso`,
   }
 }
 
-export function calcularAsistenciaEconomica(salarioMensual: number, anosServicio: number, divisor: number = DIVISOR_DIA_ORDINARIO): number {
+export function calcularAsistenciaEconomica(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): number {
   return calcularAsistenciaEconomicaDetalle(salarioMensual, anosServicio, divisor).total
 }
 

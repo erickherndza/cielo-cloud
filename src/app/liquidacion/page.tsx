@@ -17,6 +17,8 @@ import {
   calcularSalarioPromedioUltimos12Meses, getDivisorSalarioDiario, getDiasPreavisoRequeridos,
   calcularDiasTrabajadosPendientes, calcularNomina, MOTIVO_LIQUIDACION_LABELS, regaliaPagadaVigente,
   calcularDiasVacacionesAcumulados, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
+  motivoGenera,
+  getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
 import { formatRD, formatNum, formatDate, formatAnosServicio, formatCedula, fullName, BTN_PRIMARY, parseFechaLocal, hoyLocalISO } from '@/lib/utils'
 import type { Empleado, Empresa, MotivoLiquidacion, ConceptoLiquidacion, DesgloseConceptoLiquidacion, RegistroLiquidacion } from '@/types'
@@ -496,22 +498,26 @@ export default function LiquidacionPage() {
     const salarioOrdinario = calcularSalarioPromedioUltimos12Meses(emp, periodos, fechaTerm)
     const divisorDiario    = getDivisorSalarioDiario(emp)
 
-    const aplicaCesantiaPreaviso = motivo === 'despido_sin_causa' || motivo === 'mutuo_acuerdo'
-    const cesantiaDetalle = aplicaCesantiaPreaviso
+    // Qué prestaciones genera cada motivo: configurable por el super admin
+    // (/admin → Parámetros legales); por defecto, lo que dictan los Arts. 74–82.
+    const aplicaCesantia   = motivoGenera(motivo, 'cesantia')
+    const aplicaPreaviso   = motivoGenera(motivo, 'preaviso')
+    const aplicaAsistencia = motivoGenera(motivo, 'asistencia')
+    const cesantiaDetalle = aplicaCesantia
       ? calcularCesantiaDetalle(salarioOrdinario, anosServicio, divisorDiario)
       : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `No genera cesantía automáticamente para "${MOTIVO_LABELS[motivo]}" (Art. 75/80)` }
-    const preavisoDetalle = aplicaCesantiaPreaviso
+    const preavisoDetalle = aplicaPreaviso
       ? calcularPreavisoDetalle(salarioOrdinario, anosServicio, divisorDiario)
       : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `No genera preaviso automáticamente para "${MOTIVO_LABELS[motivo]}" (Art. 75/76)` }
-    const asistenciaDetalle = motivo === 'vencimiento_contrato'
+    const asistenciaDetalle = aplicaAsistencia
       ? calcularAsistenciaEconomicaDetalle(salarioOrdinario, anosServicio, divisorDiario)
-      : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `Solo aplica a "Vencimiento de Contrato" (Art. 74/82)` }
+      : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `No genera asistencia económica para "${MOTIVO_LABELS[motivo]}" (Art. 74/82)` }
 
     const cesantia = cesantiaDetalle.total
     const preaviso = preavisoDetalle.total
     const asistenciaEconomica = asistenciaDetalle.total
 
-    const diasVacAnuales = anosServicioEfectivosVacaciones >= 5 ? 18 : 14
+    const diasVacAnuales = getDiasVacacionesAnuales(anosServicioEfectivosVacaciones)
     // calcularDiasVacacionesAcumulados compone TODOS los años completos de
     // servicio (a la tasa vigente en cada uno) + la fracción del año en
     // curso — no solo el ciclo actual, que descartaría años completos nunca

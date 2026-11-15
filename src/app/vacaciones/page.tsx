@@ -15,9 +15,9 @@ import {
   contarDiasLaborables,
   calcularDiasVacacionesAcumulados,
   aniosSuspendidosTotal,
-  DIAS_VACACIONES_HASTA_5_ANOS,
-  DIAS_VACACIONES_MAS_5_ANOS,
+  getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
+import { getParametros } from '@/lib/parametros-legales'
 import { useEmpresa } from '@/lib/empresa-context'
 import { formatRD, formatDate, formatAnosServicio, fullName, BTN_PRIMARY, parseFechaLocal } from '@/lib/utils'
 import { CalendarDays, Users, Wallet, AlertCircle, Download, Plane, Plus, X, Trash2, Banknote, Search, RotateCcw } from 'lucide-react'
@@ -48,7 +48,7 @@ export default function VacacionesPage() {
     // derecho a vacaciones (ni monto, ni cuándo se alcanza la tasa de 18
     // días), pero sí cuenta para cesantía/preaviso, que siguen usando `anos`.
     const anosServicioEfectivosVacaciones = Math.max(0, anos - aniosSuspendidosTotal(e))
-    const diasAnuales     = anosServicioEfectivosVacaciones >= 5 ? DIAS_VACACIONES_MAS_5_ANOS : DIAS_VACACIONES_HASTA_5_ANOS
+    const diasAnuales     = getDiasVacacionesAnuales(anosServicioEfectivosVacaciones)
     // Compone TODOS los años completos de servicio (a la tasa vigente en cada
     // uno) + la fracción del año en curso — no solo el ciclo actual, que
     // descartaría años completos nunca disfrutados. + saldo inicial:
@@ -356,7 +356,7 @@ export default function VacacionesPage() {
                     <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
                     <td className="px-4 py-3.5 text-center">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        diasAnuales === DIAS_VACACIONES_MAS_5_ANOS
+                        diasAnuales === getParametros().vacaciones.diasMas5 && diasAnuales !== getParametros().vacaciones.diasHasta5
                           ? 'bg-[#eef0fb] text-[#151f66] dark:bg-indigo-950/40 dark:text-indigo-300'
                           : 'bg-zinc-100 text-zinc-700 dark:bg-[#1a1d2e] dark:text-zinc-400'
                       }`}>

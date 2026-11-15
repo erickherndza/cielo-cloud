@@ -6,6 +6,7 @@ import { conContexto, pool } from './db.js'
 import { verificarToken } from './auth.js'
 import { crearEnviadorResend } from './correo.js'
 import { crearConsultaConCache, rncValido, limpiarRnc } from './dgii.js'
+import { validarParametros } from './parametros.js'
 
 // Colecciones que el frontend puede sincronizar (las mismas claves que hoy
 // usa localStorage, sin el prefijo `cielo-`). Todo lo demás se rechaza.
@@ -394,6 +395,15 @@ export function buildApp({
       return { resultados }
     }))
 
+  // Parámetros legales globales. Los lee cualquier usuario autenticado (el
+  // motor de cálculo del navegador los necesita); solo el super admin los cambia.
+  // Sin ninguna versión guardada devuelve datos null: se usan los de fábrica.
+  app.get('/api/parametros-legales', async (req) => {
+    const r = await conContexto(ctx(req), (c) => c.query(
+      'SELECT version, datos, motivo, email, creado_en FROM parametros_legales ORDER BY version DESC LIMIT 1'))
+    return r.rows[0] ?? { version: 0, datos: null }
+  })
+
   // Validación de RNC contra la DGII. Cualquier usuario autenticado (también en
   // el asistente de su primera empresa); límite propio por usuario.
   app.get('/api/dgii/rnc/:rnc', async (req, reply) => {
@@ -555,6 +565,34 @@ export function buildApp({
       return r.rows[0]
     })
     return fila ?? reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  app.get('/api/admin/parametros-legales/historial', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    return conContexto(ctx(req), async (c) => (await c.query(
+      'SELECT version, datos, motivo, email, creado_en FROM parametros_legales ORDER BY version DESC LIMIT 30')).rows)
+  })
+
+  // Cada guardado es una versión nueva (nunca se reescribe una anterior). El
+  // motivo es obligatorio: queda como constancia de por qué cambió la regla.
+  app.put('/api/admin/parametros-legales', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    const v = validarParametros(req.body?.datos)
+    if (!v.ok) return reply.code(400).send({ error: v.error })
+    const motivo = String(req.body?.motivo ?? '').trim()
+    if (motivo.length < 5 || motivo.length > 300) return reply.code(400).send({ error: 'Indica el motivo del cambio (5 a 300 caracteres)' })
+    try {
+      const r = await conContexto(ctx(req), (c) => c.query(
+        `INSERT INTO parametros_legales (version, datos, motivo, uid, email)
+         SELECT COALESCE(max(version), 0) + 1, $1::jsonb, $2, $3, $4 FROM parametros_legales
+         RETURNING version, datos, motivo, email, creado_en`,
+        [JSON.stringify(v.datos), motivo, req.user.uid, req.user.email]))
+      return reply.code(201).send(r.rows[0])
+    } catch (e) {
+      // Dos super admins guardaron a la vez: la versión ya existe.
+      if (unico(e)) return reply.code(409).send({ error: 'Otro administrador guardó cambios al mismo tiempo: recarga e inténtalo de nuevo' })
+      throw e
+    }
   })
 
   app.get('/api/admin/accesos', async (req, reply) => {

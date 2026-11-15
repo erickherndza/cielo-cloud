@@ -8,6 +8,8 @@
 //   colección, con control de versión para no pisar cambios de otra sesión.
 //   No se guarda copia en el navegador.
 
+import { setParametros } from './parametros-legales'
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')
 export const REMOTE_ENABLED = API_URL !== '' && !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY
 
@@ -117,6 +119,12 @@ export async function initRemoteStore(uid: string, token: GetToken): Promise<voi
   const ryo = await api('/api/yo')
   if (!ryo.ok) throw await errorDeApi(ryo)
   const yo = await ryo.json() as { email: string | null; esSuperadmin: boolean }
+  // Parámetros legales globales (editables por el super admin). Si no se pueden
+  // leer, el motor sigue con los valores de fábrica: nunca bloquea la entrada.
+  try {
+    const rp = await api('/api/parametros-legales')
+    if (rp.ok) { const p = await rp.json() as { version: number; datos: unknown }; setParametros(p.datos, p.version) }
+  } catch { /* se usan los valores por defecto */ }
   const rlista = await api('/api/empresas')
   if (!rlista.ok) throw await errorDeApi(rlista)
   const lista = await rlista.json() as EmpresaAcceso[]

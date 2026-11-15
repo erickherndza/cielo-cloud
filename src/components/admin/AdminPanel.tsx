@@ -6,6 +6,7 @@ import { apiJson, elegirEmpresa } from '@/lib/storage'
 import { formatDate } from '@/lib/utils'
 import { rncValido } from '@/lib/rnc'
 import { RncField } from '@/components/empresa/RncField'
+import { ParametrosLegalesPanel } from './ParametrosLegalesPanel'
 
 interface EmpresaAdmin { id: string; nombre: string; rnc: string | null; estado: 'activa' | 'suspendida'; creado_en: string; miembros: number }
 interface Invitacion { id: string; email: string; rol: string; estado: string; expira_en: string }
@@ -29,7 +30,7 @@ export function AdminPanel() {
   const [sel, setSel] = useState<EmpresaAdmin | null>(null)
   const [det, setDet] = useState<{ invitaciones: Invitacion[]; miembros: Miembro[] } | null>(null)
   const [inv, setInv] = useState({ email: '', rol: 'contador' })
-  const [vista, setVista] = useState<'empresas' | 'accesos'>('empresas')
+  const [vista, setVista] = useState<'empresas' | 'accesos' | 'legal'>('empresas')
   const [accesos, setAccesos] = useState<Acceso[]>([])
 
   const cargar = useCallback(async () => {
@@ -70,6 +71,23 @@ export function AdminPanel() {
     setInv({ email: '', rol: inv.rol }); setMsg({ tipo: 'ok', texto: 'Invitación creada: la persona queda asignada al entrar con ese correo' })
     void cargarDetalle(sel.id); void cargar()
   }
+  // Mensaje listo para pegar en WhatsApp o correo. El correo va en el texto,
+  // no en la URL (datos personales fuera de los enlaces).
+  async function copiarInvitacion(email: string, rol: string) {
+    const rolLabel = ROLES.find(r => r.v === rol)?.l ?? rol
+    const texto =
+      `Te invité a ${sel?.nombre ?? 'tu empresa'} en Cielo Cloud Nómina con el rol de ${rolLabel}.\n` +
+      `1) Entra a ${window.location.origin}/registro/\n` +
+      `2) Regístrate con Google o con correo y contraseña usando EXACTAMENTE este correo: ${email}\n` +
+      `3) Si usas contraseña, verifica tu correo desde el mensaje que te llegará.\n` +
+      `Al entrar con ese correo verificado, verás la empresa asignada.`
+    try {
+      await navigator.clipboard.writeText(texto)
+      setMsg({ tipo: 'ok', texto: 'Mensaje de invitación copiado: pégalo en WhatsApp o correo' })
+    } catch {
+      setMsg({ tipo: 'error', texto: 'No se pudo copiar. Tu navegador bloqueó el portapapeles.' })
+    }
+  }
   async function revocar(id: string) {
     if (!sel) return
     const r = await apiJson(`/api/admin/empresas/${sel.id}/invitaciones/${id}/revocar`, { method: 'POST' })
@@ -100,14 +118,14 @@ export function AdminPanel() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Administración de Cielo</h1>
-            <p className="text-xs text-zinc-500">Empresas, accesos e invitaciones. No muestra datos de empleados.</p>
+            <p className="text-xs text-zinc-500">Empresas, accesos, invitaciones y parámetros legales. No muestra datos de empleados.</p>
           </div>
         </div>
         <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-[#1a1d2e]">
-          {(['empresas', 'accesos'] as const).map(v => (
+          {(['empresas', 'legal', 'accesos'] as const).map(v => (
             <button key={v} onClick={() => setVista(v)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize ${vista === v ? 'bg-white text-[#1B2980] shadow-sm dark:bg-[#252840] dark:text-indigo-300' : 'text-zinc-500'}`}>
-              {v === 'accesos' ? 'Historial de accesos' : 'Empresas'}
+              {v === 'accesos' ? 'Historial de accesos' : v === 'legal' ? 'Parámetros legales' : 'Empresas'}
             </button>
           ))}
         </div>
@@ -121,7 +139,9 @@ export function AdminPanel() {
         </div>
       )}
 
-      {vista === 'accesos' ? (
+      {vista === 'legal' ? (
+        <ParametrosLegalesPanel />
+      ) : vista === 'accesos' ? (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
           <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#252840] dark:text-zinc-100">
             <History className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" /> Accesos de super admin a empresas
@@ -202,7 +222,7 @@ export function AdminPanel() {
                     {ROLES.map(r => <option key={r.v} value={r.v}>{r.l}</option>)}</select>
                   <button onClick={invitar} disabled={!inv.email.trim()} className="rounded-lg bg-[#1B2980] px-3 text-xs font-semibold text-white disabled:opacity-40">Invitar</button>
                 </div>
-                <p className="text-[10px] text-zinc-400">No se envía correo: la persona queda asignada cuando entre con ese correo verificado.</p>
+                <p className="text-[10px] text-zinc-400">No se envía correo: usa «copiar invitación» en la lista y mándasela tú. La persona queda asignada cuando entre con ese correo verificado.</p>
               </div>
               <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#252840]">
                 <p className="font-semibold text-zinc-700 dark:text-zinc-200">Usuarios</p>
@@ -217,8 +237,10 @@ export function AdminPanel() {
                     </span></p>))}
                 {det?.invitaciones.filter(i => i.estado === 'pendiente').map(i => (
                   <p key={i.id} className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-                    <span>{i.email} · {i.rol} (pendiente)</span>
-                    <button onClick={() => revocar(i.id)} className="underline">revocar</button></p>))}
+                    <span className="min-w-0 truncate">{i.email} · {i.rol} (pendiente)</span>
+                    <span className="flex shrink-0 gap-2">
+                      <button onClick={() => copiarInvitacion(i.email, i.rol)} className="underline">copiar invitación</button>
+                      <button onClick={() => revocar(i.id)} className="underline">revocar</button></span></p>))}
                 {det && !det.miembros.length && !det.invitaciones.some(i => i.estado === 'pendiente') && <p className="text-zinc-400">Sin usuarios todavía</p>}
               </div>
             </>)}
