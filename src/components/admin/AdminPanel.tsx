@@ -76,6 +76,20 @@ export function AdminPanel() {
     if (!r.ok) return error(r, 'No se pudo revocar')
     void cargarDetalle(sel.id)
   }
+  async function quitarMiembro(m: Miembro) {
+    if (!sel) return
+    if (!window.confirm(`¿Quitar a ${m.email ?? m.uid} de ${sel.nombre}? Pierde el acceso de inmediato.`)) return
+    const r = await apiJson(`/api/admin/empresas/${sel.id}/miembros/${encodeURIComponent(m.uid)}`, { method: 'DELETE' })
+    if (!r.ok) return error(r, 'No se pudo quitar')
+    setMsg({ tipo: 'ok', texto: 'Usuario quitado de la empresa' })
+    void cargarDetalle(sel.id); void cargar()
+  }
+  async function cambiarRol(m: Miembro, rol: string) {
+    if (!sel || rol === m.rol) return
+    const r = await apiJson(`/api/admin/empresas/${sel.id}/miembros/${encodeURIComponent(m.uid)}`, { method: 'PUT', body: JSON.stringify({ rol }) })
+    if (!r.ok) return error(r, 'No se pudo cambiar el rol')
+    void cargarDetalle(sel.id)
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
@@ -192,7 +206,15 @@ export function AdminPanel() {
               </div>
               <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#252840]">
                 <p className="font-semibold text-zinc-700 dark:text-zinc-200">Usuarios</p>
-                {det?.miembros.map(m => <p key={m.uid} className="flex justify-between text-zinc-500"><span>{m.email ?? m.uid}</span><span>{m.rol}</span></p>)}
+                {det?.miembros.map(m => (
+                  <p key={m.uid} className="flex items-center justify-between gap-2 text-zinc-500">
+                    <span className="min-w-0 truncate">{m.email ?? m.uid}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <select aria-label="Rol" value={m.rol} onChange={e => cambiarRol(m, e.target.value)}
+                        className="rounded border border-zinc-200 bg-transparent px-1 py-0.5 text-xs dark:border-[#252840]">
+                        {ROLES.map(r => <option key={r.v} value={r.v}>{r.l}</option>)}</select>
+                      <button onClick={() => quitarMiembro(m)} className="text-rose-600 underline dark:text-rose-400">quitar</button>
+                    </span></p>))}
                 {det?.invitaciones.filter(i => i.estado === 'pendiente').map(i => (
                   <p key={i.id} className="flex items-center justify-between text-amber-600 dark:text-amber-400">
                     <span>{i.email} · {i.rol} (pendiente)</span>

@@ -28,26 +28,37 @@ function crearLimitador() {
   const cubos = new Map()
   const t = setInterval(() => {
     const ahora = Date.now()
-    for (const [k, v] of cubos) if (!v.length || ahora - v[v.length - 1] > 120_000) cubos.delete(k)
+    // La ventana más larga es de una hora (empresas, correos): no se borra antes.
+    for (const [k, v] of cubos) if (!v.length || ahora - v[v.length - 1] > VENTANA_MAX_MS) cubos.delete(k)
   }, 60_000)
   t.unref()
-  return function excede(clave, max, ventanaMs) {
+  // `n` = unidades que consume la petición (p. ej. correos de un lote). Si el
+  // lote no cabe, no se consume nada: se rechaza entero.
+  return function excede(clave, max, ventanaMs, n = 1) {
     const ahora = Date.now()
     const arr = (cubos.get(clave) ?? []).filter(x => ahora - x < ventanaMs)
-    arr.push(ahora)
+    const pasa = arr.length + n > max
+    if (!pasa || n === 1) for (let i = 0; i < n; i++) arr.push(ahora)
     cubos.set(clave, arr)
-    return arr.length > max
+    return pasa
   }
 }
 
+const VENTANA_MAX_MS = 3_600_000
 const HISTORIAL_VERSIONES = 20
-const MAX_EMPRESAS_POR_USUARIO = 10
+const MAX_EMPRESAS_POR_USUARIO = 3
+const UID_OK = /^[A-Za-z0-9:_.@-]{1,128}$/
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function buildApp({
   projectId, origins, verify = verificarToken,
   limites = { general: 240, escritura: 40, empresas: 5, correos: 600 }, logger = true,
+  // Tope de peticiones por IP y minuto (incluye las que no traen token).
+  limiteIp = 600,
+  // Cuotas de almacenamiento: total por empresa (colecciones vigentes) y
+  // tamaño del historial de versiones por colección.
+  cuotas = { empresaBytes: 100 * 1024 * 1024, historialBytes: 30 * 1024 * 1024 },
   enviarCorreo = null,
   consultarRnc = crearConsultaConCache(),
   // Correos (verificados) de los super admin de la plataforma. Vienen de la
@@ -67,10 +78,15 @@ export function buildApp({
   const excede = crearLimitador()
 
   app.register(helmet, { global: true })
-  // Tope por IP contra inundaciones (incluye peticiones sin token). Con
-  // trustProxy la IP sale de X-Forwarded-For: es una defensa gruesa; el límite
-  // fino es por usuario verificado, más abajo.
-  app.register(rateLimit, { max: 600, timeWindow: '1 minute' })
+  // Tope por IP contra inundaciones (incluye peticiones sin token). La IP sale
+  // de CF-Connecting-IP (la fija Cloudflare; X-Forwarded-For lo puede escribir
+  // el cliente). Es una defensa gruesa; el límite fino es por usuario, abajo.
+  // OJO: el plugin solo limita rutas declaradas DESPUÉS de cargarse; por eso
+  // todas las rutas viven dentro del plugin `rutas`, registrado más abajo.
+  app.register(rateLimit, {
+    max: limiteIp, timeWindow: '1 minute',
+    keyGenerator: (req) => String(req.headers['cf-connecting-ip'] ?? req.ip),
+  })
 
   app.setErrorHandler((err, req, reply) => {
     const code = err.statusCode ?? 500
@@ -84,12 +100,21 @@ export function buildApp({
 
   app.register(cors, {
     origin: origins?.length ? origins : false,
-    methods: ['GET', 'PUT', 'POST', 'OPTIONS'],
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
   })
 
+  app.register(async function rutas(app) {
+
+  // La comprobación de la base se reutiliza 5 s: /health es público y no debe
+  // servir para agotar las conexiones del pool.
+  let salud = { hasta: 0, promesa: null }
   app.get('/health', async () => {
-    await pool.query('SELECT 1')
+    if (Date.now() > salud.hasta) {
+      salud = { hasta: Date.now() + 5000, promesa: pool.query('SELECT 1') }
+      salud.promesa.catch(() => { salud.hasta = 0 })
+    }
+    await salud.promesa
     return { ok: true }
   })
 
@@ -109,11 +134,13 @@ export function buildApp({
     }
     req.user.esSuperadmin = !!req.user.email && SUPER.has(req.user.email.toLowerCase())
     const uid = req.user.uid
-    const escribe = req.method === 'PUT' || req.method === 'POST'
+    const escribe = req.method === 'PUT' || req.method === 'POST' || req.method === 'DELETE'
+    // La ruta se compara por su patrón, no por la URL cruda (que admite ?x=1).
+    const ruta = req.routeOptions?.url
     const limitado =
       excede(`g:${uid}`, limites.general, 60_000) ||
       (escribe && excede(`w:${uid}`, limites.escritura, 60_000)) ||
-      (req.method === 'POST' && req.url === '/api/empresas' && excede(`e:${uid}`, limites.empresas, 3_600_000))
+      (req.method === 'POST' && ruta === '/api/empresas' && excede(`e:${uid}`, limites.empresas, 3_600_000))
     if (limitado) {
       reply.header('Retry-After', '60')
       return reply.code(429).send({ error: 'Demasiadas peticiones, espera un minuto' })
@@ -234,12 +261,20 @@ export function buildApp({
         return reply.code(400).send({ error: 'Cuerpo inválido' })
       }
       const uid = req.user.uid
+      const json = JSON.stringify(datos)
+      // Cuota por empresa: lo ya guardado en las demás colecciones + lo que llega.
+      const uso = await c.query(
+        `SELECT COALESCE(sum(pg_column_size(datos)), 0)::bigint AS bytes FROM documentos
+          WHERE empresa_id = $1 AND coleccion <> $2`, [empresaId, coleccion])
+      if (Number(uso.rows[0].bytes) + Buffer.byteLength(json) > cuotas.empresaBytes) {
+        return reply.code(413).send({ error: 'La empresa alcanzó su límite de almacenamiento — contacta a Cielo' })
+      }
       if (version === 0) {
         const r = await c.query(
           `INSERT INTO documentos (empresa_id, coleccion, datos, actualizado_por)
            VALUES ($1, $2, $3, $4)
            ON CONFLICT (empresa_id, coleccion) DO NOTHING RETURNING version`,
-          [empresaId, coleccion, JSON.stringify(datos), uid])
+          [empresaId, coleccion, json, uid])
         if (!r.rowCount) return reply.code(409).send({ error: 'Conflicto de versión' })
         return { version: r.rows[0].version }
       }
@@ -262,11 +297,22 @@ export function buildApp({
                 actualizado_en = now(), actualizado_por = $2
           WHERE empresa_id = $3 AND coleccion = $4 AND version = $5
           RETURNING version`,
-        [JSON.stringify(datos), uid, empresaId, coleccion, version])
+        [json, uid, empresaId, coleccion, version])
       const nueva = r.rows[0].version
       await c.query(
         'DELETE FROM documentos_historial WHERE empresa_id = $1 AND coleccion = $2 AND version <= $3',
         [empresaId, coleccion, nueva - HISTORIAL_VERSIONES])
+      // Además del tope de versiones, el historial tiene tope de tamaño: se
+      // borran las más viejas que no quepan (la más reciente se conserva siempre).
+      await c.query(
+        `DELETE FROM documentos_historial h USING (
+           SELECT version,
+                  sum(pg_column_size(datos)) OVER (ORDER BY version DESC) AS acum,
+                  row_number() OVER (ORDER BY version DESC) AS n
+             FROM documentos_historial WHERE empresa_id = $1 AND coleccion = $2) s
+          WHERE h.empresa_id = $1 AND h.coleccion = $2 AND h.version = s.version
+            AND s.n > 1 AND s.acum > $3`,
+        [empresaId, coleccion, cuotas.historialBytes])
       return { version: nueva }
     }))
 
@@ -307,13 +353,15 @@ export function buildApp({
       if (!Array.isArray(items) || !items.length || items.length > MAX_ITEMS_ENVIO) {
         return reply.code(400).send({ error: `Envía entre 1 y ${MAX_ITEMS_ENVIO} comprobantes por petición` })
       }
-      if (excede(`m:${req.user.uid}`, limites.correos ?? 600, 3_600_000 / Math.max(1, items.length))) {
+      // Cada comprobante cuenta como un correo dentro de la ventana de una hora.
+      if (excede(`m:${req.user.uid}`, limites.correos ?? 600, 3_600_000, items.length)) {
+        reply.header('Retry-After', '3600')
         return reply.code(429).send({ error: 'Límite de correos por hora alcanzado' })
       }
       const doc = await c.query(
         "SELECT datos FROM documentos WHERE empresa_id = $1 AND coleccion = 'empleados'", [req.params.empresaId])
       const empleados = Array.isArray(doc.rows[0]?.datos) ? doc.rows[0].datos : []
-      const porId = new Map(empleados.map(e => [String(e.id), e]))
+      const porId = new Map(empleados.filter(e => e && typeof e === 'object').map(e => [String(e.id), e]))
       const EMAIL = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/
 
       const resultados = []
@@ -465,6 +513,50 @@ export function buildApp({
     return r.rowCount ? { ok: true } : reply.code(404).send({ error: 'No encontrado' })
   })
 
+  // Quitar a una persona de una empresa o cambiarle el rol. Queda registrado.
+  // Las invitaciones pendientes de ese correo se revocan para que no vuelva a entrar.
+  const miembroInvalido = (req) => !UUID.test(req.params.empresaId) || !UID_OK.test(req.params.uid)
+
+  app.delete('/api/admin/empresas/:empresaId/miembros/:uid', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (miembroInvalido(req)) return reply.code(400).send({ error: 'Id inválido' })
+    const { empresaId, uid } = req.params
+    const ok = await conContexto(ctx(req, { empresaId }), async (c) => {
+      const r = await c.query(
+        'DELETE FROM miembros WHERE empresa_id = $1 AND uid = $2 RETURNING email', [empresaId, uid])
+      if (!r.rowCount) return false
+      const email = r.rows[0].email
+      if (email) {
+        await c.query(
+          "UPDATE invitaciones SET estado = 'revocada' WHERE empresa_id = $1 AND email = $2 AND estado = 'pendiente'",
+          [empresaId, email.toLowerCase()])
+      }
+      await c.query(
+        'INSERT INTO accesos_log (empresa_id, uid, email, accion) VALUES ($1, $2, $3, $4)',
+        [empresaId, req.user.uid, req.user.email, `QUITAR MIEMBRO ${email ?? uid}`.slice(0, 300)])
+      return true
+    })
+    return ok ? { ok: true } : reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  app.put('/api/admin/empresas/:empresaId/miembros/:uid', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (miembroInvalido(req)) return reply.code(400).send({ error: 'Id inválido' })
+    const rol = req.body?.rol
+    if (!ROLES.has(rol)) return reply.code(400).send({ error: 'Rol inválido' })
+    const { empresaId, uid } = req.params
+    const fila = await conContexto(ctx(req, { empresaId }), async (c) => {
+      const r = await c.query(
+        'UPDATE miembros SET rol = $3 WHERE empresa_id = $1 AND uid = $2 RETURNING uid, email, rol', [empresaId, uid, rol])
+      if (!r.rowCount) return null
+      await c.query(
+        'INSERT INTO accesos_log (empresa_id, uid, email, accion) VALUES ($1, $2, $3, $4)',
+        [empresaId, req.user.uid, req.user.email, `CAMBIAR ROL ${r.rows[0].email ?? uid} -> ${rol}`.slice(0, 300)])
+      return r.rows[0]
+    })
+    return fila ?? reply.code(404).send({ error: 'No encontrado' })
+  })
+
   app.get('/api/admin/accesos', async (req, reply) => {
     if (soloSuper(req, reply)) return
     const empresaId = req.query?.empresaId
@@ -475,6 +567,8 @@ export function buildApp({
         WHERE $1::uuid IS NULL OR l.empresa_id = $1::uuid
         ORDER BY l.creado_en DESC LIMIT 200`, [empresaId ?? null])).rows)
   })
+
+  })   // fin del plugin `rutas`
 
   return app
 }
