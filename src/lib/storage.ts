@@ -33,6 +33,7 @@ const dirty = new Set<string>()
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const inflight = new Map<string, Promise<void>>()
 let status: SyncStatus = 'idle'
+let generacion = 0
 const listeners = new Set<Listener>()
 
 function setStatus(s: SyncStatus) {
@@ -106,6 +107,7 @@ async function errorDeApi(r: Response): Promise<Error> {
 
 // ── Inicialización (al iniciar sesión) ──────────────────────────────────────
 export async function initRemoteStore(uid: string, token: GetToken): Promise<void> {
+  generacion++
   getToken = token
   cache = new Map()
   dirty.clear()
@@ -186,13 +188,19 @@ export async function enviarComprobantesServidor(items: ItemComprobanteServidor[
   return (await r.json()).resultados as ResultadoEnvio[]
 }
 
+// Al cerrar sesión: primero se envía lo pendiente (la escritura tiene un retraso
+// de 400 ms) y SOLO después se vacía el estado. Vaciarlo antes dejaba el envío
+// sin empresa ni cambios pendientes y el último cambio se perdía en silencio.
 export function resetRemoteStore() {
-  void flushStorage()
-  empresaId = null
-  acceso = null
-  getToken = null
-  cache = new Map()
-  dirty.clear()
+  const gen = ++generacion
+  void flushStorage().finally(() => {
+    if (gen !== generacion) return   // otra sesión ya inició: initRemoteStore reinició todo
+    empresaId = null
+    acceso = null
+    getToken = null
+    cache = new Map()
+    dirty.clear()
+  })
 }
 
 // ── Escritura en segundo plano ──────────────────────────────────────────────

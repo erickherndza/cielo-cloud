@@ -16,6 +16,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { getFirebaseAuthNamed, googleProvider, microsoftProvider, FIREBASE_ENABLED, DEFAULT_APP_NAME } from './firebase'
+import { flushStorage } from './storage'
 
 // ─── Multicuenta ────────────────────────────────────────────────────────────
 // Cada empresa vinculada en este dispositivo es una cuenta REAL de Firebase
@@ -203,6 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sin Firebase configurado no hay sesión que cerrar (getAuth lanzaría
     // auth/invalid-api-key).
     if (!FIREBASE_ENABLED) return
+    // Con la sesión aún abierta, enviar al servidor lo que quede pendiente.
+    await flushStorage().catch(() => {})
     await signOut(getFirebaseAuthNamed(activaAppName))
     // Si esta cuenta ya estaba registrada como una de varias vinculadas, se
     // quita de la lista al cerrar sesión — si no (el caso de siempre, una
