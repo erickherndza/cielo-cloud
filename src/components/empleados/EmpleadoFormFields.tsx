@@ -733,6 +733,17 @@ export function EmpleadoFormFields({
               placeholder="Opcional" />
           </div>
         </div>
+        <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+          <input type="checkbox" className="mt-0.5" checked={form.partidasAnterioresPendientes}
+            onChange={e => set('partidasAnterioresPendientes', e.target.checked)} />
+          <span>
+            <span className="font-medium">La empresa debe bonificación o regalía de años anteriores</span>
+            <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">
+              Si no lo marcas, las alertas de vencimiento cuentan solo desde hoy: el sistema no da por
+              pendientes los años anteriores a la fecha en que registras al empleado.
+            </span>
+          </span>
+        </label>
         <p className="mt-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
           El salario histórico se usa para Cesantía/Preaviso/Asistencia Económica solo
           mientras el empleado no acumule 12 meses de nómina procesada en Cielo Cloud —

@@ -229,6 +229,7 @@ export interface EmpForm {
   contratoLaboralNombre: string
   regimenIntermitente: boolean
   saldoVacacionesInicial: string
+  partidasAnterioresPendientes: boolean
   regaliaPagadaEsteAnio: string
   salarioHistoricoReferencia: string
   aporteVoluntarioAFPEmpleadoPct: string
@@ -247,7 +248,7 @@ export const EMPTY_EMP_FORM: EmpForm = {
   fotoPerfil: '', documentoIdentidad: '', documentoIdentidadNombre: '',
   contratoLaboral: '', contratoLaboralNombre: '',
   regimenIntermitente: false,
-  saldoVacacionesInicial: '', regaliaPagadaEsteAnio: '', salarioHistoricoReferencia: '',
+  saldoVacacionesInicial: '', partidasAnterioresPendientes: false, regaliaPagadaEsteAnio: '', salarioHistoricoReferencia: '',
   aporteVoluntarioAFPEmpleadoPct: '', aporteVoluntarioAFPEmpresaPct: '',
   grossingUpPct: '',
   ingresoOtroEmpleadorMensual: '',
@@ -272,6 +273,7 @@ export function toEmpForm(e: Empleado): EmpForm {
     contratoLaboralNombre: e.contratoLaboralNombre ?? '',
     regimenIntermitente: e.regimenIntermitente ?? false,
     saldoVacacionesInicial: e.saldoVacacionesInicial != null ? String(e.saldoVacacionesInicial) : '',
+    partidasAnterioresPendientes: e.partidasAnterioresPendientes ?? false,
     regaliaPagadaEsteAnio: e.regaliaPagadaEsteAnio != null ? String(e.regaliaPagadaEsteAnio) : '',
     salarioHistoricoReferencia: e.salarioHistoricoReferencia != null ? String(e.salarioHistoricoReferencia) : '',
     aporteVoluntarioAFPEmpleadoPct: e.aporteVoluntarioAFPEmpleadoPct != null ? String(e.aporteVoluntarioAFPEmpleadoPct) : '',
@@ -309,6 +311,7 @@ export function formToEmpleado(form: EmpForm, sectorEmpresa?: SectorEmpresa): Om
     numeroCuenta:    form.numeroCuenta.trim() || undefined,
     categoriaRiesgo: getCategoriaSRLPorSector(sectorEmpresa),
     regimenIntermitente: form.regimenIntermitente,
+    partidasAnterioresPendientes: form.partidasAnterioresPendientes || undefined,
     saldoVacacionesInicial:     form.saldoVacacionesInicial     ? Number(form.saldoVacacionesInicial)     : undefined,
     regaliaPagadaEsteAnio:      form.regaliaPagadaEsteAnio      ? Number(form.regaliaPagadaEsteAnio)      : undefined,
     salarioHistoricoReferencia: form.salarioHistoricoReferencia ? Number(form.salarioHistoricoReferencia) : undefined,

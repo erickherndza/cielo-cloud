@@ -140,6 +140,10 @@ export interface Empleado {
   regaliaPagadaAnio?: number
   salarioHistoricoReferencia?: number  // salario promedio de referencia (Cesantía/Preaviso/Asistencia Económica)
                                         // mientras se acumulan 12 meses reales de nómina procesada en el sistema
+  registradoEn?: string                // ISO: cuándo se dio de alta en Cielo Cloud (lo estampa useEmpleados.add)
+  partidasAnterioresPendientes?: boolean  // true = la empresa declaró que debe bonificación/regalía de años
+                                        // anteriores a su alta en Cielo Cloud; sin esto, las alertas de
+                                        // vencimiento solo cuentan desde el alta (no inventan deudas viejas)
   saldosInicialesRevisado?: boolean    // true una vez que el Asistente de Carga Inicial confirmó este
                                         // empleado (con datos o marcado "no aplica, empleado nuevo")
 

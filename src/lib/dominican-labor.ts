@@ -991,8 +991,21 @@ export interface BonificacionPendiente {
 // empresa recién migrada a Cielo Cloud (sin historial de bonificación
 // cargado) vería "vencido hace miles de días" para ejercicios anteriores a
 // que la empresa tuviera empleados, un falso positivo sin sentido práctico.
+// Desde cuándo se da seguimiento a las obligaciones de un empleado: su ingreso
+// si la empresa declaró partidas anteriores pendientes (o si es un registro
+// anterior a este campo); si no, el día en que se dio de alta en Cielo Cloud
+// (lo anterior se asume saldado). Evita alertas de "vencido" por años que el
+// sistema nunca vio.
+type SeguimientoEmpleado = Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes'>
+function inicioSeguimiento(e: SeguimientoEmpleado): Date {
+  const ingreso = parseFechaLocal(e.fechaIngreso)
+  if (e.partidasAnterioresPendientes || !e.registradoEn) return ingreso
+  const alta = new Date(e.registradoEn)
+  return alta > ingreso ? alta : ingreso
+}
+
 export function getBonificacionesPendientes(
-  empleados: Pick<Empleado, 'fechaIngreso'>[],
+  empleados: SeguimientoEmpleado[],
   periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
   cierreFiscal: CierreFiscal,
   aniosCandidatos: number[],
@@ -1005,7 +1018,7 @@ export function getBonificacionesPendientes(
   if (empleados.length === 0) return []
 
   const hoy = new Date()
-  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => parseFechaLocal(e.fechaIngreso).getTime())))
+  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => inicioSeguimiento(e).getTime())))
 
   return aniosCandidatos
     .map(a => {
@@ -1037,14 +1050,14 @@ export interface RegaliaPendiente {
 // alerta solo evaluaba `anioActual`, así que un atraso desaparecía
 // silenciosamente en cuanto el calendario avanzaba al año siguiente.
 export function getRegaliaPendientes(
-  empleados: Pick<Empleado, 'fechaIngreso'>[],
+  empleados: SeguimientoEmpleado[],
   periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
   aniosCandidatos: number[],
 ): RegaliaPendiente[] {
   if (empleados.length === 0) return []
 
   const hoy = new Date()
-  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => parseFechaLocal(e.fechaIngreso).getTime())))
+  const primerIngresoConocido = new Date(Math.min(...empleados.map(e => inicioSeguimiento(e).getTime())))
 
   return aniosCandidatos
     .map(anio => {

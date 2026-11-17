@@ -64,7 +64,7 @@ export function EmpleadosProvider({ children }: { children: ReactNode }) {
   }, [key, ready])
 
   function add(data: Omit<Empleado, 'id'>): Empleado {
-    const nuevo: Empleado = { ...data, id: genId() }
+    const nuevo: Empleado = { ...data, id: genId(), registradoEn: data.registradoEn ?? new Date().toISOString() }
     setEmpleados(prev => {
       const next = [...prev, nuevo]
       try { storage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
