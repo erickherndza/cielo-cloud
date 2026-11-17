@@ -84,12 +84,16 @@ const claveActiva = (uid: string) => `cielo-empresa-activa::${uid}`
 let uidActual = ''
 
 // El navegador solo recuerda QUÉ empresa estaba activa (id y nombre), nunca datos.
+const claveSalida = (uid: string) => `cielo-sin-empresa::${uid}`
 export function elegirEmpresa(e: { id: string; nombre: string; rnc: string | null }) {
+  sessionStorage.removeItem(claveSalida(uidActual))
   localStorage.setItem(claveActiva(uidActual), JSON.stringify(e))
   window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/`)
 }
 export function salirDeEmpresa() {
   localStorage.removeItem(claveActiva(uidActual))
+  // Sin esta marca, quien tiene una sola empresa volvía a entrar a ella solo.
+  sessionStorage.setItem(claveSalida(uidActual), '1')
   window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/`)
 }
 
@@ -138,7 +142,8 @@ export async function initRemoteStore(uid: string, token: GetToken): Promise<voi
     if (g?.id && (lista.some(e => e.id === g.id) || yo.esSuperadmin)) elegida = { id: g.id, nombre: g.nombre ?? '', rnc: g.rnc ?? null }
   } catch { /* guardado dañado: se ignora */ }
   // 2) si solo tiene una, esa
-  if (!elegida && lista.length === 1) elegida = { id: lista[0].id, nombre: lista[0].nombre, rnc: lista[0].rnc }
+  const salioAProposito = sessionStorage.getItem(claveSalida(uid)) === '1'
+  if (!elegida && lista.length === 1 && !salioAProposito) elegida = { id: lista[0].id, nombre: lista[0].nombre, rnc: lista[0].rnc }
 
   let recienCreada = false
   // 3) sin ninguna: si el servidor lo permite (transición), crea la suya; el
