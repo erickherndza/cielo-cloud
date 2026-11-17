@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import { createHash } from 'node:crypto'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
@@ -71,6 +72,29 @@ export function buildApp({
   autoregistro = true,
 } = {}) {
   const SUPER = new Set(superadmins.map(e => e.trim().toLowerCase()).filter(Boolean))
+  // Registro de errores de la plataforma (consola de super admin). Es de mejor
+  // esfuerzo: nunca debe provocar otro error ni guarda cuerpos de petición.
+  const huellaDe = (origen, mensaje, ruta) =>
+    createHash('sha1').update(`${origen}|${mensaje}|${ruta}`).digest('hex').slice(0, 20)
+  async function registrarError({ origen, mensaje, detalle = '', ruta = '', uid, empresaId = null }) {
+    if (!uid) return
+    try {
+      const m = String(mensaje || 'Error sin mensaje').slice(0, 500)
+      const r = String(ruta).slice(0, 200)
+      await conContexto({ uid }, async (c) => {
+        let emp = null
+        if (empresaId && UUID.test(empresaId)) {
+          const ok = await c.query('SELECT 1 FROM miembros WHERE empresa_id = $1 AND uid = $2', [empresaId, uid])
+          if (ok.rowCount) emp = empresaId
+        }
+        await c.query(
+          `INSERT INTO errores (huella, origen, mensaje, detalle, ruta, empresa_id, uid)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [huellaDe(origen, m, r), origen, m, String(detalle).slice(0, 3000), r, emp, uid])
+      })
+    } catch { /* el registro de errores nunca rompe la petición */ }
+  }
+
   const app = Fastify({
     logger: logger && { redact: ['req.headers.authorization', 'req.headers.cookie'] },
     bodyLimit: 25 * 1024 * 1024,
@@ -93,6 +117,7 @@ export function buildApp({
     const code = err.statusCode ?? 500
     if (code >= 500) {
       req.log.error({ err }, 'error interno')
+      void registrarError({ origen: 'api', mensaje: err.message, detalle: err.stack, ruta: `${req.method} ${req.routeOptions?.url ?? ''}`, uid: req.user?.uid })
       return reply.code(500).send({ error: 'Error interno' })
     }
     return reply.code(code).send({ error: code === 429 ? 'Demasiadas peticiones' : (err.message || 'Petición inválida') })
@@ -172,6 +197,10 @@ export function buildApp({
           await c.query("UPDATE invitaciones SET estado = 'aceptada' WHERE id = $1", [inv.id])
         }
       }
+      // Último acceso de la persona (se actualiza como mucho cada 10 minutos).
+      await c.query(
+        `UPDATE miembros SET ultimo_acceso = now()
+          WHERE uid = $1 AND (ultimo_acceso IS NULL OR ultimo_acceso < now() - interval '10 minutes')`, [uid])
       const r = await c.query(
         `SELECT e.id, e.nombre, e.rnc, e.estado, m.rol
            FROM miembros m JOIN empresas e ON e.id = m.empresa_id
@@ -644,10 +673,166 @@ export function buildApp({
   app.get('/api/admin/usuarios', async (req, reply) => {
     if (soloSuper(req, reply)) return
     return conContexto(ctx(req), async (c) => (await c.query(
-      `SELECT m.uid, m.email, m.rol, m.creado_en, e.id AS empresa_id, e.nombre AS empresa, e.rnc, e.estado,
+      `SELECT m.uid, m.email, m.rol, m.creado_en, m.ultimo_acceso, e.id AS empresa_id, e.nombre AS empresa, e.rnc, e.estado,
               (SELECT max(d.actualizado_en) FROM documentos d WHERE d.empresa_id = e.id) AS ultima_actividad
          FROM miembros m JOIN empresas e ON e.id = m.empresa_id
         ORDER BY m.creado_en DESC LIMIT 500`)).rows)
+  })
+
+  // ── Cobros y renovaciones (registro manual por el super admin) ─────────────
+  const CICLOS = new Set(['mensual', 'anual'])
+  const METODOS = new Set(['transferencia', 'efectivo', 'tarjeta', 'cheque', 'otro'])
+  const FECHA_OK = /^\d{4}-\d{2}-\d{2}$/
+  const fechaValida = (f) => FECHA_OK.test(f) && !Number.isNaN(Date.parse(`${f}T00:00:00Z`))
+  const dinero = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n < 1e9 ? Math.round(n * 100) / 100 : null }
+
+  app.get('/api/admin/cobros', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    return conContexto(ctx(req), async (c) => {
+      const empresas = (await c.query(
+        `SELECT e.id, e.nombre, e.rnc, e.estado AS estado_empresa,
+                s.plan, s.monto::float8 AS monto, s.ciclo, to_char(s.fecha_renovacion, 'YYYY-MM-DD') AS fecha_renovacion,
+                s.notas,
+                CASE WHEN s.empresa_id IS NULL THEN 'sin_plan'
+                     WHEN s.fecha_renovacion IS NULL THEN 'sin_fecha'
+                     WHEN s.fecha_renovacion < current_date THEN 'vencido'
+                     WHEN s.fecha_renovacion <= current_date + 7 THEN 'por_vencer'
+                     ELSE 'al_dia' END AS estado_cobro,
+                (SELECT to_char(max(p.fecha_pago), 'YYYY-MM-DD') FROM pagos p WHERE p.empresa_id = e.id AND NOT p.anulado) AS ultimo_pago
+           FROM empresas e LEFT JOIN suscripciones s ON s.empresa_id = e.id
+          WHERE e.estado = 'activa'
+          ORDER BY s.fecha_renovacion NULLS LAST, e.nombre LIMIT 500`)).rows
+      const mrr = (await c.query(
+        `SELECT coalesce(sum(CASE ciclo WHEN 'mensual' THEN monto ELSE monto / 12 END), 0)::float8 AS n
+           FROM suscripciones s JOIN empresas e ON e.id = s.empresa_id WHERE e.estado = 'activa'`)).rows[0].n
+      const porMes = (await c.query(
+        `SELECT to_char(date_trunc('month', fecha_pago), 'YYYY-MM') AS mes, sum(monto)::float8 AS total
+           FROM pagos WHERE NOT anulado AND fecha_pago > current_date - interval '12 months'
+          GROUP BY 1 ORDER BY 1`)).rows
+      const cobrado30 = (await c.query(
+        `SELECT coalesce(sum(monto), 0)::float8 AS n FROM pagos
+          WHERE NOT anulado AND fecha_pago > current_date - interval '30 days'`)).rows[0].n
+      const porCobrar = (await c.query(
+        `SELECT coalesce(sum(s.monto), 0)::float8 AS n
+           FROM suscripciones s JOIN empresas e ON e.id = s.empresa_id
+          WHERE e.estado = 'activa' AND s.fecha_renovacion < current_date`)).rows[0].n
+      return { empresas, mrr, cobrado30, porCobrar, cobradoPorMes: porMes }
+    })
+  })
+
+  app.put('/api/admin/empresas/:empresaId/suscripcion', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    const b = req.body ?? {}
+    const plan = String(b.plan ?? '').trim().slice(0, 80)
+    const monto = dinero(b.monto)
+    const ciclo = b.ciclo
+    const fecha = b.fecha_renovacion || null
+    const notas = String(b.notas ?? '').slice(0, 500)
+    if (monto === null) return reply.code(400).send({ error: 'Monto inválido' })
+    if (!CICLOS.has(ciclo)) return reply.code(400).send({ error: 'Ciclo inválido' })
+    if (fecha !== null && !fechaValida(fecha)) return reply.code(400).send({ error: 'Fecha de renovación inválida' })
+    const r = await conContexto(ctx(req), async (c) => {
+      const e = await c.query('SELECT 1 FROM empresas WHERE id = $1', [req.params.empresaId])
+      if (!e.rowCount) return null
+      return c.query(
+        `INSERT INTO suscripciones (empresa_id, plan, monto, ciclo, fecha_renovacion, notas)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (empresa_id) DO UPDATE SET plan = $2, monto = $3, ciclo = $4,
+           fecha_renovacion = $5, notas = $6, actualizado_en = now()
+         RETURNING empresa_id`, [req.params.empresaId, plan, monto, ciclo, fecha, notas])
+    })
+    return r ? { ok: true } : reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  app.get('/api/admin/empresas/:empresaId/pagos', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    return conContexto(ctx(req), async (c) => (await c.query(
+      `SELECT id, monto::float8 AS monto, to_char(fecha_pago, 'YYYY-MM-DD') AS fecha_pago, metodo, referencia, nota, anulado, creado_en
+         FROM pagos WHERE empresa_id = $1 ORDER BY fecha_pago DESC, creado_en DESC LIMIT 200`, [req.params.empresaId])).rows)
+  })
+
+  // Registra un pago y (por defecto) corre la renovación un ciclo.
+  app.post('/api/admin/empresas/:empresaId/pagos', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
+    const b = req.body ?? {}
+    const monto = dinero(b.monto)
+    if (!monto) return reply.code(400).send({ error: 'Monto inválido' })
+    if (!fechaValida(b.fecha_pago)) return reply.code(400).send({ error: 'Fecha de pago inválida' })
+    const metodo = METODOS.has(b.metodo) ? b.metodo : 'transferencia'
+    const referencia = String(b.referencia ?? '').trim().slice(0, 120)
+    const nota = String(b.nota ?? '').trim().slice(0, 300)
+    const renovar = b.renovar !== false
+    const r = await conContexto(ctx(req), async (c) => {
+      const e = await c.query('SELECT 1 FROM empresas WHERE id = $1', [req.params.empresaId])
+      if (!e.rowCount) return null
+      const p = await c.query(
+        `INSERT INTO pagos (empresa_id, monto, fecha_pago, metodo, referencia, nota, registrado_por)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [req.params.empresaId, monto, b.fecha_pago, metodo, referencia, nota, req.user.email ?? req.user.uid])
+      let nueva = null
+      if (renovar) {
+        const u = await c.query(
+          `UPDATE suscripciones
+              SET fecha_renovacion = (coalesce(fecha_renovacion, $2::date)
+                    + CASE ciclo WHEN 'mensual' THEN interval '1 month' ELSE interval '1 year' END)::date,
+                  actualizado_en = now()
+            WHERE empresa_id = $1 RETURNING to_char(fecha_renovacion, 'YYYY-MM-DD') AS f`,
+          [req.params.empresaId, b.fecha_pago])
+        nueva = u.rows[0]?.f ?? null
+      }
+      return { id: p.rows[0].id, renovacion: nueva }
+    })
+    return r ? reply.code(201).send(r) : reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  // Anula un pago (no se borra: queda el rastro). No mueve la renovación.
+  app.post('/api/admin/pagos/:id/anular', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!UUID.test(req.params.id)) return reply.code(400).send({ error: 'Id inválido' })
+    const r = await conContexto(ctx(req), (c) => c.query(
+      'UPDATE pagos SET anulado = true WHERE id = $1 AND NOT anulado RETURNING id', [req.params.id]))
+    return r.rowCount ? { ok: true } : reply.code(404).send({ error: 'No encontrado' })
+  })
+
+  // ── Registro de errores ────────────────────────────────────────────────────
+  // Cualquier sesión verificada reporta (límite por usuario); solo el super
+  // admin los ve. No se aceptan cuerpos de petición ni datos de empleados.
+  app.post('/api/errores', async (req, reply) => {
+    if (excede(`x:${req.user.uid}`, limites.errores ?? 30, 3_600_000)) return reply.code(429).send({ error: 'Demasiados reportes' })
+    const b = req.body ?? {}
+    await registrarError({
+      origen: 'web', mensaje: String(b.mensaje ?? ''), detalle: String(b.detalle ?? ''),
+      ruta: String(b.ruta ?? ''), uid: req.user.uid, empresaId: b.empresaId,
+    })
+    return reply.code(204).send()
+  })
+
+  app.get('/api/admin/errores', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    const verResueltos = req.query?.resueltos === '1'
+    return conContexto(ctx(req), async (c) => {
+      await c.query("DELETE FROM errores WHERE creado_en < now() - interval '90 days'")
+      return (await c.query(
+        `SELECT huella, max(origen) AS origen, max(mensaje) AS mensaje, max(ruta) AS ruta,
+                count(*)::int AS veces, count(DISTINCT empresa_id)::int AS empresas, count(DISTINCT uid)::int AS usuarios,
+                min(creado_en) AS primera, max(creado_en) AS ultima,
+                (array_agg(detalle ORDER BY creado_en DESC))[1] AS detalle,
+                bool_and(resuelto) AS resuelto
+           FROM errores GROUP BY huella
+         HAVING bool_and(resuelto) = $1
+          ORDER BY max(creado_en) DESC LIMIT 200`, [verResueltos])).rows
+    })
+  })
+
+  app.post('/api/admin/errores/:huella/resolver', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    if (!/^[0-9a-f]{20}$/.test(req.params.huella)) return reply.code(400).send({ error: 'Id inválido' })
+    const resuelto = req.body?.resuelto !== false
+    await conContexto(ctx(req), (c) => c.query('UPDATE errores SET resuelto = $2 WHERE huella = $1', [req.params.huella, resuelto]))
+    return { ok: true }
   })
 
   })   // fin del plugin `rutas`

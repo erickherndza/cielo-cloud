@@ -1,17 +1,19 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { REMOTE_ENABLED } from '@/lib/storage'
 import { useRemoteStore } from '@/lib/remote-store'
 import { elegirEmpresa, salirDeEmpresa } from '@/lib/storage'
 import { AdminPanel } from '@/components/admin/AdminPanel'
+import { instalarReporteDeErrores } from '@/lib/error-reporter'
 
 // Con base de datos remota: bloquea la app mientras se cargan los datos (así
 // nadie escribe sobre una lista vacía) y avisa si algo no se pudo guardar.
 export function SyncGate({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const { ready, sinEmpresa, acceso, error, status } = useRemoteStore()
+  useEffect(() => instalarReporteDeErrores(), [])
   if (!REMOTE_ENABLED || !user) return <>{children}</>
   // Correo sin verificar: todavía no hay datos que cargar; el RouteGuard
   // muestra la pantalla de verificación.

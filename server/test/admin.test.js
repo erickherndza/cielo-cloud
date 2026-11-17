@@ -121,3 +121,45 @@ test('consola: resumen y usuarios solo para el super admin, sin datos de emplead
   const l = (await call('GET', '/api/admin/empresas', S)).json()
   assert.ok('contacto' in l[0] && 'empleados' in l[0] && 'ultima_actividad' in l[0])
 })
+
+test('cobros: solo super admin; plan, pago que corre la renovación y anulación', async () => {
+  const id = (await call('POST', '/api/admin/empresas', S, { nombre: 'Cobra', rnc: rnc() })).json().id
+  const U = tok('cob1' + RUN)
+  assert.equal((await call('GET', '/api/admin/cobros', U)).statusCode, 404)
+  assert.equal((await call('PUT', `/api/admin/empresas/${id}/suscripcion`, U, { monto: 1, ciclo: 'mensual' })).statusCode, 404)
+
+  const mala = await call('PUT', `/api/admin/empresas/${id}/suscripcion`, S, { monto: -5, ciclo: 'mensual' })
+  assert.equal(mala.statusCode, 400)
+  assert.equal((await call('PUT', `/api/admin/empresas/${id}/suscripcion`, S, { monto: 5, ciclo: 'semanal' })).statusCode, 400)
+  const ok = await call('PUT', `/api/admin/empresas/${id}/suscripcion`, S, { plan: 'B', monto: 1700, ciclo: 'mensual', fecha_renovacion: '2020-01-31' })
+  assert.equal(ok.statusCode, 200)
+
+  let fila = (await call('GET', '/api/admin/cobros', S)).json().empresas.find(e => e.id === id)
+  assert.equal(fila.estado_cobro, 'vencido'); assert.equal(fila.monto, 1700)
+
+  assert.equal((await call('POST', `/api/admin/empresas/${id}/pagos`, S, { monto: 0, fecha_pago: '2020-02-01' })).statusCode, 400)
+  assert.equal((await call('POST', `/api/admin/empresas/${id}/pagos`, S, { monto: 10, fecha_pago: 'ayer' })).statusCode, 400)
+  const p = await call('POST', `/api/admin/empresas/${id}/pagos`, S, { monto: 1700, fecha_pago: '2020-02-01', metodo: 'transferencia', referencia: 'T-1' })
+  assert.equal(p.statusCode, 201); assert.equal(p.json().renovacion, '2020-02-29')   // enero 31 + 1 mes
+
+  const pagos = (await call('GET', `/api/admin/empresas/${id}/pagos`, S)).json()
+  assert.equal(pagos.length, 1); assert.equal(pagos[0].monto, 1700); assert.equal(pagos[0].fecha_pago, '2020-02-01')
+  assert.equal((await call('POST', `/api/admin/pagos/${pagos[0].id}/anular`, S)).statusCode, 200)
+  assert.equal((await call('POST', `/api/admin/pagos/${pagos[0].id}/anular`, S)).statusCode, 404)
+  const c = (await call('GET', '/api/admin/cobros', S)).json()
+  assert.equal(typeof c.mrr, 'number'); assert.ok(Array.isArray(c.cobradoPorMes))
+})
+
+test('errores: cualquiera reporta, solo el super admin los ve y los marca', async () => {
+  const U = tok('err1' + RUN)
+  const msg = `Fallo de prueba ${RUN}`
+  for (let i = 0; i < 3; i++) assert.equal((await call('POST', '/api/errores', U, { mensaje: msg, ruta: '/nomina', detalle: 'stack' })).statusCode, 204)
+  assert.equal((await call('GET', '/api/admin/errores', U)).statusCode, 404)
+  const lista = (await call('GET', '/api/admin/errores', S)).json()
+  const e = lista.find(x => x.mensaje === msg)
+  assert.ok(e); assert.equal(e.veces, 3); assert.equal(e.origen, 'web')
+  assert.equal((await call('POST', `/api/admin/errores/${e.huella}/resolver`, U, {})).statusCode, 404)
+  assert.equal((await call('POST', `/api/admin/errores/${e.huella}/resolver`, S, {})).statusCode, 200)
+  assert.ok(!(await call('GET', '/api/admin/errores', S)).json().some(x => x.mensaje === msg))
+  assert.ok((await call('GET', '/api/admin/errores?resueltos=1', S)).json().some(x => x.mensaje === msg))
+})

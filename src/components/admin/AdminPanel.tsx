@@ -7,6 +7,8 @@ import { formatDate } from '@/lib/utils'
 import { rncValido } from '@/lib/rnc'
 import { RncField } from '@/components/empresa/RncField'
 import { ParametrosLegalesPanel } from './ParametrosLegalesPanel'
+import { CobrosPanel, type CobrosData } from './CobrosPanel'
+import { ErroresPanel } from './ErroresPanel'
 
 interface EmpresaAdmin { id: string; nombre: string; rnc: string | null; estado: 'activa' | 'suspendida'; creado_en: string; miembros: number
   contacto: string | null; empleados: number | null; periodos: number | null; ultima_actividad: string | null }
@@ -17,7 +19,7 @@ interface Resumen {
   usuarios: number; empleados: number; activas7d: number; activas30d: number
   altasPorMes: { mes: string; n: number }[]
 }
-interface UsuarioAdmin { uid: string; email: string | null; rol: string; creado_en: string; empresa_id: string; empresa: string; rnc: string | null; estado: string; ultima_actividad: string | null }
+interface UsuarioAdmin { uid: string; email: string | null; rol: string; creado_en: string; empresa_id: string; empresa: string; rnc: string | null; estado: string; ultima_actividad: string | null; ultimo_acceso: string | null }
 interface Acceso { id: number; empresa: string; rnc: string | null; email: string | null; accion: string; creado_en: string }
 
 const ROLES = [
@@ -43,9 +45,10 @@ export function AdminPanel() {
   const [sel, setSel] = useState<EmpresaAdmin | null>(null)
   const [det, setDet] = useState<{ invitaciones: Invitacion[]; miembros: Miembro[] } | null>(null)
   const [inv, setInv] = useState({ email: '', rol: 'contador' })
-  const [vista, setVista] = useState<'resumen' | 'empresas' | 'usuarios' | 'accesos' | 'legal'>('resumen')
+  const [vista, setVista] = useState<'resumen' | 'empresas' | 'usuarios' | 'cobros' | 'errores' | 'accesos' | 'legal'>('resumen')
   const [accesos, setAccesos] = useState<Acceso[]>([])
   const [resumen, setResumen] = useState<Resumen | null>(null)
+  const [cobros, setCobros] = useState<CobrosData | null>(null)
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([])
   const miEmpresa = getAcceso()?.empresas.find(e => e.estado !== 'suspendida') ?? null
 
@@ -61,7 +64,10 @@ export function AdminPanel() {
   }, [])
   useEffect(() => { if (sel) void cargarDetalle(sel.id); else setDet(null) }, [sel, cargarDetalle])
   useEffect(() => {
-    if (vista === 'resumen') void apiJson<Resumen>('/api/admin/resumen').then(r => { if (r.ok) setResumen(r.data) })
+    if (vista === 'resumen') {
+      void apiJson<Resumen>('/api/admin/resumen').then(r => { if (r.ok) setResumen(r.data) })
+      void apiJson<CobrosData>('/api/admin/cobros').then(r => { if (r.ok) setCobros(r.data) })
+    }
     if (vista === 'usuarios') void apiJson<UsuarioAdmin[]>('/api/admin/usuarios').then(r => { if (r.ok) setUsuarios(r.data) })
   }, [vista])
   useEffect(() => {
@@ -148,7 +154,7 @@ export function AdminPanel() {
             <Building2 className="h-3.5 w-3.5" /> Ir a mi empresa</button>
         )}
         <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-[#1a1d2e]">
-          {(['resumen', 'empresas', 'usuarios', 'legal', 'accesos'] as const).map(v => (
+          {(['resumen', 'empresas', 'usuarios', 'cobros', 'errores', 'legal', 'accesos'] as const).map(v => (
             <button key={v} onClick={() => setVista(v)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize ${vista === v ? 'bg-white text-[#1B2980] shadow-sm dark:bg-[#252840] dark:text-indigo-300' : 'text-zinc-500'}`}>
               {v === 'accesos' ? 'Historial de accesos' : v === 'legal' ? 'Parámetros legales' : v}
@@ -167,7 +173,7 @@ export function AdminPanel() {
       )}
 
       {vista === 'resumen' ? (
-        <ResumenVista r={resumen} empresas={empresas} />
+        <ResumenVista r={resumen} empresas={empresas} cobros={cobros} irA={setVista} />
       ) : vista === 'usuarios' ? (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
           <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#252840] dark:text-zinc-100">
@@ -177,7 +183,7 @@ export function AdminPanel() {
             <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#1a1d2e]">
               <th className="px-4 py-2 font-medium">Correo</th><th className="px-4 py-2 font-medium">Rol</th>
               <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Desde</th>
-              <th className="px-4 py-2 font-medium">Actividad de la empresa</th></tr></thead>
+              <th className="px-4 py-2 font-medium">Último acceso</th><th className="px-4 py-2 font-medium">Actividad de la empresa</th></tr></thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
               {usuarios.map(u => (
                 <tr key={`${u.empresa_id}-${u.uid}`}>
@@ -186,13 +192,18 @@ export function AdminPanel() {
                   <td className="px-4 py-2 text-zinc-700 dark:text-zinc-300">{u.empresa || '(sin nombre)'} <span className="text-zinc-400">{u.rnc}</span>
                     {u.estado === 'suspendida' && <span className="ml-1 text-amber-600">· suspendida</span>}</td>
                   <td className="px-4 py-2 tabular-nums text-zinc-500">{formatDate(u.creado_en)}</td>
+                  <td className="px-4 py-2 text-zinc-500">{hace(u.ultimo_acceso)}</td>
                   <td className="px-4 py-2 text-zinc-500">{hace(u.ultima_actividad)}</td></tr>
               ))}
-              {!usuarios.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-400">Sin usuarios</td></tr>}
+              {!usuarios.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-400">Sin usuarios</td></tr>}
             </tbody>
           </table>
-          <p className="border-t border-zinc-200 px-4 py-2 text-[10px] text-zinc-400 dark:border-[#252840]">La actividad es la del último guardado de la empresa; aún no se registra el último inicio de sesión de cada persona.</p>
+          <p className="border-t border-zinc-200 px-4 py-2 text-[10px] text-zinc-400 dark:border-[#252840]">«Último acceso» se registra desde que se aplicó la actualización; antes aparece como «Nunca». La actividad de la empresa es la de su último guardado.</p>
         </div>
+      ) : vista === 'cobros' ? (
+        <CobrosPanel />
+      ) : vista === 'errores' ? (
+        <ErroresPanel />
       ) : vista === 'legal' ? (
         <ParametrosLegalesPanel />
       ) : vista === 'accesos' ? (
@@ -321,7 +332,7 @@ function Kpi({ label, valor, sub }: { label: string; valor: string | number; sub
 }
 
 // Uso de la plataforma: solo agregados (nunca el contenido de una empresa).
-function ResumenVista({ r, empresas }: { r: Resumen | null; empresas: EmpresaAdmin[] }) {
+function ResumenVista({ r, empresas, cobros, irA }: { r: Resumen | null; empresas: EmpresaAdmin[]; cobros: CobrosData | null; irA: (v: 'cobros') => void }) {
   if (!r) return <p className="py-10 text-center text-sm text-zinc-400">Cargando resumen…</p>
   const max = Math.max(1, ...r.altasPorMes.map(a => a.n))
   const inactivas = empresas.filter(e => e.estado === 'activa'
@@ -334,6 +345,12 @@ function ResumenVista({ r, empresas }: { r: Resumen | null; empresas: EmpresaAdm
         <Kpi label="Usuarios" valor={r.usuarios} />
         <Kpi label="Empleados en nómina" valor={r.empleados} sub="suma de todas las empresas" />
         <Kpi label="Empresas con actividad (7 días)" valor={r.activas7d} sub={`${r.activas30d} en 30 días`} />
+        {cobros && <Kpi label="Ingreso mensual recurrente" valor={`RD$${cobros.mrr.toLocaleString('es-DO', { maximumFractionDigits: 0 })}`} sub={`RD$${cobros.cobrado30.toLocaleString('es-DO', { maximumFractionDigits: 0 })} cobrado en 30 días`} />}
+        {cobros && (
+          <button onClick={() => irA('cobros')} className="text-left">
+            <Kpi label="Pagos vencidos" valor={cobros.empresas.filter(e => e.estado_cobro === 'vencido').length}
+              sub={`${cobros.empresas.filter(e => e.estado_cobro === 'por_vencer').length} vencen en 7 días · ver cobros`} />
+          </button>)}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
@@ -358,7 +375,6 @@ function ResumenVista({ r, empresas }: { r: Resumen | null; empresas: EmpresaAdm
             </ul>)}
         </div>
       </div>
-      <p className="text-[11px] text-zinc-400">Cobros, fechas de renovación y registro de errores: siguiente etapa (requiere tablas nuevas).</p>
     </div>
   )
 }
