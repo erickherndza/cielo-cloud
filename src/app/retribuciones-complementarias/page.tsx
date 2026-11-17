@@ -485,7 +485,7 @@ export default function RetribucionesComplementariasPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* ── Selector de mes + estado de declaración ─────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-5 py-3.5 shadow-sm dark:shadow-none">

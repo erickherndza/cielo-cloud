@@ -7,6 +7,7 @@ import { useEmpresa } from '@/lib/empresa-context'
 import { FIREBASE_ENABLED } from '@/lib/firebase'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { MobileMenuProvider } from '@/components/layout/MobileMenu'
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard'
 import { PromptConfiguracionInicial } from '@/components/onboarding/PromptConfiguracionInicial'
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate'
@@ -68,9 +69,11 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     if (needsConfiguracionInicial) return <PromptConfiguracionInicial />
     return (
       <CommandPaletteProvider>
-        <Sidebar />
-        <main className="flex flex-1 flex-col overflow-hidden pb-16 md:pb-0">{children}</main>
-        <BottomNav />
+        <MobileMenuProvider>
+          <Sidebar />
+          <main className="flex flex-1 flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
+          <BottomNav />
+        </MobileMenuProvider>
       </CommandPaletteProvider>
     )
   }
@@ -97,9 +100,11 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   // Protected pages — fully set up, show app chrome
   return (
     <CommandPaletteProvider>
-      <Sidebar />
-      <main className="flex flex-1 flex-col overflow-hidden pb-16 md:pb-0">{children}</main>
-      <BottomNav />
+      <MobileMenuProvider>
+        <Sidebar />
+        <main className="flex flex-1 flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
+        <BottomNav />
+      </MobileMenuProvider>
     </CommandPaletteProvider>
   )
 }

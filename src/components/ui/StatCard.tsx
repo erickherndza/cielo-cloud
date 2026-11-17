@@ -22,7 +22,7 @@ export function StatCard({
   trendLabel,
 }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm dark:shadow-none transition-colors">
+    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 md:p-5 shadow-sm dark:shadow-none transition-colors">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 leading-tight">{label}</p>
         {trend && trendLabel && (
@@ -40,9 +40,9 @@ export function StatCard({
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-end justify-between">
-        <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{value}</p>
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', iconColor)}>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <p className="min-w-0 max-md:whitespace-nowrap text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-tight tabular-nums">{value}</p>
+        <div className={cn('hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', iconColor)}>
           <Icon className="h-4 w-4" />
         </div>
       </div>

@@ -337,7 +337,7 @@ export default function BonificacionPage() {
     return (
       <div className="flex flex-col overflow-hidden h-full">
         <Header title="Bonificación por Utilidades" subtitle="Art. 223 · Código de Trabajo · Ley 16-92" />
-        <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-6 md:p-10">
+        <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-4 md:p-10">
           <div className="mx-auto max-w-3xl space-y-5">
             {mostrarBannerUrgente && alertaPago && (
               <BannerVencimiento alerta={alertaPago} onIrA={() => { setAnioFiscal(alertaPago.anio); setPantalla('actual') }} />
@@ -420,7 +420,7 @@ export default function BonificacionPage() {
             </button>
           }
         />
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
           <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -523,7 +523,7 @@ export default function BonificacionPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {mostrarBannerUrgente && alertaPago && (
           <BannerVencimiento alerta={alertaPago} onIrA={() => setAnioFiscal(alertaPago.anio)} />
@@ -683,7 +683,7 @@ export default function BonificacionPage() {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -698,7 +698,7 @@ export default function BonificacionPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {filas.length === 0 && (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={7} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                           <Percent className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
@@ -717,14 +717,14 @@ export default function BonificacionPage() {
                 )}
                 {filas.length > 0 && filasVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    <td colSpan={7} data-col="full" className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                       Ningún empleado coincide con el filtro.
                     </td>
                   </tr>
                 )}
                 {filasVisibles.map(({ empleado, anos, liquidado, mesesTrabajados, diasTope, topeIndividual, proporcional, montoFinal, topeAplicado }) => (
                   <tr key={empleado.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                    <td className="px-5 py-3.5">
+                    <td data-col="emp100" className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#eef0fb] dark:bg-indigo-900/40 text-xs font-bold text-[#1B2980] dark:text-indigo-300">
                           {empleado.nombre[0]}{empleado.apellido[0]}
@@ -738,23 +738,23 @@ export default function BonificacionPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td data-col="num" data-label="Antigüedad" className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
+                    <td data-col="num" data-label="Meses trabajados" className="px-4 py-3.5 text-center">
                       <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                         {mesesTrabajados.toFixed(1)}/12
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(empleado.salarioBase)}</td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td data-col="num" data-label="Salario base" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{formatRD(empleado.salarioBase)}</td>
+                    <td data-col="num" data-label="Tope" className="px-4 py-3.5 text-center">
                       <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                         {diasTope} días
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                    <td data-col="hide" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                       {formatRD(proporcional)}
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td data-col="num" data-label="Monto a pagar" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
+                      <div className="flex items-center justify-end max-md:justify-start gap-1.5">
                         {formatRD(montoFinal)}
                         {topeAplicado && <Badge variant="warning">Tope</Badge>}
                       </div>
@@ -769,13 +769,13 @@ export default function BonificacionPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                  <td colSpan={5} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
+                  <td colSpan={5} data-col="full" className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                     {hayFiltrosActivos ? `TOTAL (filtrado) — ${filasVisibles.length} empleado(s)` : `TOTAL — ${filas.length} empleado(s)`}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-600 dark:text-zinc-400">
+                  <td data-col="hide" className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-600 dark:text-zinc-400">
                     {formatRD(totalProporcionalVisible)}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
+                  <td data-col="num" data-label="Total a repartir" className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
                     {formatRD(totalRepartidoVisible)}
                   </td>
                 </tr>

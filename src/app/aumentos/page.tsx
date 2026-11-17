@@ -254,7 +254,7 @@ export default function AumentosPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* Toggle modo: por criterio vs importación Excel */}
         <div className="flex gap-2">
@@ -669,7 +669,7 @@ export default function AumentosPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <th className="px-4 py-3">Empleado</th>
@@ -684,7 +684,7 @@ export default function AumentosPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {pendientes.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={7} data-col="full">
                       <EmptyState
                         icon={CheckCircle2}
                         message="No hay solicitudes pendientes de aprobación."
@@ -696,20 +696,20 @@ export default function AumentosPage() {
                   const emp = empleadoDe(p.empleadoId)
                   return (
                     <tr key={p.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
-                      <td className="px-4 py-3">
+                      <td data-col="emp100" className="px-4 py-3">
                         <p className="font-medium text-[#1B2980] dark:text-indigo-400">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(p.salarioAnterior)}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(p.salarioNuevo)}</td>
-                      <td className="px-4 py-3">
+                      <td data-col="num" data-label="Actual" className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(p.salarioAnterior)}</td>
+                      <td data-col="num" data-label="Nuevo" className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(p.salarioNuevo)}</td>
+                      <td data-col="num" data-label="Ajuste" className="px-4 py-3">
                         <Badge variant="info">{p.tipoAjuste === 'porcentaje' ? `+${p.valorAjuste}%` : `+${formatRD(p.valorAjuste)}`}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 max-w-[220px] truncate" title={p.motivo}>{p.motivo}</td>
-                      <td className="px-4 py-3 text-xs text-zinc-400">
+                      <td data-col="full" className="px-4 py-3 text-zinc-500 dark:text-zinc-400 md:max-w-[220px] truncate" title={p.motivo}>{p.motivo}</td>
+                      <td data-col="full" className="px-4 py-3 text-xs text-zinc-400">
                         <p>{formatDate(p.fechaSolicitud)}</p>
                         {p.solicitadoPor && <p className="truncate max-w-[140px]">{p.solicitadoPor}</p>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-col="acc" className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => abrirResolver(p, 'aprobar')}
@@ -744,7 +744,7 @@ export default function AumentosPage() {
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="tabla-cards w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <th className="px-4 py-3">Empleado</th>
@@ -759,16 +759,16 @@ export default function AumentosPage() {
                     const emp = empleadoDe(a.empleadoId)
                     return (
                       <tr key={a.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
-                        <td className="px-4 py-3">
+                        <td data-col="emp100" className="px-4 py-3">
                           <p className="font-medium text-[#1B2980] dark:text-indigo-400">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                         </td>
-                        <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(a.salarioAnterior)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(a.salarioNuevo)}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-400">
+                        <td data-col="num" data-label="Actual" className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(a.salarioAnterior)}</td>
+                        <td data-col="num" data-label="Nuevo" className="px-4 py-3 text-right font-semibold text-[#151f66] dark:text-indigo-300 tabular-nums">{formatRD(a.salarioNuevo)}</td>
+                        <td data-col="full" className="px-4 py-3 text-xs text-zinc-400">
                           <p>{a.aprobadoPor}</p>
                           {a.fechaAprobacion && <p>{formatDate(a.fechaAprobacion)}</p>}
                         </td>
-                        <td className="px-4 py-3">
+                        <td data-col="acc" className="px-4 py-3">
                           <button
                             onClick={() => handleAplicar(a)}
                             className="rounded-lg bg-[#1B2980] hover:bg-[#151f66] px-3 py-1.5 text-xs font-semibold text-white transition-colors"
@@ -806,7 +806,7 @@ export default function AumentosPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   <th className="px-4 py-3">Empleado</th>
@@ -821,7 +821,7 @@ export default function AumentosPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {historialFiltrado.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-zinc-400">
+                    <td colSpan={7} data-col="full" className="px-4 py-8 text-center text-xs text-zinc-400">
                       Sin registros todavía.
                     </td>
                   </tr>
@@ -829,18 +829,18 @@ export default function AumentosPage() {
                   const emp = empleadoDe(r.empleadoId)
                   return (
                     <tr key={r.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
-                      <td className="px-4 py-3">
+                      <td data-col="emp100" className="px-4 py-3">
                         <p className="font-medium text-[#1B2980] dark:text-indigo-400">{emp ? fullName(emp) : 'Empleado eliminado'}</p>
                         {r.origen === 'importacion_excel' && <p className="text-[10px] text-zinc-400">Importado (Excel)</p>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-col="num" data-label="Ajuste" className="px-4 py-3">
                         <Badge variant="neutral">{r.tipoAjuste === 'porcentaje' ? `+${r.valorAjuste}%` : `+${formatRD(r.valorAjuste)}`}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioAnterior)}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioNuevo)}</td>
-                      <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 max-w-[200px] truncate" title={r.motivo}>{r.motivo}</td>
-                      <td className="px-4 py-3"><EstadoBadge estado={r.estado} /></td>
-                      <td className="px-4 py-3 text-[11px] text-zinc-400 space-y-0.5">
+                      <td data-col="num" data-label="Anterior" className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioAnterior)}</td>
+                      <td data-col="num" data-label="Nuevo" className="px-4 py-3 text-right text-zinc-500 dark:text-zinc-400 tabular-nums">{formatRD(r.salarioNuevo)}</td>
+                      <td data-col="full" className="px-4 py-3 text-zinc-500 dark:text-zinc-400 md:max-w-[200px] truncate" title={r.motivo}>{r.motivo}</td>
+                      <td data-col="num" data-label="Estado" className="px-4 py-3"><EstadoBadge estado={r.estado} /></td>
+                      <td data-col="full" className="px-4 py-3 text-[11px] text-zinc-400 space-y-0.5">
                         <p>Solicitado: {formatDate(r.fechaSolicitud)}</p>
                         {r.fechaAprobacion && (
                           <p>

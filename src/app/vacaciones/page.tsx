@@ -213,7 +213,7 @@ export default function VacacionesPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
@@ -300,7 +300,7 @@ export default function VacacionesPage() {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -317,7 +317,7 @@ export default function VacacionesPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {filas.length === 0 && (
                   <tr>
-                    <td colSpan={9}>
+                    <td colSpan={9} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -335,14 +335,14 @@ export default function VacacionesPage() {
                 )}
                 {filas.length > 0 && filasVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    <td colSpan={9} data-col="full" className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                       Ningún empleado coincide con el filtro.
                     </td>
                   </tr>
                 )}
                 {filasVisibles.map(({ empleado, anos, diasAnuales, diasAcumulados, diasDisponibles, valorAcumulado, valorNetoEstimado, puedeGozar, deVacacionesHoy }) => (
                   <tr key={empleado.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                    <td className="px-5 py-3.5">
+                    <td data-col="emp100" className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900/40 text-xs font-bold text-sky-700 dark:text-sky-300">
                           {empleado.nombre[0]}{empleado.apellido[0]}
@@ -353,8 +353,8 @@ export default function VacacionesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td data-col="num" data-label="Antigüedad" className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
+                    <td data-col="hide" className="px-4 py-3.5 text-center">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         diasAnuales === getParametros().vacaciones.diasMas5 && diasAnuales !== getParametros().vacaciones.diasHasta5
                           ? 'bg-[#eef0fb] text-[#151f66] dark:bg-indigo-950/40 dark:text-indigo-300'
@@ -363,19 +363,19 @@ export default function VacacionesPage() {
                         {diasAnuales} días
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                    <td data-col="hide" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                       {diasAcumulados.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">
+                    <td data-col="num" data-label="Días disponibles" className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">
                       {diasDisponibles.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                    <td data-col="num" data-label="Valor bruto" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                       {formatRD(valorAcumulado)}
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">
+                    <td data-col="num" data-label="Neto estimado" className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">
                       {formatRD(valorNetoEstimado)}
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td data-col="num" data-label="Estado" className="px-4 py-3.5">
                       {deVacacionesHoy
                         ? <Badge variant="success"><Plane className="mr-1 h-3 w-3" />De Vacaciones</Badge>
                         : puedeGozar
@@ -388,7 +388,7 @@ export default function VacacionesPage() {
                         )
                       }
                     </td>
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                    <td data-col="acc" className="px-4 py-3.5 text-right whitespace-nowrap">
                       <button
                         onClick={() => abrirModal(empleado.id)}
                         className="text-xs font-medium text-[#1B2980] dark:text-indigo-400 hover:underline"
@@ -408,14 +408,14 @@ export default function VacacionesPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                  <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
+                  <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
                     {hayFiltrosActivos ? 'TOTAL (filtrado)' : 'TOTAL'}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-zinc-500 dark:text-zinc-400">{totalDiasVisible.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{totalDisponiblesVisible.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold text-zinc-500 dark:text-zinc-400">{formatRD(totalValorVisible)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{formatRD(totalValorNetoVisible)}</td>
-                  <td colSpan={2} />
+                  <td data-col="hide" className="px-4 py-3 text-right tabular-nums font-bold text-zinc-500 dark:text-zinc-400">{totalDiasVisible.toFixed(2)}</td>
+                  <td data-col="num" data-label="Disponibles" className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{totalDisponiblesVisible.toFixed(2)}</td>
+                  <td data-col="num" data-label="Valor bruto" className="px-4 py-3 text-right tabular-nums font-semibold text-zinc-500 dark:text-zinc-400">{formatRD(totalValorVisible)}</td>
+                  <td data-col="num" data-label="Neto estimado" className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{formatRD(totalValorNetoVisible)}</td>
+                  <td colSpan={2} data-col="hide" />
                 </tr>
               </tfoot>
             </table>
@@ -442,7 +442,7 @@ export default function VacacionesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="tabla-cards w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -460,17 +460,17 @@ export default function VacacionesPage() {
                     const esVenta = d.tipo === 'venta'
                     return (
                       <tr key={d.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
-                        <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">{emp ? fullName(emp) : '—'}</td>
-                        <td className="px-4 py-3.5">
+                        <td data-col="emp100" className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">{emp ? fullName(emp) : '—'}</td>
+                        <td data-col="num" data-label="Tipo" className="px-4 py-3.5">
                           {esVenta
                             ? <Badge variant="info"><Banknote className="mr-1 h-3 w-3" />Venta</Badge>
                             : <Badge variant="default"><Plane className="mr-1 h-3 w-3" />Disfrute</Badge>}
                         </td>
-                        <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">{formatDate(d.fechaInicio)}</td>
-                        <td className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">{esVenta ? '—' : formatDate(d.fechaFin)}</td>
-                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">{d.diasLaborables}</td>
-                        <td className="px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs">{d.notas || '—'}</td>
-                        <td className="px-4 py-3.5 text-right">
+                        <td data-col="num" data-label="Desde" className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">{formatDate(d.fechaInicio)}</td>
+                        <td data-col="num" data-label="Hasta" className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400">{esVenta ? '—' : formatDate(d.fechaFin)}</td>
+                        <td data-col="num" data-label="Días laborables" className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">{d.diasLaborables}</td>
+                        <td data-col="full" className="px-4 py-3.5 text-zinc-500 dark:text-zinc-400 text-xs">{d.notas || '—'}</td>
+                        <td data-col="acc" className="px-4 py-3.5 text-right">
                           <button
                             onClick={() => handleEliminar(d.id)}
                             className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition-colors"

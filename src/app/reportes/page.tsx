@@ -1077,7 +1077,7 @@ function ReportePrestamos({
       ) : (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Montos Otorgados</p>
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{formatRD(summary.totalMonto)}</p>
@@ -1838,7 +1838,7 @@ function ReporteCostoPorDepto({
       </FilterBar>
       {!generado ? <EmptyState message="Selecciona un período y haz clic en Generar." /> : deptos.length === 0 ? <EmptyState message="No hay empleados activos en este período." /> : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Departamentos</p>
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{deptos.length}</p>
@@ -2118,7 +2118,7 @@ function ReportePlanillaACH({
       </FilterBar>
       {!generado ? <EmptyState message="Selecciona un período y haz clic en Generar." /> : filas.length === 0 ? <EmptyState message="No hay empleados con cuenta bancaria registrada para este filtro." /> : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Transferencias</p>
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{filas.length}</p>
@@ -2943,7 +2943,7 @@ function ReportePreaviso({
       ) : (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Renuncias Evaluadas</p>
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{summary.total}</p>
@@ -3579,7 +3579,7 @@ function ReporteSinIngresos({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Empleados Evaluados</p>
               <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{summary.evaluados}</p>
@@ -4028,10 +4028,21 @@ export default function ReportesPage() {
         }
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-60 shrink-0 border-r border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] overflow-y-auto">
-          <div className="p-3">
+        <aside className="w-full md:w-60 shrink-0 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] md:overflow-y-auto">
+          {/* Móvil: selector compacto */}
+          <div className="md:hidden p-3">
+            <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-zinc-400">Tipo de reporte</label>
+            <select
+              value={activeReport}
+              onChange={e => setActiveReport(e.target.value as typeof activeReport)}
+              className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 py-2.5 pl-3 pr-8 text-sm font-medium text-zinc-800"
+            >
+              {SIDEBAR_ITEMS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </div>
+          <div className="hidden md:block p-3">
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Tipos de Reporte</p>
             <nav className="space-y-0.5">
               {SIDEBAR_ITEMS.map(item => {
@@ -4060,7 +4071,7 @@ export default function ReportesPage() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-zinc-50 dark:bg-[#0d0f1a]">
           {renderReport()}
         </main>
       </div>

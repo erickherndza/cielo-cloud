@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useMobileMenu } from '@/components/layout/MobileMenu'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { HelpCircle, Menu, LogOut, Settings, Search } from 'lucide-react'
@@ -103,20 +104,22 @@ function BuscarTrigger() {
 }
 
 export function Header({ title, subtitle, actions }: HeaderProps) {
+  const { open: openMenu } = useMobileMenu()
   return (
+    <>
     <header className="flex h-14 shrink-0 items-center border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4">
       {/* Left */}
       <div className="flex flex-1 items-center gap-3 min-w-0">
-        <button className="md:hidden rounded-lg p-1 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] text-zinc-500 dark:text-zinc-400 transition-colors">
+        <button onClick={openMenu} aria-label="Abrir menú" className="md:hidden -ml-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] text-zinc-500 dark:text-zinc-400 transition-colors">
           <Menu className="h-5 w-5" />
         </button>
         <div className="min-w-0">
-          <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">{title}</span>
+          <span className="max-md:block text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">{title}</span>
           {subtitle && (
             <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400 hidden sm:inline">{subtitle}</span>
           )}
         </div>
-        {actions && <div className="ml-3 shrink-0">{actions}</div>}
+        {actions && <div className="ml-3 shrink-0 hidden md:block">{actions}</div>}
       </div>
 
       {/* Right */}
@@ -134,5 +137,11 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
         <UserMenu />
       </div>
     </header>
+    {actions && (
+      <div className="md:hidden shrink-0 [&>div]:flex-wrap [&>div]:gap-2 border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2">
+        {actions}
+      </div>
+    )}
+    </>
   )
 }

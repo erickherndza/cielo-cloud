@@ -254,7 +254,7 @@ export default function LicenciasPage() {
         title="Licencias Remuneradas"
         subtitle="Remuneradas y con subsidio — Código de Trabajo y Seguridad Social"
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* ── Stat cards ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -494,7 +494,7 @@ export default function LicenciasPage() {
             </div>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -512,7 +512,7 @@ export default function LicenciasPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {licenciasOrdenadas.length === 0 && (
                   <tr>
-                    <td colSpan={10}>
+                    <td colSpan={10} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                           <FileClock className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
@@ -527,7 +527,7 @@ export default function LicenciasPage() {
                 )}
                 {licenciasOrdenadas.length > 0 && licenciasVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    <td colSpan={10} data-col="full" className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                       Ninguna licencia coincide con el filtro.
                     </td>
                   </tr>
@@ -537,7 +537,7 @@ export default function LicenciasPage() {
                   const Icon = iconoTipo(l.tipo)
                   return (
                     <tr key={l.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                      <td className="px-5 py-3.5">
+                      <td data-col="emp100" className="px-5 py-3.5">
                         {emp ? (
                           <div>
                             <p className="font-medium text-[#1B2980] dark:text-indigo-400">{fullName(emp)}</p>
@@ -547,24 +547,24 @@ export default function LicenciasPage() {
                           <span className="text-zinc-400 dark:text-zinc-500 text-xs">Empleado eliminado</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td data-col="num" data-label="Tipo" className="px-4 py-3.5">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           <Icon className="h-3 w-3" />
                           {labelLicencia(l.tipo)}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaInicio)}</td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaFin)}</td>
-                      <td className="px-4 py-3.5 text-center tabular-nums text-zinc-500 dark:text-zinc-400">{l.dias}</td>
-                      <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
+                      <td data-col="num" data-label="Inicio" className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaInicio)}</td>
+                      <td data-col="num" data-label="Fin" className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaFin)}</td>
+                      <td data-col="num" data-label="Días" className="px-4 py-3.5 text-center tabular-nums text-zinc-500 dark:text-zinc-400">{l.dias}</td>
+                      <td data-col="num" data-label="Pagado empresa" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
                         {formatRD(l.montoPagado, 2)}
                       </td>
-                      <td className="px-4 py-3.5 text-right tabular-nums text-sky-600 dark:text-sky-400">
+                      <td data-col="num" data-label="Subsidio TSS" className="px-4 py-3.5 text-right tabular-nums text-sky-600 dark:text-sky-400">
                         {l.montoSubsidioEstimado != null ? formatRD(l.montoSubsidioEstimado, 2) : '—'}
                       </td>
-                      <td className="px-4 py-3.5 text-center">
+                      <td data-col="num" data-label="Reclamo" className="px-4 py-3.5 text-center">
                         {l.estadoReclamo ? (
-                          <div className="flex flex-col items-center gap-1">
+                          <div className="flex flex-col items-center gap-1 max-md:items-start">
                             <button
                               type="button"
                               onClick={() => handleAvanzarReclamo(l)}
@@ -592,7 +592,7 @@ export default function LicenciasPage() {
                           <span className="text-zinc-300 dark:text-zinc-600">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-center">
+                      <td data-col="num" data-label="Documento" className="px-4 py-3.5 text-center">
                         {l.documentoSoporte ? (
                           <button
                             type="button"
@@ -606,7 +606,7 @@ export default function LicenciasPage() {
                           <span className="text-zinc-300 dark:text-zinc-600">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td data-col="acc" className="px-4 py-3.5 text-right">
                         <button
                           onClick={() => handleEliminar(l.id)}
                           className="rounded-lg p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition-colors"
@@ -622,16 +622,16 @@ export default function LicenciasPage() {
               {licenciasOrdenadas.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                    <td colSpan={5} className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
+                    <td colSpan={5} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                       {hayFiltrosActivos ? `TOTAL (filtrado) — ${licenciasVisibles.length} licencia(s)` : `TOTAL — ${licenciasOrdenadas.length} licencia(s)`}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
+                    <td data-col="num" data-label="Pagado empresa" className="px-4 py-3 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
                       {formatRD(totalPagadoVisible, 2)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-bold text-sky-600 dark:text-sky-400">
+                    <td data-col="num" data-label="Subsidio TSS" className="px-4 py-3 text-right tabular-nums font-bold text-sky-600 dark:text-sky-400">
                       {formatRD(totalSubsidioVisible, 2)}
                     </td>
-                    <td colSpan={3} />
+                    <td colSpan={3} data-col="hide" />
                   </tr>
                 </tfoot>
               )}

@@ -62,7 +62,7 @@ export default function GestionEnviosPage() {
         title="Gestión de Envíos"
         subtitle="Marca el pago y envía los comprobantes de nómina a cada empleado"
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {pendientesPago > 0 && (
           <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
@@ -116,7 +116,7 @@ export default function GestionEnviosPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="tabla-cards w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Período</th>
@@ -129,24 +129,24 @@ export default function GestionEnviosPage() {
                 <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                   {filas.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                      <td data-col="full" colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                         Ningún período coincide con el filtro.
                       </td>
                     </tr>
                   )}
                   {filas.map(p => (
                     <tr key={p.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                      <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">{labelPeriodo(p)}</td>
-                      <td className="px-4 py-3.5 text-center text-zinc-600 dark:text-zinc-400">{p.totalEmpleados}</td>
-                      <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#151f66] dark:text-indigo-300">{formatRD(p.totales.neto)}</td>
-                      <td className="px-4 py-3.5">
+                      <td data-col="full" className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">{labelPeriodo(p)}</td>
+                      <td data-col="num" data-label="Empleados" className="px-4 py-3.5 text-center text-zinc-600 dark:text-zinc-400">{p.totalEmpleados}</td>
+                      <td data-col="num" data-label="Total Neto" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#151f66] dark:text-indigo-300">{formatRD(p.totales.neto)}</td>
+                      <td data-col="full" className="px-4 py-3.5">
                         {p.pagada ? (
                           <Badge variant="success"><CheckCircle2 className="mr-1 h-3 w-3" />Pagada el {formatDate(p.fechaPago!)}</Badge>
                         ) : (
                           <Badge variant="warning">Pendiente de pago</Badge>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td data-col="acc" className="px-4 py-3.5 text-right">
                         {p.pagada ? (
                           <div className="flex items-center justify-end gap-2">
                             <button

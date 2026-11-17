@@ -204,7 +204,7 @@ export default function BandasSalarialesPage() {
         title="Bandas Salariales"
         subtitle="Niveles por posición, empleados fuera de banda y distribución"
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* ── Stat cards ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

@@ -905,7 +905,7 @@ export default function LiquidacionPage() {
         subtitle="Cálculo de prestaciones laborales · Ley 16-92"
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* ── Indicador de pasos ────────────────────────────────────────── */}
         {(paso !== 1 || emp) && (
@@ -1489,7 +1489,7 @@ export default function LiquidacionPage() {
             )}
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -1502,7 +1502,7 @@ export default function LiquidacionPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {liquidacionesOrdenadas.length === 0 && (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={5} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                           <History className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
@@ -1519,7 +1519,7 @@ export default function LiquidacionPage() {
                   const empL = empMap[l.empleadoId]
                   return (
                     <tr key={l.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                      <td className="px-5 py-3.5">
+                      <td data-col="emp100" className="px-5 py-3.5">
                         {empL ? (
                           <div>
                             <p className="font-medium text-[#1B2980] dark:text-indigo-400">{fullName(empL)}</p>
@@ -1529,14 +1529,14 @@ export default function LiquidacionPage() {
                           <span className="text-zinc-400 dark:text-zinc-500 text-xs">Empleado eliminado</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaTerminacion)}</td>
-                      <td className="px-4 py-3.5">
+                      <td data-col="num" data-label="Terminación" className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaTerminacion)}</td>
+                      <td data-col="num" data-label="Motivo" className="px-4 py-3.5">
                         <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           {MOTIVO_LABELS[l.motivo]}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">{formatRD(l.totalPagado, 2)}</td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td data-col="num" data-label="Total pagado" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">{formatRD(l.totalPagado, 2)}</td>
+                      <td data-col="acc" className="px-4 py-3.5 text-right">
                         {empL && l.desgloseCalculo && (
                           <button
                             onClick={() => descargarPlanillaLiquidacionPDF(l, empL, empresa)}
@@ -1554,11 +1554,11 @@ export default function LiquidacionPage() {
               {liquidacionesOrdenadas.length > 0 && (
                 <tfoot>
                   <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                    <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
+                    <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                       TOTAL — {liquidacionesOrdenadas.length} liquidación(es)
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{formatRD(totalPagadoGeneral, 2)}</td>
-                    <td />
+                    <td data-col="num" data-label="Total pagado" className="px-4 py-3 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{formatRD(totalPagadoGeneral, 2)}</td>
+                    <td data-col="hide" />
                   </tr>
                 </tfoot>
               )}

@@ -209,7 +209,7 @@ export default function RegaliaPage() {
     return (
       <div className="flex flex-col overflow-hidden h-full">
         <Header title="Regalía Pascual" subtitle="Art. 219 · Código de Trabajo · Ley 16-92" />
-        <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-6 md:p-10">
+        <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-4 md:p-10">
           <div className="mx-auto max-w-3xl">
             <div className="mb-8 text-center">
               <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">¿Qué quieres ver?</h1>
@@ -289,7 +289,7 @@ export default function RegaliaPage() {
             </button>
           }
         />
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
           <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -389,7 +389,7 @@ export default function RegaliaPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {periodoRegaliaExistente && (
           <div className="flex items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20 px-5 py-3.5 text-sm">
@@ -422,7 +422,7 @@ export default function RegaliaPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           <StatCard
             label="Acumulado al Mes Actual"
             value={formatRD(totalAcumulado)}
@@ -487,7 +487,7 @@ export default function RegaliaPage() {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
@@ -501,7 +501,7 @@ export default function RegaliaPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                 {filas.length === 0 && (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={6} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -522,14 +522,14 @@ export default function RegaliaPage() {
                 )}
                 {filas.length > 0 && filasVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    <td colSpan={6} data-col="full" className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                       Ningún empleado coincide con el filtro.
                     </td>
                   </tr>
                 )}
                 {filasVisibles.map(({ empleado, mesesAcumulados, acumulado, proyeccionAnual, porcentaje }) => (
                   <tr key={empleado.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
-                    <td className="px-5 py-3.5">
+                    <td data-col="emp100" className="px-5 py-3.5">
                       <button
                         type="button"
                         onClick={() => setEmpleadoInfo(empleado)}
@@ -545,21 +545,21 @@ export default function RegaliaPage() {
                         </div>
                       </button>
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
+                    <td data-col="num" data-label="Salario mensual" className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
                       {formatRD(empleado.salarioBase)}
                     </td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td data-col="num" data-label="Meses acumulados" className="px-4 py-3.5 text-center">
                       <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-400">
                         {mesesAcumulados}/12
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+                    <td data-col="num" data-label="Acumulado" className="px-4 py-3.5 text-right tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
                       {formatRD(acumulado)}
                     </td>
-                    <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
+                    <td data-col="num" data-label="Proyección anual" className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
                       {formatRD(proyeccionAnual)}
                     </td>
-                    <td className="px-4 py-3.5 w-36">
+                    <td data-col="full" className="px-4 py-3.5 md:w-36 max-md:pt-3">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-[#1a1d2e]">
                           <div
@@ -577,12 +577,12 @@ export default function RegaliaPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                  <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
+                  <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
                     {hayFiltrosActivos ? 'TOTAL (filtrado)' : 'TOTAL'}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-emerald-700 dark:text-emerald-300">{formatRD(totalAcumuladoVisible)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-bold text-zinc-700 dark:text-zinc-300">{formatRD(totalProyectadoVisible)}</td>
-                  <td />
+                  <td data-col="num" data-label="Acumulado" className="px-4 py-3 text-right tabular-nums font-bold text-emerald-700 dark:text-emerald-300">{formatRD(totalAcumuladoVisible)}</td>
+                  <td data-col="num" data-label="Proyección" className="px-4 py-3 text-right tabular-nums font-bold text-zinc-700 dark:text-zinc-300">{formatRD(totalProyectadoVisible)}</td>
+                  <td data-col="hide" />
                 </tr>
               </tfoot>
             </table>

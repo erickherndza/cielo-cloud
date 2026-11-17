@@ -7,26 +7,27 @@ import {
   Users,
   Calculator,
   FileBarChart2,
-  UserMinus,
+  Menu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMobileMenu } from './MobileMenu'
 
 const BOTTOM_ITEMS = [
   { href: '/',          icon: LayoutDashboard, label: 'Inicio' },
   { href: '/empleados', icon: Users,            label: 'Empleados' },
   { href: '/nomina',    icon: Calculator,       label: 'Nómina' },
   { href: '/reportes',  icon: FileBarChart2,    label: 'Reportería' },
-  { href: '/liquidacion', icon: UserMinus,       label: 'Liquidar' },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
+  const { open } = useMobileMenu()
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center border-t pb-[env(safe-area-inset-bottom)] box-content border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-1">
       {BOTTOM_ITEMS.map((item) => {
         const active = isActive(item.href)
         return (
@@ -46,6 +47,13 @@ export function BottomNav() {
           </Link>
         )
       })}
+      <button
+        onClick={open}
+        className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-zinc-400 dark:text-zinc-600"
+      >
+        <Menu className="h-5 w-5" />
+        <span className="text-[10px] font-medium">Más</span>
+      </button>
     </nav>
   )
 }

@@ -415,7 +415,7 @@ function VistaDetalle({
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* Loan header card */}
         <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm dark:shadow-none">
@@ -922,7 +922,7 @@ export default function PrestamosPage() {
       <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4 p-6 pb-4">
+        <div className="grid grid-cols-1 gap-3 p-4 pb-3 sm:grid-cols-3 sm:gap-4 md:p-6 md:pb-4">
           <StatCard
             label="Préstamos Activos"
             value={String(prestamosActivos.length)}
@@ -1300,7 +1300,7 @@ export default function PrestamosPage() {
           ) : (
             <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="tabla-cards w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
                       {['Empleado', 'Monto Original', 'Saldo Pendiente', 'Cuota', 'Cuotas', 'Tasa', 'Frecuencia', 'Fecha', 'Doc', 'Estado', ''].map(h => (
@@ -1327,7 +1327,7 @@ export default function PrestamosPage() {
                           className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                         >
                           {/* Empleado */}
-                          <td className="px-4 py-3">
+                          <td data-col="emp100" className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div
                                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -1347,12 +1347,12 @@ export default function PrestamosPage() {
                           </td>
 
                           {/* Monto Original */}
-                          <td className="px-4 py-3 font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                          <td data-col="num" data-label="Monto" className="px-4 py-3 font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
                             {formatRD(prestamo.monto)}
                           </td>
 
                           {/* Saldo Pendiente + progress */}
-                          <td className="px-4 py-3 min-w-[160px]">
+                          <td data-col="num" data-label="Saldo pendiente" className="px-4 py-3 md:min-w-[160px]">
                             <p className={`text-sm font-semibold tabular-nums whitespace-nowrap ${
                               prestamo.estado === 'activo'
                                 ? 'text-[#1B2980] dark:text-indigo-400'
@@ -1367,36 +1367,36 @@ export default function PrestamosPage() {
                           </td>
 
                           {/* Cuota */}
-                          <td className="px-4 py-3 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                          <td data-col="num" data-label="Cuota" className="px-4 py-3 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
                             {formatRD(prestamo.cuotaBase)}
                           </td>
 
                           {/* Cuotas */}
-                          <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">
+                          <td data-col="num" data-label="Cuotas pagadas" className="px-4 py-3 md:text-center text-zinc-600 dark:text-zinc-400">
                             <span className="text-xs">
                               {prestamo.pagos.length}/{prestamo.cuotas}
                             </span>
                           </td>
 
                           {/* Tasa */}
-                          <td className="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                          <td data-col="num" data-label="Tasa" className="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
                             {prestamo.tasaInteres === 0
                               ? <span className="text-emerald-600 dark:text-emerald-400">Sin interés</span>
                               : `${prestamo.tasaInteres}%`}
                           </td>
 
                           {/* Frecuencia */}
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                          <td data-col="hide" className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
                             {frecuenciaLabel(prestamo.frecuencia)}
                           </td>
 
                           {/* Fecha */}
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                          <td data-col="hide" className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                             {formatDate(prestamo.fechaOtorgamiento)}
                           </td>
 
                           {/* Document indicator */}
-                          <td className="px-4 py-3 text-center">
+                          <td data-col="hide" className="px-4 py-3 text-center">
                             {prestamo.documentoSolicitud ? (
                               <span title={prestamo.documentoNombre}>
                                 <FileText className="h-4 w-4 text-[#1B2980] dark:text-indigo-400 mx-auto" />
@@ -1407,14 +1407,14 @@ export default function PrestamosPage() {
                           </td>
 
                           {/* Estado */}
-                          <td className="px-4 py-3">
+                          <td data-col="num" data-label="Estado" className="px-4 py-3">
                             <Badge variant={estadoBadgeVariant(prestamo.estado)}>
                               {estadoLabel(prestamo.estado)}
                             </Badge>
                           </td>
 
                           {/* Actions */}
-                          <td className="px-4 py-3">
+                          <td data-col="acc" className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleVerDetalle(prestamo) }}

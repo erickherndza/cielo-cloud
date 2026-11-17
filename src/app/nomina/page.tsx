@@ -1147,7 +1147,7 @@ export default function NominaPage() {
       <div className="flex flex-col overflow-hidden h-full">
         <Header title="Cálculo de Nómina" subtitle="Calcula los devengados y deducciones de tu equipo de trabajo" />
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
           {/* Selección de período a calcular */}
           <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none px-5 py-4">
@@ -1290,7 +1290,7 @@ export default function NominaPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="tabla-cards w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                       <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Período de Nómina</th>
@@ -1304,7 +1304,7 @@ export default function NominaPage() {
                   <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                     {periodosFiltrados.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                        <td data-col="full" colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                           Ningún período coincide con el filtro.
                         </td>
                       </tr>
@@ -1315,7 +1315,7 @@ export default function NominaPage() {
                         onClick={() => setPeriodoAbierto(p.id)}
                         className="cursor-pointer hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors"
                       >
-                        <td className="px-5 py-3.5">
+                        <td data-col="full" className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             <div>
                               <p className="font-medium text-[#1B2980] dark:text-indigo-400">{labelPeriodo(p)}</p>
@@ -1335,10 +1335,10 @@ export default function NominaPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(p.totales.bruto)}</td>
-                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#151f66] dark:text-indigo-300">{fmt(p.totales.neto)}</td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-amber-700 dark:text-amber-400">{fmt(p.totales.costoTotal)}</td>
-                        <td className="px-4 py-3.5">
+                        <td data-col="num" data-label="S. Bruto" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(p.totales.bruto)}</td>
+                        <td data-col="num" data-label="Total Neto" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#151f66] dark:text-indigo-300">{fmt(p.totales.neto)}</td>
+                        <td data-col="num" data-label="Costo Total" className="px-4 py-3.5 text-right tabular-nums text-amber-700 dark:text-amber-400">{fmt(p.totales.costoTotal)}</td>
+                        <td data-col="full" className="px-4 py-3.5">
                           {p.estado === 'cerrada' ? (
                             <Badge variant="neutral"><Lock className="mr-1 h-3 w-3" />Cerrada</Badge>
                           ) : p.estado === 'procesada' ? (
@@ -1347,7 +1347,7 @@ export default function NominaPage() {
                             <Badge variant="warning">En Proceso</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td data-col="acc" className="px-4 py-3.5">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={e => { e.stopPropagation(); setPeriodoAbierto(p.id) }}
@@ -1511,7 +1511,7 @@ export default function NominaPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             <StatCard
               label="Total a Pagar"
@@ -1709,7 +1709,7 @@ export default function NominaPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             <StatCard
               label="Total Bruto a Pagar"
@@ -1957,7 +1957,7 @@ export default function NominaPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -2087,7 +2087,7 @@ export default function NominaPage() {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
                   {esEnProceso && (
@@ -2117,7 +2117,7 @@ export default function NominaPage() {
               <tbody>
                 {nominasVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={esEnProceso ? 10 : 9} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                    <td data-col="full" colSpan={esEnProceso ? 10 : 9} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                       Ningún empleado coincide con el filtro.
                     </td>
                   </tr>
@@ -2141,7 +2141,7 @@ export default function NominaPage() {
                       >
                         {/* Checkbox column */}
                         {esEnProceso && (
-                          <td className="pl-4 pr-2 py-3.5 w-8">
+                          <td data-col="chk" className="pl-4 pr-2 py-3.5 w-8">
                             {isProcesado ? (
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                             ) : (
@@ -2157,7 +2157,7 @@ export default function NominaPage() {
                           </td>
                         )}
 
-                        <td className="px-5 py-3.5">
+                        <td data-col="emp" className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                               isProcesado
@@ -2174,7 +2174,7 @@ export default function NominaPage() {
                         </td>
 
                         {/* Ajustes chips */}
-                        <td className="px-4 py-3.5 max-w-xs">
+                        <td data-col="ajustes" className="px-4 py-3.5 max-w-xs">
                           <div className="flex flex-wrap items-center gap-1">
                             {ajustes.map(a => (
                               <span
@@ -2210,29 +2210,29 @@ export default function NominaPage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
+                        <td data-col="num" data-label="S. Bruto" className="px-4 py-3.5 text-right tabular-nums text-zinc-700 dark:text-zinc-300">
                           {fmt(resultado.totalBruto)}
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                        <td data-col="num" data-label="AFP+SFS" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {fmt(resultado.afpEmpleado + resultado.sfsEmpleado)}
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                        <td data-col="num" data-label="ISR" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.isrMensual === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
                             : fmt(resultado.isrMensual)}
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                        <td data-col="num" data-label="Dep. SFS" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {resultado.sfsDependientes === 0
                             ? <span className="text-zinc-300 dark:text-zinc-600">—</span>
                             : fmt(resultado.sfsDependientes)}
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
+                        <td data-col="num" data-label="S. Neto" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
                           {fmt(resultado.salarioNeto)}
                         </td>
-                        <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                        <td data-col="num" data-label="Costo Emp." className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                           {fmt(resultado.totalCostoEmpleador)}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td data-col="acc" className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5">
                             {esEnProceso && !isProcesado && (
                               <button
@@ -2259,7 +2259,7 @@ export default function NominaPage() {
                         <tr
                           className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]"
                         >
-                          <td colSpan={colSpanTotal} className="px-5 py-4">
+                          <td data-col="full" colSpan={colSpanTotal} className="px-5 py-4">
                             <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">
                                 Agregar ajuste — {fullName(empleado)}
@@ -2395,17 +2395,17 @@ export default function NominaPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
-                  <td className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400" colSpan={esEnProceso ? 3 : 2}>
+                  <td data-col="full" className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400" colSpan={esEnProceso ? 3 : 2}>
                     {hayFiltrosTabla ? `TOTAL (filtrado) — ${nominasVisibles.length} empleados` : `TOTALES — ${empleadosPeriodo.length} empleados`}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">{fmt(totalesVisibles.bruto)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                  <td data-col="num" data-label="S. Bruto" className="px-4 py-3.5 text-right tabular-nums font-semibold text-zinc-800 dark:text-zinc-200">{fmt(totalesVisibles.bruto)}</td>
+                  <td data-col="num" data-label="AFP+SFS" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
                     {fmt(totalesVisibles.afpSfs)}
                   </td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.isr)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{fmt(totalesVisibles.neto)}</td>
-                  <td className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.costoTotal)}</td>
-                  <td />
+                  <td data-col="num" data-label="ISR" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.isr)}</td>
+                  <td data-col="num" data-label="S. Neto" className="px-4 py-3.5 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">{fmt(totalesVisibles.neto)}</td>
+                  <td data-col="num" data-label="Costo Emp." className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{fmt(totalesVisibles.costoTotal)}</td>
+                  <td data-col="hide" />
                 </tr>
               </tfoot>
             </table>

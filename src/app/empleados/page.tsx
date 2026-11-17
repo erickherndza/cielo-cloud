@@ -1368,8 +1368,8 @@ export default function EmpleadosPage() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex items-center gap-3 border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-6 py-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 md:px-6 py-3">
+          <div className="relative w-full md:flex-1 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
               type="text"
@@ -1386,7 +1386,7 @@ export default function EmpleadosPage() {
           >
             {departamentos.map(d => <option key={d}>{d}</option>)}
           </select>
-          <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer">
+          <label className="flex items-center gap-2 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer">
             <input type="checkbox" checked={mostrarInactivos}
               onChange={e => setMostrarInactivos(e.target.checked)}
               className="rounded border-zinc-300 text-[#1B2980]" />
@@ -1394,8 +1394,36 @@ export default function EmpleadosPage() {
           </label>
         </div>
 
-        <div className="p-6">
-          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="p-4 md:p-6">
+          {/* Móvil: tarjetas */}
+          <div className="md:hidden space-y-2.5">
+            {filtrados.map(emp => (
+              <button key={emp.id} onClick={() => setEmpSeleccionado(emp)}
+                className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-3 text-left active:bg-zinc-50 dark:active:bg-[#1a1d2e]">
+                <EmpleadoAvatar emp={emp} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{fullName(emp)}</p>
+                  <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{emp.cargo} · {emp.departamento}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    <Badge variant={emp.activo ? 'success' : 'neutral'}>{emp.activo ? 'Activo' : 'Inactivo'}</Badge>
+                    {emp.activo && emp.suspendido && <Badge variant="warning">Suspendido</Badge>}
+                    {emp.activo && emp.salidaPendiente && <Badge variant="danger">Salida Pendiente</Badge>}
+                    {emp.activo && !emp.suspendido && !emp.salidaPendiente && estaDeLicencia(emp.id) && <Badge variant="info">De Licencia</Badge>}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(emp.salarioBase)}</p>
+                  <ChevronRight className="ml-auto mt-1 h-4 w-4 text-zinc-400" />
+                </div>
+              </button>
+            ))}
+            {filtrados.length === 0 && (
+              <EmptyState icon={SearchX} title="Sin resultados"
+                message="No se encontraron empleados con los filtros aplicados." className="py-10" />
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
