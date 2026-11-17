@@ -435,9 +435,17 @@ export function buildApp({
   app.get('/api/admin/empresas', async (req, reply) => {
     if (soloSuper(req, reply)) return
     const q = String(req.query?.q ?? '').trim().slice(0, 100).replace(/[\\%_]/g, m => '\\' + m)
+    // Solo conteos y fechas (nunca el contenido de los documentos).
     return conContexto(ctx(req), async (c) => (await c.query(
       `SELECT e.id, e.nombre, e.rnc, e.estado, e.creado_en,
-              (SELECT count(*)::int FROM miembros m WHERE m.empresa_id = e.id) AS miembros
+              (SELECT count(*)::int FROM miembros m WHERE m.empresa_id = e.id) AS miembros,
+              (SELECT m.email FROM miembros m WHERE m.empresa_id = e.id
+                ORDER BY (m.rol = 'admin') DESC, m.creado_en LIMIT 1) AS contacto,
+              (SELECT CASE WHEN jsonb_typeof(d.datos) = 'array' THEN jsonb_array_length(d.datos) END
+                 FROM documentos d WHERE d.empresa_id = e.id AND d.coleccion = 'empleados') AS empleados,
+              (SELECT CASE WHEN jsonb_typeof(d.datos) = 'array' THEN jsonb_array_length(d.datos) END
+                 FROM documentos d WHERE d.empresa_id = e.id AND d.coleccion = 'periodos') AS periodos,
+              (SELECT max(d.actualizado_en) FROM documentos d WHERE d.empresa_id = e.id) AS ultima_actividad
          FROM empresas e
         WHERE $1 = '' OR e.nombre ILIKE '%' || $1 || '%' OR e.rnc LIKE $1 || '%'
         ORDER BY e.creado_en DESC LIMIT 200`, [q])).rows)
@@ -604,6 +612,42 @@ export function buildApp({
          FROM accesos_log l JOIN empresas e ON e.id = l.empresa_id
         WHERE $1::uuid IS NULL OR l.empresa_id = $1::uuid
         ORDER BY l.creado_en DESC LIMIT 200`, [empresaId ?? null])).rows)
+  })
+
+  // Resumen de uso de la plataforma: solo agregados, sin datos de empleados.
+  app.get('/api/admin/resumen', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    return conContexto(ctx(req), async (c) => {
+      const e = (await c.query(
+        `SELECT count(*)::int AS total,
+                count(*) FILTER (WHERE estado = 'activa')::int AS activas,
+                count(*) FILTER (WHERE estado = 'suspendida')::int AS suspendidas,
+                count(*) FILTER (WHERE creado_en > now() - interval '30 days')::int AS nuevas_30d,
+                count(*) FILTER (WHERE rnc IS NULL)::int AS sin_rnc
+           FROM empresas`)).rows[0]
+      const usuarios = (await c.query('SELECT count(DISTINCT uid)::int AS n FROM miembros')).rows[0].n
+      const act = (await c.query(
+        `SELECT count(DISTINCT empresa_id) FILTER (WHERE actualizado_en > now() - interval '7 days')::int AS d7,
+                count(DISTINCT empresa_id) FILTER (WHERE actualizado_en > now() - interval '30 days')::int AS d30
+           FROM documentos`)).rows[0]
+      const empleados = (await c.query(
+        `SELECT coalesce(sum(CASE WHEN jsonb_typeof(datos) = 'array' THEN jsonb_array_length(datos) END), 0)::int AS n
+           FROM documentos WHERE coleccion = 'empleados'`)).rows[0].n
+      const altas = (await c.query(
+        `SELECT to_char(date_trunc('month', creado_en), 'YYYY-MM') AS mes, count(*)::int AS n
+           FROM empresas WHERE creado_en > now() - interval '12 months' GROUP BY 1 ORDER BY 1`)).rows
+      return { empresas: e, usuarios, empleados, activas7d: act.d7, activas30d: act.d30, altasPorMes: altas }
+    })
+  })
+
+  // Todas las personas con acceso a alguna empresa (correo, rol, empresa).
+  app.get('/api/admin/usuarios', async (req, reply) => {
+    if (soloSuper(req, reply)) return
+    return conContexto(ctx(req), async (c) => (await c.query(
+      `SELECT m.uid, m.email, m.rol, m.creado_en, e.id AS empresa_id, e.nombre AS empresa, e.rnc, e.estado,
+              (SELECT max(d.actualizado_en) FROM documentos d WHERE d.empresa_id = e.id) AS ultima_actividad
+         FROM miembros m JOIN empresas e ON e.id = m.empresa_id
+        ORDER BY m.creado_en DESC LIMIT 500`)).rows)
   })
 
   })   // fin del plugin `rutas`

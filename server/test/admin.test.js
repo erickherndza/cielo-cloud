@@ -106,3 +106,18 @@ test('un usuario normal no entra a una empresa ajena (el super admin sí, sin se
 test('un correo parecido al del super admin pero distinto no es super admin', async () => {
   assert.equal((await call('GET', '/api/yo', tok('f1', `x${SUP}`))).json().esSuperadmin, false)
 })
+
+test('consola: resumen y usuarios solo para el super admin, sin datos de empleados', async () => {
+  assert.equal((await call('GET', '/api/admin/resumen', tok('u1'))).statusCode, 404)
+  assert.equal((await call('GET', '/api/admin/usuarios', tok('u1'))).statusCode, 404)
+  const r = await call('GET', '/api/admin/resumen', S)
+  assert.equal(r.statusCode, 200)
+  const j = r.json()
+  assert.ok(j.empresas.total >= 1)
+  assert.ok(Array.isArray(j.altasPorMes))
+  assert.equal(typeof j.usuarios, 'number')
+  const u = await call('GET', '/api/admin/usuarios', S)
+  assert.equal(u.statusCode, 200); assert.ok(Array.isArray(u.json()))
+  const l = (await call('GET', '/api/admin/empresas', S)).json()
+  assert.ok('contacto' in l[0] && 'empleados' in l[0] && 'ultima_actividad' in l[0])
+})
