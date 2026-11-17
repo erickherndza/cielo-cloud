@@ -1305,12 +1305,12 @@ export default function LiquidacionPage() {
                 referencia deliberada a eso, no un capricho decorativo. */}
             <div className="rounded-2xl bg-gradient-to-br from-[#1B2980] to-[#151f66] dark:from-[#151f66] dark:to-[#0d1240] text-white shadow-lg shadow-[#1B2980]/20 overflow-hidden">
               <div className="px-6 py-5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-200">{MOTIVO_LABELS[motivo]}</p>
                     <p className="mt-1 text-sm text-indigo-200">Total Neto a Pagar al Empleado</p>
                   </div>
-                  <div className="text-right">
+                  <div className="sm:text-right">
                     <p className="text-3xl font-bold tabular-nums tracking-tight text-white">{formatRD(totalFinal, 2)}</p>
                     <p className="text-xs text-indigo-200 mt-0.5">Pesos Dominicanos</p>
                   </div>
