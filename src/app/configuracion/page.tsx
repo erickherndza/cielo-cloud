@@ -1433,6 +1433,11 @@ export default function ConfiguracionPage() {
                           }
                         >
                           <div className="space-y-3">
+                            <ToggleSwitch
+                              checked={form.enviarComprobantesAlPagar !== false}
+                              onChange={v => setForm(prev => ({ ...prev, enviarComprobantesAlPagar: v }))}
+                              label="Enviar el correo con el monto a cada empleado al marcar la nómina como pagada"
+                            />
                             <div>
                               <label htmlFor="plantillaComprobanteAsunto" className={LABEL_CLASS}>Asunto</label>
                               <input

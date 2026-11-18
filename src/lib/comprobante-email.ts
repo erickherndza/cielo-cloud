@@ -47,13 +47,13 @@ export const PLACEHOLDERS_COMPROBANTE = [
 
 export function plantillaComprobanteDefault(): PlantillaComprobante {
   return {
-    asunto: 'Comprobante de pago — {concepto} {periodo}',
+    asunto: 'Tu pago de {concepto} fue aplicado — {periodo}',
     cuerpo:
 `Estimado/a {nombre},
 
-Adjunto encontrarás tu comprobante de pago correspondiente a {concepto} del período {periodo}.
+Te informamos que tu pago de {concepto} del período {periodo} fue aplicado.
 
-Salario neto pagado: {neto}
+Monto neto pagado: {neto}
 Fecha de pago: {fechaPago}
 
 Este correo fue generado desde Cielo Cloud Nómina.

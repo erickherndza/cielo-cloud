@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Mail, X, Send, Download, CheckCircle2 } from 'lucide-react'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useEmpresa } from '@/lib/empresa-context'
@@ -76,11 +76,13 @@ function filasComprobante(
 }
 
 export function EnvioComprobantesModal({
-  periodo, onClose, onToast,
+  periodo, onClose, onToast, autoEnviar = false,
 }: {
   periodo: PeriodoNomina
   onClose: () => void
   onToast: (mensaje: string) => void
+  // Dispara el envío masivo al abrir (solo con API; una sola vez por apertura).
+  autoEnviar?: boolean
 }) {
   const { empleados, empleadosEnNomina } = useEmpleados()
   const { empresa } = useEmpresa()
@@ -153,6 +155,15 @@ export function EnvioComprobantesModal({
       setEnviando(false)
     }
   }
+
+  const autoLanzado = useRef(false)
+  useEffect(() => {
+    if (!autoEnviar || !REMOTE_ENABLED || autoLanzado.current) return
+    autoLanzado.current = true
+    const pendientes = filas.filter(f => f.empleado.email)
+    if (pendientes.length > 0) void enviarPorServidor(pendientes)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleEnviar(emp: Empleado, resultado: ResultadoNomina) {
     if (REMOTE_ENABLED) { void enviarPorServidor(filas.filter(f => f.empleado.id === emp.id)); return }

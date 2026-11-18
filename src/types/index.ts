@@ -490,6 +490,9 @@ export interface Empresa {
   // que ya existía como valor inicial no persistido.
   plantillaComprobanteAsunto?: string
   plantillaComprobanteCuerpo?: string
+  // Si no es false, al marcar un período como pagado el servidor envía solo el
+  // correo con el monto a cada empleado (requiere API + Resend configurado).
+  enviarComprobantesAlPagar?: boolean
 
   // Timestamp ISO de la última vez que se guardó este registro — lo estampa
   // guardar() en empresa-context.tsx automáticamente, no se edita a mano.

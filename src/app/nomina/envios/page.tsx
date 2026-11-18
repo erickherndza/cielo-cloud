@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { Toast } from '@/components/ui/Toast'
 import { usePeriodos } from '@/lib/periodos-context'
+import { useEmpresa } from '@/lib/empresa-context'
 import { EnvioComprobantesModal } from '@/components/nomina/EnvioComprobantesModal'
 import { labelPeriodo } from '@/lib/nomina-shared'
 import { formatRD, formatDate, cn, BTN_PRIMARY, hoyLocalISO } from '@/lib/utils'
@@ -21,6 +22,8 @@ export default function GestionEnviosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroAnio, setFiltroAnio] = useState<'todos' | number>('todos')
   const [envioPeriodoId, setEnvioPeriodoId] = useState<string | null>(null)
+  const [envioAuto, setEnvioAuto] = useState(false)
+  const { empresa } = useEmpresa()
   const [toast, setToast] = useState<string | null>(null)
 
   const cerrados = periodos.filter(p => p.estado === 'cerrada')
@@ -38,6 +41,7 @@ export default function GestionEnviosPage() {
     const hoy = hoyLocalISO()
     if (!confirm(`¿Confirmar que "${labelPeriodo(p)}" ya fue pagado (transferencia ACH enviada) el ${formatDate(hoy)}?`)) return
     marcarPagada(p.id, hoy)
+    setEnvioAuto(empresa.enviarComprobantesAlPagar !== false)
     setEnvioPeriodoId(p.id)
   }
 
@@ -186,8 +190,9 @@ export default function GestionEnviosPage() {
       {periodoEnvio && (
         <EnvioComprobantesModal
           periodo={periodoEnvio}
-          onClose={() => setEnvioPeriodoId(null)}
+          onClose={() => { setEnvioPeriodoId(null); setEnvioAuto(false) }}
           onToast={setToast}
+          autoEnviar={envioAuto}
         />
       )}
     </div>
