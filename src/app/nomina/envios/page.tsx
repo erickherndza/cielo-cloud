@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/lib/confirm-context'
 import { useState } from 'react'
 import { Search, Wallet, Mail, CheckCircle2, Undo2 } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
@@ -18,6 +19,7 @@ import type { PeriodoNomina } from '@/types'
 // todavía está en_proceso/procesada no tiene nada que hacer en esta
 // pantalla — primero hay que cerrarlo desde Cálculo de Nómina.
 export default function GestionEnviosPage() {
+  const confirmar = useConfirm()
   const { periodos, marcarPagada, desmarcarPagada } = usePeriodos()
   const [busqueda, setBusqueda] = useState('')
   const [filtroAnio, setFiltroAnio] = useState<'todos' | number>('todos')
@@ -37,9 +39,9 @@ export default function GestionEnviosPage() {
   const pendientesPago = cerrados.filter(p => !p.pagada).length
   const hayFiltros = busqueda.trim() !== '' || filtroAnio !== 'todos'
 
-  function handleMarcarPagada(p: PeriodoNomina) {
+  async function handleMarcarPagada(p: PeriodoNomina) {
     const hoy = hoyLocalISO()
-    if (!confirm(`¿Confirmar que "${labelPeriodo(p)}" ya fue pagado (transferencia ACH enviada) el ${formatDate(hoy)}?`)) return
+    if (!await confirmar({ titulo: 'Marcar como pagada', mensaje: `¿Confirmar que "${labelPeriodo(p)}" ya fue pagado (transferencia ACH enviada) el ${formatDate(hoy)}?`, confirmarLabel: 'Sí, ya se pagó' })) return
     marcarPagada(p.id, hoy)
     setEnvioAuto(empresa.enviarComprobantesAlPagar !== false)
     setEnvioPeriodoId(p.id)
@@ -50,10 +52,10 @@ export default function GestionEnviosPage() {
   // transferencia bancaria real, es un reconocimiento explícito de que ese
   // pago ya no aplica (se pagó mal, hay que corregir el período). Por eso
   // la confirmación es más severa que la de marcar como pagada.
-  function handleDesmarcarPagada(p: PeriodoNomina) {
-    if (!confirm(
+  async function handleDesmarcarPagada(p: PeriodoNomina) {
+    if (!await confirmar({ titulo: 'Deshacer pago', peligroso: true, confirmarLabel: 'Deshacer pago', mensaje:
       `¿Deshacer el pago de "${labelPeriodo(p)}"? Esto NO revierte ninguna transferencia bancaria — solo quita la marca de "pagado" en el sistema para poder reabrir y corregir el período si fue necesario. Úsalo solo si el pago se registró por error o hay que corregirlo.`
-    )) return
+    })) return
     desmarcarPagada(p.id)
     setToast('Pago deshecho — el período vuelve a estar pendiente de pago')
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/lib/confirm-context'
 import { useState, useEffect, useRef } from 'react'
 import {
   Search, Plus, ChevronRight, Building2, Mail, Phone, X, Pencil,
@@ -1249,6 +1250,7 @@ function EmpleadoDrawer({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EmpleadosPage() {
+  const confirmar = useConfirm()
   const { empleados, add, update, remove } = useEmpleados()
   const { empresa } = useEmpresa()
   const { estaDeLicencia } = useLicencias()
@@ -1551,8 +1553,8 @@ export default function EmpleadosPage() {
               setEmpSeleccionado(null)
               setToast('Empleado reactivado')
             }}
-            onEliminar={() => {
-              if (!confirm(`¿Eliminar a ${fullName(empleadoSeleccionado)}? Esta acción no se puede deshacer.`)) return
+            onEliminar={async () => {
+              if (!await confirmar({ titulo: 'Eliminar empleado', peligroso: true, confirmarLabel: 'Eliminar', mensaje: `¿Eliminar a ${fullName(empleadoSeleccionado)}? Esta acción no se puede deshacer.` })) return
               remove(empleadoSeleccionado.id)
               setEmpSeleccionado(null)
               setToast('Empleado eliminado')

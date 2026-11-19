@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/lib/confirm-context'
 import { useState, useEffect, Fragment } from 'react'
 import {
   ChevronRight,
@@ -362,6 +363,7 @@ function DetalleNomina({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function NominaPage() {
+  const confirmar = useConfirm()
   const { empleados, empleadosEnNomina, update: actualizarEmpleado } = useEmpleados()
   const { periodos, generar, cerrar, eliminar, actualizarAjustes, actualizarTotales, marcarProcesados, reabrir } = usePeriodos()
   const { empresa } = useEmpresa()
@@ -1376,11 +1378,11 @@ export default function NominaPage() {
                                 </button>
                               ) : (
                                 <button
-                                  onClick={e => {
+                                  onClick={async e => {
                                     e.stopPropagation()
-                                    if (!confirm(
+                                    if (!await confirmar({ titulo: 'Reabrir período', confirmarLabel: 'Reabrir', mensaje:
                                       `¿Reabrir "${labelPeriodo(p)}"? Los empleados procesados volverán a marcarse como pendientes y deberás reprocesarlos. Esta acción queda registrada con tu usuario y fecha.`
-                                    )) return
+                                    })) return
                                     const procesadosAntes = p.empleadosProcesados ?? []
                                     const ok = reabrir(p.id, user?.email ?? 'desconocido')
                                     // Reabrir un período de Regalía Pascual debe revertir el "reinicio"
@@ -1415,9 +1417,9 @@ export default function NominaPage() {
                               </button>
                             ) : (
                               <button
-                                onClick={e => {
+                                onClick={async e => {
                                   e.stopPropagation()
-                                  if (!confirm(`¿Eliminar el período "${labelPeriodo(p)}"?`)) return
+                                  if (!await confirmar({ titulo: 'Eliminar período', peligroso: true, confirmarLabel: 'Eliminar', mensaje: `¿Eliminar el período "${labelPeriodo(p)}"?` })) return
                                   eliminar(p.id)
                                 }}
                                 title="Eliminar período"
@@ -1481,8 +1483,8 @@ export default function NominaPage() {
               </button>
               {esEnProcesoReg && pendientesReg.length > 0 && (
                 <button
-                  onClick={() => {
-                    if (!confirm(`¿Procesar el pago de Regalía Pascual de ${pendientesReg.length} empleado(s)? El acumulado de cada uno vuelve a cero para el resto del año.`)) return
+                  onClick={async () => {
+                    if (!await confirmar({ titulo: 'Procesar Regalía Pascual', confirmarLabel: 'Procesar', mensaje: `¿Procesar el pago de Regalía Pascual de ${pendientesReg.length} empleado(s)? El acumulado de cada uno vuelve a cero para el resto del año.` })) return
                     handleProcesarRegalia(pendientesReg.map(f => f.empId))
                   }}
                   className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors"
@@ -1679,8 +1681,8 @@ export default function NominaPage() {
               </button>
               {esEnProcesoBon && pendientesBon.length > 0 && (
                 <button
-                  onClick={() => {
-                    if (!confirm(`¿Procesar el pago de Bonificación por Utilidades de ${pendientesBon.length} empleado(s)?`)) return
+                  onClick={async () => {
+                    if (!await confirmar({ titulo: 'Procesar Bonificación', confirmarLabel: 'Procesar', mensaje: `¿Procesar el pago de Bonificación por Utilidades de ${pendientesBon.length} empleado(s)?` })) return
                     handleProcesarBonificacion(pendientesBon.map(f => f.empId))
                   }}
                   className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors"
