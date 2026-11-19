@@ -10,6 +10,7 @@ import { firebaseAuthMsg } from '@/lib/firebase-errors'
 import { GoogleIcon } from '@/components/auth/GoogleIcon'
 import { MicrosoftIcon } from '@/components/auth/MicrosoftIcon'
 import { MICROSOFT_LOGIN_ENABLED } from '@/lib/firebase'
+import { PlanesLink } from '@/components/auth/PlanesLink'
 import { AuthBrandPanel, MobileLogo } from '@/components/auth/AuthBrandPanel'
 
 const INPUT = 'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] pl-11 pr-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-[#1B2980]/8 dark:focus:ring-indigo-500/10 transition-all'
@@ -102,6 +103,7 @@ export default function LoginPage() {
           }}
         />
 
+        <PlanesLink />
         <div className="relative w-full max-w-[400px]">
           <MobileLogo />
 

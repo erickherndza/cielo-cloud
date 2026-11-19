@@ -14,6 +14,8 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate'
 import { CommandPaletteProvider } from '@/lib/command-palette-context'
 
 const PUBLIC_PATHS = ['/login', '/registro']
+// Páginas abiertas a todos (con o sin sesión), sin menú lateral ni redirecciones.
+const OPEN_PATHS = ['/planes']
 
 function LoadingScreen() {
   return (
@@ -45,6 +47,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname            = usePathname()
 
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isOpen   = OPEN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   useEffect(() => {
     // Sin Firebase no existe login: cualquier ruta pública vuelve al inicio.
@@ -52,14 +55,17 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       if (isPublic) router.replace('/')
       return
     }
-    if (loading) return
+    if (loading || isOpen) return
     if (!user && !isPublic) router.replace('/login')
     if (user  &&  isPublic) router.replace('/')
-  }, [user, loading, isPublic, router])
+  }, [user, loading, isPublic, isOpen, router])
 
   const needsOnboarding = empresaCargada && !empresa.onboardingCompleto
   const needsConfiguracionInicial =
     empresaCargada && empresa.onboardingCompleto && !empresa.configuracionInicialOfrecida
+
+  // Páginas abiertas (precios): pantalla completa, sin sesión ni onboarding
+  if (isOpen) return <div className="flex flex-1 overflow-y-auto">{children}</div>
 
   // Firebase not configured → skip auth, only gate on onboarding
   if (!FIREBASE_ENABLED) {
