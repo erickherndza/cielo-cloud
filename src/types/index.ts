@@ -453,6 +453,9 @@ export interface Empresa {
   // calendario), el caso más común y el comportamiento ya existente antes
   // de este campo.
   cierreFiscal?: CierreFiscal
+  // Ejercicios fiscales (año de cierre) en que la empresa declaró que NO corresponde pagar Bonificación
+  // (sin utilidades o exención Art. 226). Apaga la alerta de vencimiento de ese año.
+  bonificacionExentaAnios?: number[]
   numeroEmpleadosAprox?: RangoEmpleados
   zonaFranca?: boolean // opera bajo régimen de zona franca — salario mínimo distinto
   rolUsuario?: RolUsuario

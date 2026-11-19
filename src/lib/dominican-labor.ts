@@ -1009,6 +1009,7 @@ export function getBonificacionesPendientes(
   periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
   cierreFiscal: CierreFiscal,
   aniosCandidatos: number[],
+  aniosExentos: number[] = [],
 ): BonificacionPendiente[] {
   // Sin ningún empleado conocido no hay nada que pudiera deberse — evita el
   // caso borde de una cuenta recién creada: `primerIngresoConocido` sería
@@ -1025,6 +1026,7 @@ export function getBonificacionesPendientes(
       const { fin } = rangoEjercicioFiscal(a, cierreFiscal)
       if (fin > hoy) return null
       if (fin < primerIngresoConocido) return null
+      if (aniosExentos.includes(a)) return null
       const pagado = periodos.some(p => p.tipo === 'bonificacion' && p.anio === a && p.estado === 'cerrada')
       if (pagado) return null
       const limite = fechaLimitePagoBonificacion(fin)

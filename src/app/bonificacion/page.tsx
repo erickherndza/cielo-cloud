@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -36,11 +36,14 @@ function formatDateObj(d: Date): string {
 // fiscal más urgente sin liquidar esté dentro de los 45 días previos a su
 // límite legal, o ya vencido — fuera de esa ventana no alarma al usuario.
 function BannerVencimiento({
-  alerta, onIrA,
+  alerta, onIrA, onExentar, yaEnEjercicio,
 }: {
   alerta: { anio: number; limite: Date; diasRestantes: number }
   onIrA: () => void
+  onExentar: () => void
+  yaEnEjercicio: boolean
 }) {
+  const [confirmando, setConfirmando] = useState(false)
   const vencido = alerta.diasRestantes < 0
   return (
     <div
@@ -68,16 +71,29 @@ function BannerVencimiento({
           )}
         </span>
       </div>
-      <button onClick={onIrA} className="shrink-0 flex items-center gap-1 font-semibold hover:underline">
-        Calcular ahora <ArrowRight className="h-3.5 w-3.5" />
-      </button>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1">
+        <button onClick={onIrA} className="flex items-center gap-1 font-semibold hover:underline">
+          {yaEnEjercicio ? 'Ingresar utilidad neta' : 'Calcular ahora'} <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        {confirmando ? (
+          <span className="flex items-center gap-2 text-xs">
+            ¿No corresponde pagar {alerta.anio}?
+            <button onClick={() => { onExentar(); setConfirmando(false) }} className="font-bold underline">Sí, marcar</button>
+            <button onClick={() => setConfirmando(false)} className="underline">Cancelar</button>
+          </span>
+        ) : (
+          <button onClick={() => setConfirmando(true)} className="text-xs font-semibold underline underline-offset-2 opacity-80 hover:opacity-100">
+            No corresponde pagar este año
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
 export default function BonificacionPage() {
   const { empleados } = useEmpleados()
-  const { empresa } = useEmpresa()
+  const { empresa, guardar } = useEmpresa()
   const { periodos, generar } = usePeriodos()
   const { liquidaciones } = useLiquidaciones()
   const [utilidadNeta, setUtilidadNeta] = useState<string>('')
@@ -194,9 +210,18 @@ export default function BonificacionPage() {
   // Reutiliza getBonificacionesPendientes() de dominican-labor.ts — misma
   // regla exacta que consume el Centro de Alertas del Dashboard, sin
   // duplicar la lógica de ventana fiscal en dos lugares.
+  const exentos = useMemo(() => empresa.bonificacionExentaAnios ?? [], [empresa.bonificacionExentaAnios])
+  const utilidadRef = useRef<HTMLInputElement>(null)
+  function marcarExento(anio: number) {
+    guardar({ ...empresa, bonificacionExentaAnios: Array.from(new Set([...exentos, anio])) })
+    setToast(`Ejercicio ${anio} marcado como sin bonificación — la alerta se apagó`)
+  }
+  function revertirExento(anio: number) {
+    guardar({ ...empresa, bonificacionExentaAnios: exentos.filter(a => a !== anio) })
+  }
   const pendientesPago = useMemo(
-    () => getBonificacionesPendientes(empleados, periodos, cierreFiscal, ANIOS_FISCALES),
-    [empleados, periodos, cierreFiscal],
+    () => getBonificacionesPendientes(empleados, periodos, cierreFiscal, ANIOS_FISCALES, exentos),
+    [empleados, periodos, cierreFiscal, exentos],
   )
   const alertaPago = pendientesPago[0]
   const mostrarBannerUrgente = !!alertaPago && alertaPago.diasRestantes <= 45
@@ -345,7 +370,7 @@ export default function BonificacionPage() {
         <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-4 md:p-10">
           <div className="mx-auto max-w-3xl space-y-5">
             {mostrarBannerUrgente && alertaPago && (
-              <BannerVencimiento alerta={alertaPago} onIrA={() => { setAnioFiscal(alertaPago.anio); setPantalla('actual') }} />
+              <BannerVencimiento alerta={alertaPago} yaEnEjercicio={false} onExentar={() => marcarExento(alertaPago.anio)} onIrA={() => { setAnioFiscal(alertaPago.anio); setPantalla('actual') }} />
             )}
             <div className="text-center">
               <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">¿Qué quieres ver?</h1>
@@ -531,7 +556,19 @@ export default function BonificacionPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
 
         {mostrarBannerUrgente && alertaPago && (
-          <BannerVencimiento alerta={alertaPago} onIrA={() => setAnioFiscal(alertaPago.anio)} />
+          <BannerVencimiento
+            alerta={alertaPago}
+            yaEnEjercicio={alertaPago.anio === anioFiscal}
+            onExentar={() => marcarExento(alertaPago.anio)}
+            onIrA={() => { setAnioFiscal(alertaPago.anio); setTimeout(() => utilidadRef.current?.focus(), 0) }}
+          />
+        )}
+
+        {exentos.includes(anioFiscal) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3.5 text-sm text-zinc-600 dark:text-zinc-300">
+            <span>Ejercicio {anioFiscal} marcado como <strong>sin bonificación</strong> (sin utilidades o exención Art. 226). No genera alertas.</span>
+            <button onClick={() => revertirExento(anioFiscal)} className="font-semibold underline underline-offset-2">Revertir</button>
+          </div>
         )}
 
         {periodoBonifExistente && (
@@ -583,7 +620,7 @@ export default function BonificacionPage() {
                   Utilidad Neta Anual (RD$)
                 </label>
                 <input
-                  type="number"
+                  ref={utilidadRef} type="number"
                   min="0"
                   value={utilidadNeta}
                   onChange={e => setUtilidadNeta(e.target.value)}

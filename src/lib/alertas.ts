@@ -88,7 +88,7 @@ export function useAlertas(): AlertaItem[] {
     // viejo creía estar al día). Los demás pendientes se listan como chips
     // de detalle, igual patrón ya usado en salario-mínimo/préstamos/pago
     // retroactivo.
-    const pendientesBonif = getBonificacionesPendientes(empleados, periodos, empresa.cierreFiscal ?? 'diciembre', ANIOS_FISCALES)
+    const pendientesBonif = getBonificacionesPendientes(empleados, periodos, empresa.cierreFiscal ?? 'diciembre', ANIOS_FISCALES, empresa.bonificacionExentaAnios ?? [])
     const alertaBonif = pendientesBonif[0]
     if (alertaBonif && alertaBonif.diasRestantes <= 45) {
       const vencido = alertaBonif.diasRestantes < 0
