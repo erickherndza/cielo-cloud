@@ -23,10 +23,35 @@ export const PLANES: Plan[] = [
   { id: 'empresa', rango: 'Más de 100 empleados', cotizar: true, extra: 'Escríbenos y te preparamos una cotización' },
 ]
 
+export const DIAS_GRATIS = 30
+export const DESCUENTO_ANUAL = 0.1 // 10 % si se paga la suscripción anual
+
+/** Precio mensual equivalente según el ciclo de pago. */
+export function precioMensual(precio: number, anual: boolean): number {
+  return anual ? precio * (1 - DESCUENTO_ANUAL) : precio
+}
+export function totalAnual(precio: number): number {
+  return precio * 12 * (1 - DESCUENTO_ANUAL)
+}
+export function ahorroAnual(precio: number): number {
+  return precio * 12 * DESCUENTO_ANUAL
+}
+export function fmtUsd(n: number): string {
+  return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+}
+
+const ASUNTO = 'Cotización Cielo Cloud Nómina — más de 100 empleados'
+const CUERPO =
+  'Hola, quisiera cotizar Cielo Cloud Nómina para una empresa de más de 100 empleados.\n\nEmpresa:\nNúmero de empleados:\nContacto (nombre y teléfono):'
+
 export function mailtoCotizar(): string {
-  const asunto = encodeURIComponent('Cotización Cielo Cloud Nómina — más de 100 empleados')
-  const cuerpo = encodeURIComponent('Hola, quisiera cotizar Cielo Cloud Nómina para una empresa de más de 100 empleados.\n\nEmpresa:\nNúmero de empleados:\nContacto:')
-  return `mailto:${EMAIL_VENTAS}?subject=${asunto}&body=${cuerpo}`
+  return `mailto:${EMAIL_VENTAS}?subject=${encodeURIComponent(ASUNTO)}&body=${encodeURIComponent(CUERPO)}`
+}
+export function gmailCotizar(): string {
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_VENTAS)}&su=${encodeURIComponent(ASUNTO)}&body=${encodeURIComponent(CUERPO)}`
+}
+export function outlookCotizar(): string {
+  return `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(EMAIL_VENTAS)}&subject=${encodeURIComponent(ASUNTO)}&body=${encodeURIComponent(CUERPO)}`
 }
 
 // Funciones que ya anuncia el producto en las pantallas de acceso.

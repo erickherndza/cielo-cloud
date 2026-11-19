@@ -1,9 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { Check, Star } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Star, Gift, Mail, Copy, X, ExternalLink } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
-import { PLANES, INCLUYE, mailtoCotizar } from '@/lib/planes'
+import {
+  PLANES, INCLUYE, EMAIL_VENTAS, DIAS_GRATIS, DESCUENTO_ANUAL,
+  mailtoCotizar, gmailCotizar, outlookCotizar,
+  precioMensual, totalAnual, ahorroAnual, fmtUsd,
+} from '@/lib/planes'
 import { cn } from '@/lib/utils'
 
 function Marca() {
@@ -24,6 +29,17 @@ function Marca() {
 
 export default function PlanesPage() {
   const { user } = useAuth()
+  const [anual, setAnual] = useState(false)
+  const [cotizarAbierto, setCotizarAbierto] = useState(false)
+  const [copiado, setCopiado] = useState(false)
+
+  async function copiarCorreo() {
+    try {
+      await navigator.clipboard.writeText(EMAIL_VENTAS)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch { /* el navegador bloqueó el portapapeles */ }
+  }
 
   return (
     <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#171717]">
@@ -54,6 +70,26 @@ export default function PlanesPage() {
           <p className="mx-auto mt-2 max-w-xl text-sm text-tabler-mute dark:text-zinc-400">
             Elige el plan según el número de empleados de tu empresa.
           </p>
+          <p className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            <Gift className="h-4 w-4" />
+            {DIAS_GRATIS} días gratis en todos los planes
+          </p>
+
+          <div className="mt-6 flex justify-center">
+            <div className="inline-flex rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-0.5">
+              <button type="button" onClick={() => setAnual(false)}
+                className={cn('rounded px-4 py-1.5 text-sm font-medium transition-colors', !anual ? 'bg-[#1B2980] text-white' : 'text-tabler-mute dark:text-zinc-400 hover:text-tabler-ink')}>
+                Mensual
+              </button>
+              <button type="button" onClick={() => setAnual(true)}
+                className={cn('flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-medium transition-colors', anual ? 'bg-[#1B2980] text-white' : 'text-tabler-mute dark:text-zinc-400 hover:text-tabler-ink')}>
+                Anual
+                <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-bold', anual ? 'bg-amber-400 text-[#1B2980]' : 'bg-emerald-100 text-emerald-700')}>
+                  -{Math.round(DESCUENTO_ANUAL * 100)}%
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3 md:items-stretch">
@@ -80,11 +116,13 @@ export default function PlanesPage() {
               <p className="t-subheader relative">{plan.rango}</p>
 
               <p className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-semibold tabular-nums text-tabler-ink dark:text-zinc-100">${plan.precio}</span>
+                <span className="text-4xl font-semibold tabular-nums text-tabler-ink dark:text-zinc-100">{fmtUsd(precioMensual(plan.precio ?? 0, anual))}</span>
                 <span className="text-sm text-tabler-mute dark:text-zinc-400">/mes</span>
               </p>
-              <p className="mt-1 min-h-[3.5rem] text-xs text-tabler-mute dark:text-zinc-400">
-                {plan.extra ?? 'Precio fijo'}
+              <p className="mt-1 text-xs text-tabler-mute dark:text-zinc-400">
+                {anual
+                  ? `Facturado ${fmtUsd(totalAnual(plan.precio ?? 0))} al año · ahorras ${fmtUsd(ahorroAnual(plan.precio ?? 0))}`
+                  : 'Precio fijo'}
               </p>
 
               <div className={cn('mt-3', plan.popular ? 'h-7' : 'hidden h-7 md:block')}>
@@ -118,7 +156,7 @@ export default function PlanesPage() {
                     : 'border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626]',
                 )}
               >
-                {user ? 'Contactar' : 'Empezar'}
+                {user ? 'Contactar' : `Probar ${DIAS_GRATIS} días gratis`}
               </Link>
             </div>
           ))}
@@ -145,15 +183,53 @@ export default function PlanesPage() {
                 Te preparamos una propuesta a la medida de tu empresa.
               </p>
             </div>
-            <a
-              href={mailtoCotizar()}
+            <button
+              type="button"
+              onClick={() => setCotizarAbierto(true)}
               className="rounded-md bg-[#1B2980] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#151f66] transition-colors"
             >
               Cotizar
-            </a>
+            </button>
           </div>
         </div>
       </main>
+
+      {cotizarAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-backdrop-in" onClick={() => setCotizarAbierto(false)}>
+          <div className="t-card w-full max-w-md animate-modal-in p-6" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Cotizar">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="t-card-title">Cotizar para más de 100 empleados</p>
+                <p className="mt-1 text-sm text-tabler-mute dark:text-zinc-400">
+                  Envíanos un correo con el nombre de tu empresa, cuántos empleados tiene y un contacto. Te respondemos con una propuesta.
+                </p>
+              </div>
+              <button type="button" onClick={() => setCotizarAbierto(false)} aria-label="Cerrar" className="rounded-md p-1 text-tabler-mute hover:bg-black/[0.05] dark:hover:bg-[#262626]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mt-4 rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-tabler-bg dark:bg-[#171717] px-3 py-2 text-sm font-medium text-tabler-ink dark:text-zinc-100">
+              {EMAIL_VENTAS}
+            </p>
+
+            <div className="mt-4 grid gap-2">
+              <a href={mailtoCotizar()} className="flex items-center justify-between rounded-md bg-[#1B2980] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#151f66] transition-colors">
+                <span className="flex items-center gap-2"><Mail className="h-4 w-4" />Abrir mi app de correo</span>
+              </a>
+              <a href={gmailCotizar()} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-md border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626] transition-colors">
+                Escribir con Gmail <ExternalLink className="h-4 w-4 text-tabler-mute" />
+              </a>
+              <a href={outlookCotizar()} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-md border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626] transition-colors">
+                Escribir con Outlook <ExternalLink className="h-4 w-4 text-tabler-mute" />
+              </a>
+              <button type="button" onClick={copiarCorreo} className="flex items-center justify-between rounded-md border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626] transition-colors">
+                {copiado ? 'Correo copiado' : 'Copiar el correo'} <Copy className="h-4 w-4 text-tabler-mute" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
