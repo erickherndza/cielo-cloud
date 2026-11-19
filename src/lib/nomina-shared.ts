@@ -227,42 +227,8 @@ export function generarComprobantePDF(
   doc.setFont('helvetica', 'bold')
   doc.text(formatRD(nomina.salarioNeto), W - 22, y + 10, { align: 'right' })
 
-  // Aportes empresa — tarjeta tenue para agruparlo como bloque propio
-  y += 21
-  const aportes = [
-    { label: 'AFP Empleador (7.10%)', v: nomina.afpEmpleador },
-    { label: 'SFS Empleador (7.09%)', v: nomina.sfsEmpleador },
-    { label: 'SRL Empleador',         v: nomina.srlEmpleador },
-    { label: 'Infotep (1.00%)',       v: nomina.infotepEmpleador },
-    ...(nomina.aporteVoluntarioAFPEmpresa > 0 ? [{ label: 'Aporte Voluntario AFP', v: nomina.aporteVoluntarioAFPEmpresa }] : []),
-    ...(nomina.grossingUpEmpresa           > 0 ? [{ label: 'Grossing-up (ISR/TSS empleado)', v: nomina.grossingUpEmpresa }] : []),
-  ]
-  const cardH = 9 + aportes.length * 4.5 + 4
-  doc.setFillColor(247, 248, 252)
-  doc.setDrawColor(...LINE_GRAY)
-  doc.roundedRect(14, y, W - 28, cardH, 2, 2, 'FD')
-  y += 6.5
-  doc.setFontSize(7.5)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(NR, NG, NB)
-  doc.text('APORTES EMPRESA (TSS)', 20, y)
-  y += 5
-  aportes.forEach(a => {
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(90, 90, 90)
-    doc.text(a.label, 20, y)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(40, 40, 40)
-    doc.text(formatRD(a.v), W - 20, y, { align: 'right' })
-    y += 4.5
-  })
-  doc.setDrawColor(...LINE_GRAY)
-  doc.line(20, y - 1.5, W - 20, y - 1.5)
-  y += 2.5
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(NR, NG, NB)
-  doc.text('Costo Total Empresa', 20, y)
-  doc.text(formatRD(nomina.totalCostoEmpleador), W - 20, y, { align: 'right' })
+  // (El bloque de Aportes Empresa/costo total se quitó del comprobante: es información interna de la empresa, no del empleado.)
+  y += 15
 
   // Footer
   y += 9
@@ -283,13 +249,6 @@ export function generarComprobantePDF(
     doc.text(`ISR consolidado con ingreso de otro empleador (${formatRD(empleado.ingresoOtroEmpleadorMensual!)}/mes)`, 14, y)
     y += 4
   }
-
-  doc.setFontSize(6.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(170, 170, 170)
-  doc.text(`Regalía/período: ${formatRD(nomina.regaliaPascual)}`, 14, y)
-  doc.text(`Vacaciones: ${nomina.vacacionesMensualesDias.toFixed(2)} días`, 90, y)
-  doc.text('Ley 16-92  ·  Ley 87-01  ·  Ley 11-92', W - 14, y, { align: 'right' })
 
   // Pie de página fijo — marca + fecha de generación, siempre al fondo
   const pageH = doc.internal.pageSize.getHeight()
