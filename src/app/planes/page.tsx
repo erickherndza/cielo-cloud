@@ -61,11 +61,23 @@ export default function PlanesPage() {
             <div
               key={plan.id}
               className={cn(
-                't-card flex flex-col p-6',
-                plan.popular && 'border-2 border-[#1B2980] dark:border-indigo-500 shadow-lg shadow-[#1B2980]/10 md:-my-2',
+                't-card relative flex flex-col overflow-hidden p-6',
+                plan.popular && 'border-2 border-amber-400 dark:border-amber-400/80 shadow-xl shadow-amber-400/25 md:-my-3',
               )}
             >
-              <p className="t-subheader">{plan.rango}</p>
+              {plan.popular && (
+                <>
+                  {/* línea superior dorada */}
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-300" />
+                  {/* brillo dorado de fondo */}
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgba(251,191,36,0.16),transparent_55%)]" />
+                  {/* estrellas decorativas */}
+                  <Star className="pointer-events-none absolute right-4 top-6 h-5 w-5 fill-amber-400 text-amber-500" />
+                  <Star className="pointer-events-none absolute right-11 top-4 h-3 w-3 fill-amber-300 text-amber-400" />
+                  <Star className="pointer-events-none absolute right-3 top-14 h-2.5 w-2.5 fill-amber-300 text-amber-400" />
+                </>
+              )}
+              <p className="t-subheader relative">{plan.rango}</p>
 
               <p className="mt-3 flex items-baseline gap-1">
                 <span className="text-4xl font-semibold tabular-nums text-tabler-ink dark:text-zinc-100">${plan.precio}</span>
@@ -77,14 +89,18 @@ export default function PlanesPage() {
 
               <div className={cn('mt-3', plan.popular ? 'h-7' : 'hidden h-7 md:block')}>
                 {plan.popular && (
-                  <p className="inline-flex w-fit items-center gap-1.5 rounded-md bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 px-2.5 py-1 text-xs font-semibold text-[#1B2980] dark:text-indigo-300">
-                    <Star className="h-3.5 w-3.5 fill-current" />
+                  <p className="relative inline-flex w-fit items-center gap-1.5 rounded-md border border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/30 dark:border-amber-500/40 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    <span className="flex">
+                      {[0, 1, 2, 3, 4].map(i => (
+                        <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-500" />
+                      ))}
+                    </span>
                     Plan popular
                   </p>
                 )}
               </div>
 
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-tabler-line dark:border-[#2e2e2e] pt-5">
+              <ul className={cn('relative mt-5 flex-1 space-y-2.5 border-t pt-5', plan.popular ? 'border-amber-300 dark:border-amber-500/40' : 'border-tabler-line dark:border-[#2e2e2e]')}>
                 {INCLUYE.map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-tabler-ink/80 dark:text-zinc-300">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-tabler-green" />
@@ -98,7 +114,7 @@ export default function PlanesPage() {
                 className={cn(
                   'mt-6 rounded-md px-4 py-2.5 text-center text-sm font-medium transition-colors',
                   plan.popular
-                    ? 'bg-[#1B2980] text-white hover:bg-[#151f66]'
+                    ? 'relative bg-[#1B2980] text-white ring-2 ring-amber-400 ring-offset-2 ring-offset-white dark:ring-offset-[#1f1f1f] hover:bg-[#151f66]'
                     : 'border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626]',
                 )}
               >
