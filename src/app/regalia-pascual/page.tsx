@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useEmpresa } from '@/lib/empresa-context'
 import { usePeriodos } from '@/lib/periodos-context'
-import { getMesesServicio, mesesSuspendidosEnAnio, regaliaPagadaVigente } from '@/lib/dominican-labor'
+import { getMesesServicio, mesesSuspendidosEnAnio, regaliaPagadaVigente, getRegaliaPendientes } from '@/lib/dominican-labor'
 import { formatRD, formatDate, fullName, BTN_PRIMARY, cn } from '@/lib/utils'
 import {
   Gift, Calendar, AlertTriangle, Download, Send, Pencil, Check, X, ArrowRight,
@@ -23,7 +23,7 @@ const anioActual = hoy.getFullYear()
 
 export default function RegaliaPage() {
   const { empleados, empleadosEnNomina } = useEmpleados()
-  const { empresa } = useEmpresa()
+  const { empresa, guardar } = useEmpresa()
   const { periodos, generar } = usePeriodos()
 
   const filas = empleadosEnNomina.map(e => {
@@ -66,6 +66,18 @@ export default function RegaliaPage() {
   // SEGUNDO período "Regalía Pascual {año}" duplicado (bug confirmado en
   // QA) — así que el gate real es "¿ya existe un período de este año, en
   // cualquier estado?", no solo "¿sigue sin cerrar?".
+  // Años ANTERIORES con Regalía sin pagar (los alimenta la campanita). Esta pantalla solo
+  // liquida el año en curso, así que para un año pasado el usuario declara que ya se pagó
+  // fuera del sistema o que no aplica; eso apaga la alerta.
+  const resueltos = empresa.regaliaResueltaAnios ?? []
+  const aniosCandidatos = Array.from({ length: 12 }, (_, i) => anioActual - 10 + i)
+  const pendientesPasados = getRegaliaPendientes(empleados, periodos, aniosCandidatos, resueltos).filter(p => p.anio < anioActual)
+  const [confirmandoAnio, setConfirmandoAnio] = useState<number | null>(null)
+  function resolverAnio(anio: number) {
+    guardar({ ...empresa, regaliaResueltaAnios: Array.from(new Set([...resueltos, anio])) })
+    setConfirmandoAnio(null)
+  }
+
   const periodoRegaliaAnioActual = periodos.find(p => p.tipo === 'regalia' && p.anio === anioActual)
   const periodoRegaliaExistente = periodoRegaliaAnioActual && periodoRegaliaAnioActual.estado !== 'cerrada' ? periodoRegaliaAnioActual : undefined
   const periodoRegaliaPagado = periodoRegaliaAnioActual && periodoRegaliaAnioActual.estado === 'cerrada' ? periodoRegaliaAnioActual : undefined
@@ -120,10 +132,9 @@ export default function RegaliaPage() {
 
   // Enlace desde la alerta: /regalia-pascual?accion=solicitar abre directo la solicitud de liquidación
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('accion') === 'solicitar') {
-      setPantalla('actual')
-      abrirSolicitud()
-    }
+    const accion = new URLSearchParams(window.location.search).get('accion')
+    if (accion) setPantalla('actual')
+    if (accion === 'solicitar') abrirSolicitud()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function montoDe(empId: string, montoCalculado: number): number {
@@ -398,6 +409,26 @@ export default function RegaliaPage() {
         }
       />
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+
+        {pendientesPasados.map(p => (
+          <div key={p.anio} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 px-5 py-3.5 text-sm text-rose-800 dark:text-rose-300">
+            <span>
+              La Regalía Pascual <strong>{p.anio}</strong> figura sin pagar en Cielo Cloud (venció hace {Math.abs(p.diasRestantes)} día(s)).
+              Esta pantalla solo liquida el año {anioActual}: si ya se pagó fuera del sistema, o no aplica, márcalo para apagar la alerta.
+            </span>
+            {confirmandoAnio === p.anio ? (
+              <span className="flex items-center gap-3 text-xs">
+                ¿Ya se pagó o no aplica {p.anio}?
+                <button onClick={() => resolverAnio(p.anio)} className="font-bold underline">Sí, marcar</button>
+                <button onClick={() => setConfirmandoAnio(null)} className="underline">Cancelar</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmandoAnio(p.anio)} className="shrink-0 font-semibold underline underline-offset-2">
+                Ya se pagó / no aplica
+              </button>
+            )}
+          </div>
+        ))}
 
         {periodoRegaliaExistente && (
           <div className="flex items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20 px-5 py-3.5 text-sm">

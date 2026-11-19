@@ -112,7 +112,7 @@ export function useAlertas(): AlertaItem[] {
     // ── Regalía Pascual — vencimiento (Art. 219, 20 de diciembre) ────────
     // Barre años anteriores (no solo el actual) — un año sin pagar ya no
     // debe desaparecer de las alertas solo porque el calendario avanzó.
-    const pendientesRegalia = getRegaliaPendientes(empleados, periodos, ANIOS_FISCALES)
+    const pendientesRegalia = getRegaliaPendientes(empleados, periodos, ANIOS_FISCALES, empresa.regaliaResueltaAnios ?? [])
     const alertaRegalia = pendientesRegalia[0]
     if (alertaRegalia && alertaRegalia.diasRestantes <= 30) {
       const vencida = alertaRegalia.diasRestantes < 0
@@ -128,8 +128,8 @@ export function useAlertas(): AlertaItem[] {
           + (otrasRegalia.length > 0 ? ` — ${otrasRegalia.length} año(s) más sin pagar` : ''),
         detalle: otrasRegalia.slice(0, 3).map(p => `${p.anio}${p.diasRestantes < 0 ? ` — vencida hace ${Math.abs(p.diasRestantes)}d` : ` — vence en ${p.diasRestantes}d`}`),
         detalleTotal: otrasRegalia.length,
-        href: alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual',
-        linkLabel: alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : 'Ir a Regalía Pascual',
+        href: alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual?accion=pendiente',
+        linkLabel: alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : `Resolver Regalía ${alertaRegalia.anio}`,
       })
     }
 

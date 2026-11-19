@@ -1055,6 +1055,7 @@ export function getRegaliaPendientes(
   empleados: SeguimientoEmpleado[],
   periodos: Pick<PeriodoNomina, 'tipo' | 'anio' | 'estado'>[],
   aniosCandidatos: number[],
+  aniosResueltos: number[] = [],
 ): RegaliaPendiente[] {
   if (empleados.length === 0) return []
 
@@ -1063,6 +1064,8 @@ export function getRegaliaPendientes(
 
   return aniosCandidatos
     .map(anio => {
+      if (anio > hoy.getFullYear()) return null          // un año futuro aún no genera obligación
+      if (aniosResueltos.includes(anio)) return null
       const limite = new Date(anio, 11, 20)
       if (limite < primerIngresoConocido) return null
       const pagada = periodos.some(p => p.tipo === 'regalia' && p.anio === anio && p.estado === 'cerrada')

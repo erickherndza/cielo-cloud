@@ -456,6 +456,8 @@ export interface Empresa {
   // Ejercicios fiscales (año de cierre) en que la empresa declaró que NO corresponde pagar Bonificación
   // (sin utilidades o exención Art. 226). Apaga la alerta de vencimiento de ese año.
   bonificacionExentaAnios?: number[]
+  // Años en que la Regalía Pascual ya se pagó fuera de Cielo Cloud o no aplica. Apaga la alerta de ese año.
+  regaliaResueltaAnios?: number[]
   numeroEmpleadosAprox?: RangoEmpleados
   zonaFranca?: boolean // opera bajo régimen de zona franca — salario mínimo distinto
   rolUsuario?: RolUsuario
