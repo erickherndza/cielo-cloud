@@ -76,8 +76,8 @@ export function useAlertas(): AlertaItem[] {
         descripcion: `${categoriaLabel} — mínimo legal ${formatRD(salarioMinimoAplicable)}/mes`,
         detalle: empleadosBajoMinimo.slice(0, 3).map(e => `${fullName(e)} — ${formatRD(e.salarioBase)}`),
         detalleTotal: empleadosBajoMinimo.length,
-        href: '/empleados',
-        linkLabel: 'Ir a Empleados',
+        href: '/empleados?filtro=bajo-minimo',
+        linkLabel: 'Corregir salarios',
       })
     }
 
@@ -104,8 +104,8 @@ export function useAlertas(): AlertaItem[] {
           + (otrosBonif.length > 0 ? ` — ${otrosBonif.length} ejercicio(s) más sin pagar` : ''),
         detalle: otrosBonif.slice(0, 3).map(p => `${p.anio}${p.diasRestantes < 0 ? ` — vencida hace ${Math.abs(p.diasRestantes)}d` : ` — vence en ${p.diasRestantes}d`}`),
         detalleTotal: otrosBonif.length,
-        href: '/bonificacion',
-        linkLabel: 'Ir a Bonificación',
+        href: `/bonificacion?anio=${alertaBonif.anio}`,
+        linkLabel: `Calcular Bonificación ${alertaBonif.anio}`,
       })
     }
 
@@ -154,8 +154,8 @@ export function useAlertas(): AlertaItem[] {
           + (otrosRetrib.length > 0 ? ` — ${otrosRetrib.length} mes(es) más sin declarar` : ''),
         detalle: otrosRetrib.slice(0, 3).map(p => `${MESES_CORTO[p.mes - 1]} ${p.anio}${p.diasRestantes < 0 ? ` — vencido hace ${Math.abs(p.diasRestantes)}d` : ` — vence en ${p.diasRestantes}d`}`),
         detalleTotal: otrosRetrib.length,
-        href: '/retribuciones-complementarias',
-        linkLabel: 'Ir a Retribuciones Complementarias',
+        href: `/retribuciones-complementarias?mes=${alertaRetrib.mes}&anio=${alertaRetrib.anio}`,
+        linkLabel: `Declarar IR-17 ${MESES_CORTO[alertaRetrib.mes - 1]} ${alertaRetrib.anio}`,
       })
     }
 
@@ -171,8 +171,8 @@ export function useAlertas(): AlertaItem[] {
         descripcion: '3 o más cuotas omitidas consecutivas por insuficiencia de fondos',
         detalle: prestamosGestion.slice(0, 3).map(p => empleadoPorId.get(p.empleadoId) ? fullName(empleadoPorId.get(p.empleadoId)!) : 'Empleado'),
         detalleTotal: prestamosGestion.length,
-        href: '/prestamos',
-        linkLabel: 'Ir a Préstamos',
+        href: prestamosGestion.length === 1 ? `/prestamos?ver=${prestamosGestion[0].id}` : '/prestamos',
+        linkLabel: prestamosGestion.length === 1 ? 'Ver préstamo' : 'Ir a Préstamos',
       })
     }
 
@@ -221,7 +221,7 @@ export function useAlertas(): AlertaItem[] {
       if (grupo) grupo.push(p); else mesesConPeriodo.set(key, [p])
     }
 
-    const gapsRetroactivos: { nombre: string; periodoLabel: string }[] = []
+    const gapsRetroactivos: { nombre: string; periodoLabel: string; mes: number; anio: number }[] = []
     for (const gruposDelMes of mesesConPeriodo.values()) {
       if (gruposDelMes.some(p => p.empleadosProcesados === undefined)) continue // algún período de ese mes sin tracking — no se puede evaluar con confianza
       const { mes, anio } = gruposDelMes[0]
@@ -251,7 +251,16 @@ export function useAlertas(): AlertaItem[] {
         if (!elegible) continue
         const faltaEnTodos = gruposDelMes.every(p => !p.empleadosProcesados!.includes(e.id))
         if (faltaEnTodos) {
-          gapsRetroactivos.push({ nombre: fullName(e), periodoLabel: `${MESES_CORTO[mes - 1]} ${anio}` })
+          // Un período cerrado es inmutable: el hueco no se "corrige" editándolo,
+          // se salda cuando un período POSTERIOR ya procesado/cerrado le pagó los
+          // días pendientes del ingreso (diasIngresoPendientes > 0). Sin esta
+          // comprobación la alerta quedaba encendida para siempre.
+          const saldado = periodos.some(p =>
+            p.tipo !== 'regalia' && p.tipo !== 'bonificacion' &&
+            p.estado !== 'en_proceso' &&
+            p.anio * 12 + p.mes > anio * 12 + mes &&
+            (p.resultadosPorEmpleado?.[e.id]?.diasIngresoPendientes ?? 0) > 0)
+          if (!saldado) gapsRetroactivos.push({ nombre: fullName(e), periodoLabel: `${MESES_CORTO[mes - 1]} ${anio}`, mes, anio })
         }
       }
     }
@@ -261,11 +270,11 @@ export function useAlertas(): AlertaItem[] {
         severidad: 'warning',
         icon: History,
         titulo: `${gapsRetroactivos.length} caso${gapsRetroactivos.length !== 1 ? 's' : ''} de posible pago retroactivo pendiente`,
-        descripcion: 'Empleados con fecha de ingreso dentro de un período ya cerrado, pero ausentes de los procesados de ese período',
+        descripcion: 'Ingresaron dentro de un período ya cerrado y no figuran en él. Se saldan solos cuando el siguiente período procesado les paga los días pendientes.',
         detalle: gapsRetroactivos.slice(0, 3).map(g => `${g.nombre} — ${g.periodoLabel}`),
         detalleTotal: gapsRetroactivos.length,
-        href: '/reportes',
-        linkLabel: 'Ver "Empleados Sin Ingresos" en Reportería',
+        href: `/reportes?reporte=sin_ingresos&periodo=${gapsRetroactivos[0].mes}-${gapsRetroactivos[0].anio}`,
+        linkLabel: 'Revisar y pagar en el próximo período',
       })
     }
 

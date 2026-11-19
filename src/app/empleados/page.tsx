@@ -12,7 +12,7 @@ import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useRouter } from 'next/navigation'
-import { calcularCesantia, calcularPreaviso, getAnosServicio, calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, getDivisorSalarioDiario, aplicarSaldoISRFavor, ajustesToParams, MOTIVO_LIQUIDACION_LABELS } from '@/lib/dominican-labor'
+import { calcularCesantia, calcularPreaviso, getAnosServicio, calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, getDivisorSalarioDiario, aplicarSaldoISRFavor, ajustesToParams, MOTIVO_LIQUIDACION_LABELS, getSalarioMinimoAplicable } from '@/lib/dominican-labor'
 import {
   formatRD, formatDate, formatAnosServicio,
   fullName, contratoBadgeClass, contratoLabel, BTN_PRIMARY, parseFechaLocal, hoyLocalISO,
@@ -1260,12 +1260,25 @@ export default function EmpleadosPage() {
   const [editando, setEditando]             = useState<Empleado | null>(null)
   const [toast, setToast]                   = useState<string | null>(null)
 
+  // Filtro que viene de una alerta (?filtro=bajo-minimo) — muestra solo los casos a corregir
+  const [filtroAlerta, setFiltroAlerta] = useState<'bajo-minimo' | null>(null)
+  // ?ver=<id> abre directo la ficha del empleado (se resuelve cuando ya cargaron los datos)
+  const [verIdPendiente, setVerIdPendiente] = useState<string | null>(null)
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('nuevo=1')) {
-      setMostrarNuevo(true)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
+    if (typeof window === 'undefined') return
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('nuevo') === '1') setMostrarNuevo(true)
+    if (q.get('filtro') === 'bajo-minimo') setFiltroAlerta('bajo-minimo')
+    if (q.get('ver')) setVerIdPendiente(q.get('ver'))
+    if (q.toString()) window.history.replaceState({}, '', window.location.pathname)
   }, [])
+
+  useEffect(() => {
+    if (!verIdPendiente) return
+    const emp = empleados.find(e => e.id === verIdPendiente)
+    if (emp) { setEmpSeleccionado(emp); setVerIdPendiente(null) }
+  }, [verIdPendiente, empleados])
 
   useEffect(() => {
     if (empleadoSeleccionado) {
@@ -1275,6 +1288,7 @@ export default function EmpleadosPage() {
   }, [empleados]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const departamentos = ['Todos', ...new Set(empleados.map(e => e.departamento))]
+  const minimoAlerta = getSalarioMinimoAplicable(empresa)
 
   const filtrados = empleados.filter(e => {
     const q = busqueda.toLowerCase()
@@ -1284,7 +1298,8 @@ export default function EmpleadosPage() {
       e.cargo.toLowerCase().includes(q)
     const matchDepto  = departamento === 'Todos' || e.departamento === departamento
     const matchActivo = mostrarInactivos ? true : e.activo
-    return matchBusqueda && matchDepto && matchActivo
+    const matchAlerta = filtroAlerta !== 'bajo-minimo' || (minimoAlerta !== null && e.activo && e.salarioBase < minimoAlerta)
+    return matchBusqueda && matchDepto && matchActivo && matchAlerta
   })
 
   function handleAdd(form: EmpForm) {
@@ -1393,6 +1408,16 @@ export default function EmpleadosPage() {
             Mostrar inactivos
           </label>
         </div>
+
+        {filtroAlerta === 'bajo-minimo' && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 px-4 md:px-6 py-2.5 text-sm text-rose-700 dark:text-rose-300">
+            <span>
+              Mostrando solo empleados por debajo del salario mínimo
+              {minimoAlerta ? ` (${formatRD(minimoAlerta)}/mes)` : ''}. Abre uno y edita su salario base para corregirlo.
+            </span>
+            <button onClick={() => setFiltroAlerta(null)} className="font-semibold underline underline-offset-2">Ver todos</button>
+          </div>
+        )}
 
         <div className="p-4 md:p-6">
           {/* Móvil: tarjetas */}

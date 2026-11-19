@@ -845,6 +845,18 @@ export default function PrestamosPage() {
     setVista('detalle')
   }
 
+  // Enlace directo desde la alerta de gestión de cobro: /prestamos?ver=<id>
+  const [verPrestamoId, setVerPrestamoId] = useState<string | null>(null)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('ver')
+    if (id) setVerPrestamoId(id)
+  }, [])
+  useEffect(() => {
+    if (!verPrestamoId) return
+    const p = prestamos.find(x => x.id === verPrestamoId)
+    if (p) { setFiltroEstado('todos'); handleVerDetalle(p); setVerPrestamoId(null) }
+  }, [verPrestamoId, prestamos]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Keep prestamoSeleccionado in sync with latest data from context
   useEffect(() => {
     if (prestamoSeleccionado) {

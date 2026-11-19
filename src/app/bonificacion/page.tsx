@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -209,6 +209,11 @@ export default function BonificacionPage() {
   // elección y se va directo a la calculadora.
   const tieneHistorial = historialBonificacion.length > 0
   const [pantalla, setPantalla] = useState<'elegir' | 'actual' | 'historial'>('elegir')
+  // Enlace directo desde la alerta: /bonificacion?anio=AAAA abre el cálculo de ese ejercicio
+  useEffect(() => {
+    const a = Number(new URLSearchParams(window.location.search).get('anio'))
+    if (a > 2000) { setAnioFiscal(a); setPantalla('actual') }
+  }, [])
   const vistaActual: 'elegir' | 'actual' | 'historial' = tieneHistorial ? pantalla : 'actual'
 
   const [solicitudAbierta, setSolicitudAbierta] = useState(false)

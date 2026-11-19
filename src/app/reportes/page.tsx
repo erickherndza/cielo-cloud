@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { dibujarLogoPDF } from '@/lib/branding'
 import {
   BarChart3, Users, FileText, CreditCard, Shield,
@@ -3383,8 +3383,9 @@ function finDeMes(mes: number, anio: number): Date {
 type MotivoSinIngreso = 'no_procesado' | 'bruto_cero'
 
 function ReporteSinIngresos({
-  empresa, empleados, periodos, liquidaciones,
+  empresa, empleados, periodos, liquidaciones, periodoInicial,
 }: {
+  periodoInicial?: string | null
   empresa: Empresa
   empleados: ReturnType<typeof useEmpleados>['empleados']
   periodos: PeriodoNomina[]
@@ -3395,8 +3396,12 @@ function ReporteSinIngresos({
       new Date(b.fechaGeneracion).getTime() - new Date(a.fechaGeneracion).getTime()
     ), [periodos])
 
-  const [periodoId, setPeriodoId] = useState<string>(sorted[0]?.id ?? '')
-  const [generado, setGenerado] = useState(false)
+  // Si llegó desde una alerta (?periodo=<mes>-<año>) abre directo ese mes ya generado.
+  const periodoDeAlerta = periodoInicial
+    ? sorted.find(p => `${p.mes}-${p.anio}` === periodoInicial)
+    : undefined
+  const [periodoId, setPeriodoId] = useState<string>(periodoDeAlerta?.id ?? sorted[0]?.id ?? '')
+  const [generado, setGenerado] = useState(!!periodoDeAlerta)
   const [searchQ, setSearchQ] = useState('')
 
   const periodo = sorted.find(p => p.id === periodoId)
@@ -3986,6 +3991,16 @@ function ReportHeader({
 export default function ReportesPage() {
   const [activeReport, setActiveReport] = useState<ReportId>('gerencial')
   const [toast, setToast] = useState<string | null>(null)
+  // Enlace directo desde las alertas: /reportes?reporte=sin_ingresos&periodo=<mes>-<año>
+  const [periodoInicial, setPeriodoInicial] = useState<string | null>(null)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const r = q.get('reporte') as ReportId | null
+    if (r && SIDEBAR_ITEMS.some(x => x.id === r)) {
+      setActiveReport(r)
+      setPeriodoInicial(q.get('periodo'))
+    }
+  }, [])
 
   const { empleados } = useEmpleados()
   const { periodos }  = usePeriodos()
@@ -4008,10 +4023,10 @@ export default function ReportesPage() {
       case 'proyeccion':   return <ReporteProyeccionAnual {...props} />
       case 'preaviso':     return <ReportePreaviso        {...props} />
       case 'antiguedad':   return <ReporteAntiguedad      {...props} />
-      case 'sin_ingresos': return <ReporteSinIngresos     {...props} />
+      case 'sin_ingresos': return <ReporteSinIngresos     {...props} periodoInicial={periodoInicial} />
       case 'licencias':    return <ReporteLicencias       {...props} />
     }
-  }, [activeReport, empresa, empleados, periodos, prestamos, liquidaciones, licencias])
+  }, [activeReport, periodoInicial, empresa, empleados, periodos, prestamos, liquidaciones, licencias])
 
   return (
     <div className="flex flex-col overflow-hidden h-full">

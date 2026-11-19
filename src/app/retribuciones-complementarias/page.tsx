@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { dibujarLogoPDF } from '@/lib/branding'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -83,6 +83,12 @@ export default function RetribucionesComplementariasPage() {
 
   const [mesSel, setMesSel] = useState(hoy.getMonth() + 1)
   const [anioSel, setAnioSel] = useState(hoy.getFullYear())
+  // Enlace directo desde la alerta de IR-17: /retribuciones-complementarias?mes=M&anio=A
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const m = Number(q.get('mes')), a = Number(q.get('anio'))
+    if (m >= 1 && m <= 12 && a > 2000) { setMesSel(m); setAnioSel(a) }
+  }, [])
 
   const [empleadoId, setEmpleadoId] = useState<string>('')
   const [concepto, setConcepto] = useState<string>(CATEGORIAS_RETRIBUCION[0])
