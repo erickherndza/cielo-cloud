@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Sora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/lib/theme'
 import { EmpleadosProvider } from '@/lib/empleados-context'
@@ -26,6 +26,22 @@ const inter = Inter({
   display: 'swap',
 })
 
+// Identidad tipográfica: Sora para títulos y JetBrains Mono para cifras grandes
+// (Inter se queda para tablas y formularios).
+const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-sora',
+  weight: ['500', '600', '700'],
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono-cifras',
+  weight: ['400', '500', '600'],
+  display: 'swap',
+})
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -40,7 +56,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={inter.variable} suppressHydrationWarning>
+    <html lang="es" className={`${inter.variable} ${sora.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           try {
