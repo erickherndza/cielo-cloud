@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -117,6 +117,14 @@ export default function RegaliaPage() {
     setPeriodoCreado(null)
     setSolicitudAbierta(true)
   }
+
+  // Enlace desde la alerta: /regalia-pascual?accion=solicitar abre directo la solicitud de liquidación
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('accion') === 'solicitar') {
+      setPantalla('actual')
+      abrirSolicitud()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function montoDe(empId: string, montoCalculado: number): number {
     return overrides[empId]?.monto ?? montoCalculado

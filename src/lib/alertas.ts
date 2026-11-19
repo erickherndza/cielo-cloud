@@ -128,8 +128,8 @@ export function useAlertas(): AlertaItem[] {
           + (otrasRegalia.length > 0 ? ` — ${otrasRegalia.length} año(s) más sin pagar` : ''),
         detalle: otrasRegalia.slice(0, 3).map(p => `${p.anio}${p.diasRestantes < 0 ? ` — vencida hace ${Math.abs(p.diasRestantes)}d` : ` — vence en ${p.diasRestantes}d`}`),
         detalleTotal: otrasRegalia.length,
-        href: '/regalia-pascual',
-        linkLabel: 'Ir a Regalía Pascual',
+        href: alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual',
+        linkLabel: alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : 'Ir a Regalía Pascual',
       })
     }
 
