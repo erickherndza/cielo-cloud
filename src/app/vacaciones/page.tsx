@@ -355,7 +355,7 @@ export default function VacacionesPage() {
                     </td>
                     <td data-col="num" data-label="Antigüedad" className="px-4 py-3.5 text-zinc-600 dark:text-zinc-400 text-xs">{formatAnosServicio(anos)}</td>
                     <td data-col="hide" className="px-4 py-3.5 text-center">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         diasAnuales === getParametros().vacaciones.diasMas5 && diasAnuales !== getParametros().vacaciones.diasHasta5
                           ? 'bg-[#eef0fb] text-[#151f66] dark:bg-indigo-950/40 dark:text-indigo-300'
                           : 'bg-zinc-100 text-zinc-700 dark:bg-[#262626] dark:text-zinc-400'
