@@ -68,7 +68,7 @@ export default function GestionEnviosPage() {
         title="Gestión de Envíos"
         subtitle="Marca el pago y envía los comprobantes de nómina a cada empleado"
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
 
         {pendientesPago > 0 && (
           <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
@@ -77,7 +77,7 @@ export default function GestionEnviosPage() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
           <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-5 py-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
@@ -86,13 +86,13 @@ export default function GestionEnviosPage() {
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar período…"
-                className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroAnio}
               onChange={e => setFiltroAnio(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
-              className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los años</option>
               {anios.map(a => <option key={a} value={a}>{a}</option>)}
@@ -125,14 +125,14 @@ export default function GestionEnviosPage() {
               <table className="tabla-cards w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Período</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleados</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Total Neto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado de Pago</th>
+                    <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Período</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleados</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Total Neto</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Estado de Pago</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {filas.length === 0 && (
                     <tr>
                       <td data-col="full" colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
@@ -164,7 +164,7 @@ export default function GestionEnviosPage() {
                             </button>
                             <button
                               onClick={() => setEnvioPeriodoId(p.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                             >
                               <Mail className="h-3.5 w-3.5" /> Comprobantes
                             </button>

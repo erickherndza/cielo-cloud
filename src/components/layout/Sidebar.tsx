@@ -93,7 +93,7 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
   const nombreActivo = (activa && nombreEmpresaDe(activa.uid)) || activa?.displayName || activa?.email || 'Mi cuenta'
 
   return (
-    <div ref={ref} className="relative border-b border-zinc-200 dark:border-[#252840] p-2">
+    <div ref={ref} className="relative border-b border-tabler-line dark:border-[#252840] p-2">
       <button
         onClick={() => setOpen(v => !v)}
         title={collapsed ? nombreActivo : undefined}
@@ -121,7 +121,7 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
       {open && (
         <div
           className={cn(
-            'absolute z-50 top-full mt-1 w-72 overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none',
+            'absolute z-50 top-full mt-1 w-72 overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none',
             collapsed ? 'left-full ml-2' : 'left-2',
           )}
         >
@@ -383,7 +383,7 @@ export function Sidebar() {
         </nav>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <div className="border-t border-zinc-200 dark:border-[#252840] py-1">
+        <div className="border-t border-tabler-line dark:border-[#252840] py-1">
           <EmpresaLinks wide={wide} />
           <Link
             href={CONFIGURACION_ITEM.href}

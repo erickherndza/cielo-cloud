@@ -58,7 +58,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => cerrar(false)} className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
+              <button onClick={() => cerrar(false)} className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
                 Cancelar
               </button>
               <button

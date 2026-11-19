@@ -68,17 +68,17 @@ const PARAMS_SALARIOS: ParamRow[] = [
 
 function ParamTable({ rows }: { rows: ParamRow[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840]">
+    <div className="overflow-hidden rounded-xl border border-tabler-line dark:border-[#252840]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Parámetro</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Valor</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Descripción</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Fuente</th>
+            <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Parámetro</th>
+            <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Valor</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Descripción</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Fuente</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
+        <tbody className="divide-y divide-tabler-line dark:divide-[#252840] bg-white dark:bg-[#141722]">
           {rows.map(row => (
             <tr key={row.label} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
               <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{row.label}</td>
@@ -113,18 +113,18 @@ function SiNoBadge({ value }: { value: boolean }) {
 // dominican-labor.ts, no es una fuente independiente que pueda desincronizarse).
 function ConceptosLeyTable() {
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840]">
+    <div className="overflow-hidden rounded-xl border border-tabler-line dark:border-[#252840]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Concepto</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Tipo</th>
-            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Afecta ISR</th>
-            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Afecta TSS</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Base legal</th>
+            <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Concepto</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Tipo</th>
+            <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Afecta ISR</th>
+            <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Afecta TSS</th>
+            <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Base legal</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
+        <tbody className="divide-y divide-tabler-line dark:divide-[#252840] bg-white dark:bg-[#141722]">
           {CONCEPTOS_LEY.map(c => (
             <tr key={c.concepto} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
               <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{c.nombre}</td>
@@ -150,7 +150,7 @@ function ConceptosLeyTable() {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 transition-colors focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 transition-colors focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 
 const LABEL_CLASS = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
@@ -343,7 +343,7 @@ function CollapsibleCard({ icon: Icon, title, description, summary, isEmpty, chi
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-2.5 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-2.5 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors"
         >
           {open ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
           {open ? 'Cerrar' : 'Editar'}
@@ -356,7 +356,7 @@ function CollapsibleCard({ icon: Icon, title, description, summary, isEmpty, chi
 
 function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <label className="flex w-fit cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3.5 py-2.5">
+    <label className="flex w-fit cursor-pointer items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3.5 py-2.5">
       <button
         type="button"
         role="switch"
@@ -611,7 +611,7 @@ export default function ConfiguracionPage() {
       <Header title="Configuración" subtitle="Administra los ajustes de tu empresa" />
 
       {/* Selector de sección — solo móvil, la barra lateral persistente vive en escritorio */}
-      <div className="md:hidden flex shrink-0 gap-2 overflow-x-auto border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2.5">
+      <div className="md:hidden flex shrink-0 gap-2 overflow-x-auto border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2.5">
         <button
           onClick={() => irA('resumen')}
           className={cn(
@@ -635,9 +635,9 @@ export default function ConfiguracionPage() {
         ))}
       </div>
 
-      <div className="flex flex-1 overflow-hidden bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex flex-1 overflow-hidden bg-tabler-bg dark:bg-[#0d0f1a]">
         {/* ── Rail de navegación persistente (escritorio) ─────────────────── */}
-        <aside className="hidden md:flex w-72 shrink-0 flex-col overflow-y-auto border-r border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722]">
+        <aside className="hidden md:flex w-72 shrink-0 flex-col overflow-y-auto border-r border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722]">
           <div className="p-4">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
@@ -645,7 +645,7 @@ export default function ConfiguracionPage() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Buscar en configuración…"
-                className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] py-2 pl-8 pr-3 text-xs text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] py-2 pl-8 pr-3 text-xs text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10"
               />
             </div>
           </div>
@@ -711,7 +711,7 @@ export default function ConfiguracionPage() {
                   <div className="mb-5 overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-gradient-to-br from-white to-[#f7f8fd] dark:from-[#141722] dark:to-[#161a2c] p-6">
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e]">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e]">
                           {empresa.logo ? (
                             <img src={empresa.logo} alt="Logo" className="h-full w-full object-contain p-1.5" />
                           ) : (
@@ -776,7 +776,7 @@ export default function ConfiguracionPage() {
                         Tu configuración está al día — no hay ningún pendiente activo.
                       </p>
                     ) : (
-                      <ul className="divide-y divide-zinc-200 dark:divide-[#252840] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                      <ul className="divide-y divide-tabler-line dark:divide-[#252840] overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
                         {pendientes.map(item => (
                           <li key={item.label}>
                             <button
@@ -822,7 +822,7 @@ export default function ConfiguracionPage() {
                           isEmpty={!form.nombre && !form.rnc}
                           summary={
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e]">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e]">
                                 {form.logo ? (
                                   <img src={form.logo} alt="Logo" className="h-full w-full object-contain p-1" />
                                 ) : (
@@ -843,7 +843,7 @@ export default function ConfiguracionPage() {
                                 <button
                                   type="button"
                                   onClick={() => fileInputRef.current?.click()}
-                                  className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] transition-colors hover:border-[#1B2980] dark:hover:border-indigo-500"
+                                  className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] transition-colors hover:border-[#1B2980] dark:hover:border-indigo-500"
                                 >
                                   {form.logo ? (
                                     <img src={form.logo} alt="Logo" className="h-full w-full object-contain p-2" />
@@ -858,7 +858,7 @@ export default function ConfiguracionPage() {
                                   <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors"
+                                    className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors"
                                   >
                                     <ImagePlus className="h-4 w-4" />
                                     {form.logo ? 'Cambiar logo' : 'Subir logo'}
@@ -976,7 +976,7 @@ export default function ConfiguracionPage() {
                                       'rounded-lg border px-3 py-2 text-left transition-colors',
                                       form.categoriaEmpresa === cat.value
                                         ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
-                                        : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
+                                        : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
                                     )}
                                   >
                                     <p className={cn('text-xs font-semibold', form.categoriaEmpresa === cat.value ? 'text-[#1B2980] dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300')}>
@@ -1010,7 +1010,7 @@ export default function ConfiguracionPage() {
                                       'rounded-lg border px-3 py-2 text-left transition-colors',
                                       form.sectorEmpresa === s.value
                                         ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
-                                        : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
+                                        : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
                                     )}
                                   >
                                     <p className={cn('text-xs font-semibold', form.sectorEmpresa === s.value ? 'text-[#1B2980] dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300')}>
@@ -1037,7 +1037,7 @@ export default function ConfiguracionPage() {
                                       'rounded-lg border px-3 py-2 text-left transition-colors',
                                       (form.cierreFiscal ?? 'diciembre') === c.value
                                         ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
-                                        : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
+                                        : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:bg-zinc-50 dark:hover:bg-[#252840]',
                                     )}
                                   >
                                     <p className={cn('text-xs font-semibold', (form.cierreFiscal ?? 'diciembre') === c.value ? 'text-[#1B2980] dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300')}>
@@ -1066,7 +1066,7 @@ export default function ConfiguracionPage() {
                                   'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                                   form.rolUsuario === r.value
                                     ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30 text-[#1B2980] dark:text-indigo-300'
-                                    : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252840]',
+                                    : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252840]',
                                 )}
                               >
                                 {r.label}
@@ -1094,7 +1094,7 @@ export default function ConfiguracionPage() {
                           <div className="space-y-5">
                             <div>
                               <label className={LABEL_CLASS}>Modalidad de pago de nómina</label>
-                              <div className="flex w-fit overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                              <div className="flex w-fit overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
                                 {(['mensual', 'quincenal'] as const).map(m => (
                                   <button
                                     key={m}
@@ -1173,11 +1173,11 @@ export default function ConfiguracionPage() {
                           </form>
 
                           {feriados.length === 0 ? (
-                            <p className="rounded-lg border border-dashed border-zinc-200 dark:border-[#252840] px-3 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                            <p className="rounded-lg border border-dashed border-tabler-line dark:border-[#252840] px-3 py-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
                               Aún no has confirmado ningún feriado para {anioActual}.
                             </p>
                           ) : (
-                            <ul className="divide-y divide-zinc-200 dark:divide-[#252840] overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                            <ul className="divide-y divide-tabler-line dark:divide-[#252840] overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
                               {feriados.map(f => (
                                 <li key={f.id} className="flex items-center justify-between gap-3 bg-white dark:bg-[#141722] px-3 py-2.5">
                                   <div className="flex min-w-0 items-center gap-3">
@@ -1232,18 +1232,18 @@ export default function ConfiguracionPage() {
                           )}
 
                           {conceptosPersonalizados.length > 0 && (
-                            <div className="mb-4 overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840]">
+                            <div className="mb-4 overflow-hidden rounded-xl border border-tabler-line dark:border-[#252840]">
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-                                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Concepto</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Tipo</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Afecta ISR</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Afecta TSS</th>
+                                    <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Concepto</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Tipo</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Afecta ISR</th>
+                                    <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Afecta TSS</th>
                                     <th className="px-4 py-3" />
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840] bg-white dark:bg-[#141722]">
+                                <tbody className="divide-y divide-tabler-line dark:divide-[#252840] bg-white dark:bg-[#141722]">
                                   {conceptosPersonalizados.map(c => (
                                     <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
                                       <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">{c.nombre}</td>
@@ -1285,14 +1285,14 @@ export default function ConfiguracionPage() {
                           )}
 
                           {mostrarFormConcepto ? (
-                            <div className="rounded-xl border border-zinc-200 dark:border-[#252840] p-4">
+                            <div className="rounded-xl border border-tabler-line dark:border-[#252840] p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">
                                 {editandoConceptoId ? 'Editar concepto' : 'Nuevo concepto'}
                               </p>
                               <div className="flex flex-wrap items-end gap-3">
                                 <div className="flex flex-col gap-1.5">
                                   <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Tipo</label>
-                                  <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+                                  <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
                                     <button
                                       onClick={() => setConceptoTipo('ingreso')}
                                       className={`px-3 py-1.5 text-xs font-medium transition-colors ${conceptoTipo === 'ingreso' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'}`}
@@ -1315,14 +1315,14 @@ export default function ConfiguracionPage() {
                                     value={conceptoNombre}
                                     onChange={e => setConceptoNombre(e.target.value)}
                                     placeholder={conceptoTipo === 'ingreso' ? 'Ej. Bono de Transporte' : 'Ej. Descuento de Comedor'}
-                                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                                   />
                                 </div>
 
                                 {conceptoTipo === 'ingreso' ? (
                                   <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Afecta</label>
-                                    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-1.5">
+                                    <div className="flex items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-1.5">
                                       <label className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300">
                                         <input type="checkbox" checked={conceptoISR} onChange={e => setConceptoISR(e.target.checked)} className="accent-[#1B2980]" />
                                         ISR
@@ -1349,7 +1349,7 @@ export default function ConfiguracionPage() {
                                   </button>
                                   <button
                                     onClick={resetFormConcepto}
-                                    className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                                    className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                                   >
                                     Cancelar
                                   </button>
@@ -1536,7 +1536,7 @@ export default function ConfiguracionPage() {
           {/* ── Barra flotante de cambios sin guardar ───────────────────────── */}
           {isDirty && esVistaFormulario && (
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center px-6 pb-5">
-              <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-zinc-200 dark:border-[#252840] bg-white/95 dark:bg-[#141722]/95 px-5 py-3 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.25)] backdrop-blur-md animate-modal-in">
+              <div className="pointer-events-auto flex items-center gap-4 rounded-2xl border border-tabler-line dark:border-[#252840] bg-white/95 dark:bg-[#141722]/95 px-5 py-3 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.25)] backdrop-blur-md animate-modal-in">
                 <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
                   Cambios sin guardar
@@ -1564,7 +1564,7 @@ export default function ConfiguracionPage() {
       {/* Confirm demo dialog */}
       {confirmDemo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
-          <div className="mx-4 w-full max-w-sm rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
+          <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
@@ -1578,7 +1578,7 @@ export default function ConfiguracionPage() {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDemo(false)}
-                className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
               >
                 Cancelar
               </button>

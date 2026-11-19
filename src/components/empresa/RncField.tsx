@@ -5,7 +5,7 @@ import { CheckCircle2, CircleAlert, ShieldCheck, Loader2 } from 'lucide-react'
 import { REMOTE_ENABLED } from '@/lib/storage'
 import { rncValido, limpiarRnc, formatearRnc, validarRncDgii, type DatosDgii, type ResultadoDgii } from '@/lib/rnc'
 
-const INPUT = 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
+const INPUT = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 
 // Campo de RNC con validación local (dígito verificador) y, si hay servidor,
 // botón «Validar con DGII» que trae razón social, estado, actividad, etc.

@@ -17,7 +17,7 @@ export interface CobrosData {
 }
 interface Pago { id: string; monto: number; fecha_pago: string; metodo: string; referencia: string; nota: string; anulado: boolean }
 
-const inputCls = 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 const rd = (n: number) => `RD$${n.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const ESTADO: Record<FilaCobro['estado_cobro'], { l: string; c: string }> = {
   al_dia: { l: 'Al día', c: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' },
@@ -105,7 +105,7 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
                 <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Plan</th>
                 <th className="px-4 py-2 font-medium text-right">Monto</th><th className="px-4 py-2 font-medium">Renovación</th>
                 <th className="px-4 py-2 font-medium">Estado</th></tr></thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {data.empresas.map(f => (
                   <tr key={f.id} onClick={() => elegir(f)}
                     className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] ${sel?.id === f.id ? 'bg-[#eef0fb] dark:bg-[#1a1d2e]' : ''}`}>

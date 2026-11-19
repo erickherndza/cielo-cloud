@@ -343,7 +343,7 @@ export function ImportadorHorasExcel({ empleados, empleadosElegibles, ajustesPor
               </div>
             </div>
 
-            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 dark:border-[#252840] px-6 py-10 text-center cursor-pointer hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
+            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-tabler-line dark:border-[#252840] px-6 py-10 text-center cursor-pointer hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -404,10 +404,10 @@ export function ImportadorHorasExcel({ empleados, empleadosElegibles, ajustesPor
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-[#252840]">
+            <div className="overflow-x-auto rounded-2xl border border-tabler-line dark:border-[#252840]">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs text-zinc-500 dark:text-zinc-400">
+                  <tr className="border-b border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs text-zinc-500 dark:text-zinc-400">
                     <th className="px-4 py-2.5 font-medium">Fila</th>
                     <th className="px-4 py-2.5 font-medium">Empleado</th>
                     <th className="px-4 py-2.5 font-medium">Concepto</th>
@@ -416,7 +416,7 @@ export function ImportadorHorasExcel({ empleados, empleadosElegibles, ajustesPor
                     <th className="px-4 py-2.5 font-medium">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {filas.map(f => (
                     <tr key={f.fila}>
                       <td className="px-4 py-2.5 text-zinc-400 tabular-nums">{f.fila}</td>

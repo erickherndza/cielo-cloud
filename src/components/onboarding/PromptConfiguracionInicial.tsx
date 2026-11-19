@@ -42,7 +42,7 @@ export function PromptConfiguracionInicial() {
 
   if (vista === 'flujo') {
     return (
-      <div className="flex flex-1 flex-col overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex flex-1 flex-col overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
         <div className="mx-auto w-full max-w-4xl flex-1 p-6">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Configuración Inicial</h1>
@@ -53,7 +53,7 @@ export function PromptConfiguracionInicial() {
           </div>
           <ConfiguracionInicialFlow />
         </div>
-        <div className="sticky bottom-0 border-t border-zinc-200 dark:border-[#252840] bg-white/90 dark:bg-[#141722]/90 backdrop-blur px-6 py-4">
+        <div className="sticky bottom-0 border-t border-tabler-line dark:border-[#252840] bg-white/90 dark:bg-[#141722]/90 backdrop-blur px-6 py-4">
           <div className="mx-auto flex max-w-4xl justify-end">
             <button
               onClick={resolver}
@@ -69,7 +69,7 @@ export function PromptConfiguracionInicial() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-6">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a] p-6">
       <div className="w-full max-w-xl">
         <div className="flex justify-center mb-5">
           <div className="relative">

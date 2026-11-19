@@ -112,7 +112,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         onClick={onClose}
       />
 
-      <div className="animate-modal-in relative w-full max-w-[560px] overflow-hidden rounded-2xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-2xl shadow-zinc-900/20">
+      <div className="animate-modal-in relative w-full max-w-[560px] overflow-hidden rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-2xl shadow-zinc-900/20">
         <div className="flex items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-4">
           <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-600" />
           <input
@@ -123,7 +123,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             placeholder="Buscar módulos, acciones…"
             className="w-full bg-transparent py-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none"
           />
-          <kbd className="hidden sm:block shrink-0 rounded-md border border-zinc-200 dark:border-[#252840] px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-600">
+          <kbd className="hidden sm:block shrink-0 rounded-md border border-tabler-line dark:border-[#252840] px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-600">
             esc
           </kbd>
         </div>

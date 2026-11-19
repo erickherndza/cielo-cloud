@@ -225,7 +225,7 @@ export function EnvioComprobantesModal({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Asunto</label>
                 <input
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
                   value={plantillaComprobante.asunto}
                   onChange={e => setPlantillaComprobante(prev => ({ ...prev, asunto: e.target.value }))}
                 />
@@ -233,7 +233,7 @@ export function EnvioComprobantesModal({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Cuerpo del correo</label>
                 <textarea
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-xs font-mono focus:border-[#1B2980] focus:outline-none"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-xs font-mono focus:border-[#1B2980] focus:outline-none"
                   rows={7}
                   value={plantillaComprobante.cuerpo}
                   onChange={e => setPlantillaComprobante(prev => ({ ...prev, cuerpo: e.target.value }))}
@@ -269,7 +269,7 @@ export function EnvioComprobantesModal({
                 </span>
               </div>
             )}
-            <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840]">
+            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-zinc-50 dark:bg-[#1a1d2e] text-left text-zinc-500 dark:text-zinc-400">
@@ -279,7 +279,7 @@ export function EnvioComprobantesModal({
                     <th className="px-3 py-2 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {filas.map(({ empleado: emp, resultado }) => (
                     <tr key={emp.id}>
                       <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(emp)}</td>
@@ -295,7 +295,7 @@ export function EnvioComprobantesModal({
                           <button
                             onClick={() => descargarComprobantePDF(emp, resultado, periodoLabel, empresa)}
                             title="Descargar PDF"
-                            className="rounded-lg border border-zinc-200 dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] transition-colors"
+                            className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] transition-colors"
                           >
                             <Download className="h-3.5 w-3.5" />
                           </button>

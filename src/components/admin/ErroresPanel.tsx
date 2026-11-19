@@ -40,7 +40,7 @@ export function ErroresPanel() {
       {!lista ? <p className="py-10 text-center text-sm text-zinc-400">Cargando…</p> : !lista.length ? (
         <p className="py-10 text-center text-sm text-zinc-400"><CheckCircle2 className="mx-auto mb-2 h-6 w-6" />{resueltos ? 'Sin errores resueltos' : 'Sin errores pendientes'}</p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-[#252840]">
+        <ul className="divide-y divide-tabler-line dark:divide-[#252840]">
           {lista.map(e => (
             <li key={e.huella} className="px-4 py-3">
               <div className="flex items-start justify-between gap-3">

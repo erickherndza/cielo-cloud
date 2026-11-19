@@ -27,7 +27,7 @@ interface Props {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 interface FormState {
@@ -206,7 +206,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setModoAlta(false)}
-              className="rounded-xl border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               Terminar de agregar
             </button>
@@ -484,7 +484,7 @@ function TodoAlDia({ onFinish, onAgregar }: { onFinish: () => void; onAgregar: (
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={onFinish}
-          className="rounded-xl border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+          className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
         >
           Volver
         </button>
@@ -518,7 +518,7 @@ function Completado({ cantidad, onFinish, onAgregar }: { cantidad: number; onFin
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={onFinish}
-          className="rounded-xl border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+          className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
         >
           Volver
         </button>

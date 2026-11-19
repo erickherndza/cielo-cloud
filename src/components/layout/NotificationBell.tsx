@@ -85,7 +85,7 @@ export function NotificationBell() {
         // izquierda de la pantalla cuando la campana está cerca del borde
         // derecho de un viewport móvil, cortando el contenido. Desde `sm:`
         // en adelante vuelve al anclaje normal junto al botón.
-        <div className="fixed inset-x-4 top-14 z-50 max-h-[75vh] overflow-y-auto rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-[22rem]">
+        <div className="fixed inset-x-4 top-14 z-50 max-h-[75vh] overflow-y-auto rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-[22rem]">
           <div className="sticky top-0 border-b border-zinc-100 dark:border-[#1d2035] bg-white dark:bg-[#141722] px-4 py-3">
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Notificaciones</p>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">

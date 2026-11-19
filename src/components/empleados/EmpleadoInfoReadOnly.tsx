@@ -159,7 +159,7 @@ export function EmpleadoInfoReadOnly({
                   {empleado.documentoIdentidad && empleado.documentoIdentidadNombre && (
                     <button type="button"
                       onClick={() => downloadBase64(empleado.documentoIdentidad!, empleado.documentoIdentidadNombre!)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
                       <FileText className="h-4 w-4 text-[#1B2980] dark:text-indigo-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{labelTipoDoc(empleado.tipoDocumento)} — escaneo</p>
@@ -171,7 +171,7 @@ export function EmpleadoInfoReadOnly({
                   {empleado.contratoLaboral && empleado.contratoLaboralNombre && (
                     <button type="button"
                       onClick={() => downloadBase64(empleado.contratoLaboral!, empleado.contratoLaboralNombre!)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
                       <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Contrato Laboral</p>

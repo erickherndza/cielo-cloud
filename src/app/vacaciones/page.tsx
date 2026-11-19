@@ -194,14 +194,14 @@ export default function VacacionesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportar}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
             </button>
             <button
               onClick={() => abrirModalVenta()}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <Banknote className="h-4 w-4" />
               Vender Vacaciones
@@ -213,7 +213,7 @@ export default function VacacionesPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
@@ -260,7 +260,7 @@ export default function VacacionesPage() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
           <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vacaciones por Empleado</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -276,13 +276,13 @@ export default function VacacionesPage() {
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre o cédula…"
-                className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroDepto}
               onChange={e => setFiltroDepto(e.target.value)}
-              className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los departamentos</option>
               {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
@@ -303,18 +303,18 @@ export default function VacacionesPage() {
             <table className="tabla-cards w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Antigüedad</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Días/Año</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Días Acum.</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Disponibles</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Valor Bruto</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Neto Estimado</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"></th>
+                  <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Antigüedad</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Días/Año</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Días Acum.</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Disponibles</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Valor Bruto</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Neto Estimado</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Estado</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {filas.length === 0 && (
                   <tr>
                     <td colSpan={9} data-col="full">
@@ -422,7 +422,7 @@ export default function VacacionesPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
           <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Disfrutes y Ventas Registradas</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -445,16 +445,16 @@ export default function VacacionesPage() {
               <table className="tabla-cards w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Desde</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Hasta</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Días Laborables</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Notas</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"></th>
+                    <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Tipo</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Desde</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Hasta</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Días Laborables</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Notas</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {disfrutesOrdenados.map(d => {
                     const emp = empleadosEnNomina.find(e => e.id === d.empleadoId)
                     const esVenta = d.tipo === 'venta'
@@ -514,7 +514,7 @@ export default function VacacionesPage() {
                 <select
                   value={empId}
                   onChange={e => setEmpId(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 >
                   <option value="">Selecciona un empleado…</option>
                   {empleadosEnNomina.map(e => (
@@ -529,7 +529,7 @@ export default function VacacionesPage() {
                     type="date"
                     value={fechaInicio}
                     onChange={e => setFechaInicio(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
@@ -539,7 +539,7 @@ export default function VacacionesPage() {
                     value={fechaFin}
                     onChange={e => setFechaFin(e.target.value)}
                     min={fechaInicio || undefined}
-                    className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -550,7 +550,7 @@ export default function VacacionesPage() {
                   value={notas}
                   onChange={e => setNotas(e.target.value)}
                   placeholder="Ej. Viaje familiar"
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 />
               </div>
               {diasLaborablesPreview > 0 && (
@@ -610,7 +610,7 @@ export default function VacacionesPage() {
                 <select
                   value={empIdVenta}
                   onChange={e => setEmpIdVenta(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 >
                   <option value="">Selecciona un empleado…</option>
                   {empleadosEnNomina.map(e => (
@@ -628,7 +628,7 @@ export default function VacacionesPage() {
                     value={diasVenta}
                     onChange={e => setDiasVenta(e.target.value)}
                     placeholder="Ej. 14"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
@@ -637,7 +637,7 @@ export default function VacacionesPage() {
                     type="date"
                     value={fechaEfectivaVenta}
                     onChange={e => setFechaEfectivaVenta(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -648,7 +648,7 @@ export default function VacacionesPage() {
                   value={notasVenta}
                   onChange={e => setNotasVenta(e.target.value)}
                   placeholder="Ej. Acordado con gerencia"
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 />
               </div>
               {diasVentaNum > 0 && empSeleccionadoVenta && (

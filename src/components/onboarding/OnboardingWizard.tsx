@@ -45,7 +45,7 @@ const ROLES: { value: RolUsuario; label: string; descripcion: string }[] = [
 ]
 
 const INPUT_CLASS =
-  'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
+  'w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
 
 function OptionCard({
   active, onClick, title, subtitle, extra,
@@ -57,7 +57,7 @@ function OptionCard({
       className={`relative rounded-xl border p-3.5 text-left transition-colors ${
         active
           ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
-          : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] hover:border-zinc-300 dark:hover:border-[#33395a]'
+          : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] hover:border-zinc-300 dark:hover:border-[#33395a]'
       }`}
     >
       {active && (
@@ -127,7 +127,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a] p-6">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a] p-6">
       <div className="w-full max-w-xl">
 
         {/* Progress */}
@@ -184,7 +184,7 @@ export function OnboardingWizard() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 cursor-pointer">
+              <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 cursor-pointer">
                 <input type="checkbox" checked={zonaFranca} onChange={e => setZonaFranca(e.target.checked)} className="h-4 w-4 rounded accent-[#1B2980]" />
                 <span className="text-sm text-zinc-700 dark:text-zinc-300">Mi empresa opera bajo régimen de zona franca</span>
               </label>
@@ -243,7 +243,7 @@ export function OnboardingWizard() {
 
               <div>
                 <label className="mb-2 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Modalidad de nómina preferida</label>
-                <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-[#252840] w-fit">
+                <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] w-fit">
                   {(['mensual', 'quincenal'] as const).map(m => (
                     <button
                       key={m}
@@ -293,7 +293,7 @@ export function OnboardingWizard() {
             <button
               type="button"
               onClick={() => setPaso(p => p - 1)}
-              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Atrás

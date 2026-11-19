@@ -26,7 +26,7 @@ const ROLES = [
   { v: 'admin', l: 'Administrador' }, { v: 'gerente', l: 'Gerente' },
   { v: 'rrhh', l: 'RRHH' }, { v: 'contador', l: 'Contador' },
 ]
-const inputCls = 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 const DIA = 86_400_000
 const hace = (iso: string | null) => {
   if (!iso) return 'Nunca'
@@ -184,7 +184,7 @@ export function AdminPanel() {
               <th className="px-4 py-2 font-medium">Correo</th><th className="px-4 py-2 font-medium">Rol</th>
               <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Desde</th>
               <th className="px-4 py-2 font-medium">Último acceso</th><th className="px-4 py-2 font-medium">Actividad de la empresa</th></tr></thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+            <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
               {usuarios.map(u => (
                 <tr key={`${u.empresa_id}-${u.uid}`}>
                   <td className="px-4 py-2 text-zinc-700 dark:text-zinc-300">{u.email ?? u.uid}</td>
@@ -215,7 +215,7 @@ export function AdminPanel() {
             <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#1a1d2e]">
               <th className="px-4 py-2 font-medium">Fecha</th><th className="px-4 py-2 font-medium">Quién</th>
               <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Acción</th></tr></thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+            <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
               {accesos.map(a => (
                 <tr key={a.id}><td className="px-4 py-2 tabular-nums text-zinc-500">{fechaHora(a.creado_en)}</td>
                   <td className="px-4 py-2 text-zinc-700 dark:text-zinc-300">{a.email}</td>
@@ -249,7 +249,7 @@ export function AdminPanel() {
                   <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">RNC</th>
                   <th className="px-4 py-2 font-medium text-right">Empleados</th><th className="px-4 py-2 font-medium text-right">Usuarios</th>
                   <th className="px-4 py-2 font-medium">Actividad</th><th className="px-4 py-2 font-medium">Estado</th></tr></thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {empresas.map(e => (
                     <tr key={e.id} onClick={() => setSel(e)}
                       className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] ${sel?.id === e.id ? 'bg-[#eef0fb] dark:bg-[#1a1d2e]' : ''}`}>

@@ -246,7 +246,7 @@ export default function AumentosPage() {
           <button
             onClick={handleExportarExcel}
             disabled={historialGlobal.length === 0}
-            className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="h-4 w-4" />
             Exportar Excel
@@ -254,7 +254,7 @@ export default function AumentosPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
 
         {/* Toggle modo: por criterio vs importación Excel */}
         <div className="flex gap-2">
@@ -263,7 +263,7 @@ export default function AumentosPage() {
             className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
               modo === 'criterio'
                 ? 'bg-[#1B2980] text-white'
-                : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
+                : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-tabler-line dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
             }`}
           >
             Por Criterio
@@ -273,7 +273,7 @@ export default function AumentosPage() {
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
               modo === 'excel'
                 ? 'bg-[#1B2980] text-white'
-                : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
+                : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-tabler-line dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
             }`}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
@@ -286,7 +286,7 @@ export default function AumentosPage() {
         ) : (
           <>
             {/* Section 1 — Config card */}
-            <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
               <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" />
@@ -309,7 +309,7 @@ export default function AumentosPage() {
                       className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
                         tipoAjuste === 'porcentaje'
                           ? 'bg-[#1B2980] text-white'
-                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
+                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-tabler-line dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
                       }`}
                     >
                       % Porcentaje
@@ -319,7 +319,7 @@ export default function AumentosPage() {
                       className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
                         tipoAjuste === 'fijo'
                           ? 'bg-[#1B2980] text-white'
-                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
+                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 border border-tabler-line dark:border-[#252840] hover:border-zinc-300 dark:hover:border-[#3a3f5c]'
                       }`}
                     >
                       RD$ Monto fijo
@@ -343,7 +343,7 @@ export default function AumentosPage() {
                       value={valor}
                       onChange={e => setValor(e.target.value)}
                       placeholder={tipoAjuste === 'porcentaje' ? 'Ej. 10' : 'Ej. 2000'}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none w-40"
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none w-40"
                     />
                     {tipoAjuste === 'porcentaje' && (
                       <span className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">%</span>
@@ -361,7 +361,7 @@ export default function AumentosPage() {
                     <select
                       value={filtroDepto}
                       onChange={e => { setFiltroDepto(e.target.value); setSeleccionados(new Set()) }}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none appearance-none pr-8"
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none appearance-none pr-8"
                     >
                       <option value="todos">Todos los departamentos</option>
                       {departamentos.filter(d => d !== 'todos').map(d => (
@@ -382,7 +382,7 @@ export default function AumentosPage() {
                     type="date"
                     value={filtroFechaIngresoAntes}
                     onChange={e => { setFiltroFechaIngresoAntes(e.target.value); setSeleccionados(new Set()) }}
-                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
+                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
                   />
                 </div>
 
@@ -396,7 +396,7 @@ export default function AumentosPage() {
                     type="date"
                     value={filtroSinAumentoDesde}
                     onChange={e => { setFiltroSinAumentoDesde(e.target.value); setSeleccionados(new Set()) }}
-                    className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
+                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
                   />
                 </div>
               </div>
@@ -409,7 +409,7 @@ export default function AumentosPage() {
                   value={motivo}
                   onChange={e => setMotivo(e.target.value)}
                   placeholder="Ej. Ajuste anual por desempeño, revisión de mercado, promoción..."
-                  className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
                 />
               </div>
 
@@ -420,7 +420,7 @@ export default function AumentosPage() {
                   type="date"
                   value={fechaEfectiva}
                   onChange={e => setFechaEfectiva(e.target.value)}
-                  className="mt-1.5 w-full max-w-xs rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
+                  className="mt-1.5 w-full max-w-xs rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
                 />
                 <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
                   <Info className="h-3 w-3 shrink-0 mt-0.5" />
@@ -442,7 +442,7 @@ export default function AumentosPage() {
             </div>
 
             {/* Section 2 — Preview table */}
-            <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
               <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
@@ -477,14 +477,14 @@ export default function AumentosPage() {
                   <thead>
                     <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
                       <th className="px-4 py-3 w-10"></th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Empleado</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Departamento</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Salario Actual</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Ajuste</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Nuevo Salario</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Departamento</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Salario Actual</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Ajuste</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Nuevo Salario</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                  <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                     {empleadosFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6}>
@@ -588,7 +588,7 @@ export default function AumentosPage() {
 
             {/* Section 3 — Impact summary + Solicitar */}
             {seleccionados.size > 0 && valorNum > 0 && (
-              <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
                 <div className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
                   <span className="text-zinc-600 dark:text-zinc-400">
                     Empleados: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{seleccionados.size}</span>
@@ -650,7 +650,7 @@ export default function AumentosPage() {
         )}
 
         {/* Aumentos Pendientes de Aprobación */}
-        <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
           <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" />
@@ -681,7 +681,7 @@ export default function AumentosPage() {
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {pendientes.length === 0 ? (
                   <tr>
                     <td colSpan={7} data-col="full">
@@ -735,7 +735,7 @@ export default function AumentosPage() {
 
         {/* Aprobados — pendientes de aplicar a nómina */}
         {aprobadosPorAplicar.length > 0 && (
-          <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
             <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-600 dark:text-sky-400" />
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Aprobados — Pendientes de Aplicar a Nómina</h2>
@@ -754,7 +754,7 @@ export default function AumentosPage() {
                     <th className="px-4 py-3">Acción</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {aprobadosPorAplicar.map(a => {
                     const emp = empleadoDe(a.empleadoId)
                     return (
@@ -786,7 +786,7 @@ export default function AumentosPage() {
         )}
 
         {/* Historial de Aumentos */}
-        <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
           <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
@@ -796,7 +796,7 @@ export default function AumentosPage() {
               <select
                 value={filtroHistorialEmpleado}
                 onChange={e => setFiltroHistorialEmpleado(e.target.value)}
-                className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none appearance-none pr-8"
+                className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none appearance-none pr-8"
               >
                 <option value="todos">Todos los empleados</option>
                 {empleados.map(e => <option key={e.id} value={e.id}>{fullName(e)}</option>)}
@@ -818,7 +818,7 @@ export default function AumentosPage() {
                   <th className="px-4 py-3">Fechas</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {historialFiltrado.length === 0 ? (
                   <tr>
                     <td colSpan={7} data-col="full" className="px-4 py-8 text-center text-xs text-zinc-400">
@@ -921,7 +921,7 @@ export default function AumentosPage() {
                       value={textoResolver}
                       onChange={e => setTextoResolver(e.target.value)}
                       placeholder="Nombre de quien aprueba"
-                      className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
+                      className="mt-1.5 w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
                     />
                     <p className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
                       La app no valida que esta persona sea distinta a quien solicitó el aumento (no hay
@@ -940,7 +940,7 @@ export default function AumentosPage() {
                       value={textoResolver}
                       onChange={e => setTextoResolver(e.target.value)}
                       placeholder="Ej. Presupuesto insuficiente este trimestre"
-                      className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
+                      className="mt-1.5 w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] focus:outline-none"
                     />
                   </div>
                 )}
@@ -949,7 +949,7 @@ export default function AumentosPage() {
               <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4">
                 <button
                   onClick={() => setResolverModal(null)}
-                  className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                 >
                   Cancelar
                 </button>

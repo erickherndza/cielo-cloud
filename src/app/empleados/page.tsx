@@ -173,7 +173,7 @@ function EmpleadoFormModal({
             </div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onClose}
-                className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
                 Cancelar
               </button>
               <button type="submit"
@@ -522,7 +522,7 @@ function EmpleadoDrawer({
                     {empleado.documentoIdentidad && empleado.documentoIdentidadNombre && (
                       <button type="button"
                         onClick={() => downloadBase64(empleado.documentoIdentidad!, empleado.documentoIdentidadNombre!)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
                         <FileText className="h-4 w-4 text-[#1B2980] dark:text-indigo-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{labelTipoDoc(empleado.tipoDocumento)} — escaneo</p>
@@ -534,7 +534,7 @@ function EmpleadoDrawer({
                     {empleado.contratoLaboral && empleado.contratoLaboralNombre && (
                       <button type="button"
                         onClick={() => downloadBase64(empleado.contratoLaboral!, empleado.contratoLaboralNombre!)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
                         <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Contrato Laboral</p>
@@ -612,11 +612,11 @@ function EmpleadoDrawer({
                 </p>
 
                 {showSaldoISRForm && (
-                  <div className="mb-3 space-y-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-3">
+                  <div className="mb-3 space-y-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-3">
                     <div>
                       <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Tipo de Crédito</label>
                       <select value={saldoISRTipo} onChange={e => setSaldoISRTipo(e.target.value as TipoCreditoISR)}
-                        className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
+                        className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
                         <option value="retencion_excesiva">Retención de ISR en exceso</option>
                         <option value="gastos_educativos">Gastos educativos (Ley 179-09)</option>
                       </select>
@@ -626,13 +626,13 @@ function EmpleadoDrawer({
                         <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Monto (RD$)</label>
                         <input type="number" min="0" step="0.01" value={saldoISRMonto}
                           onChange={e => setSaldoISRMonto(e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                          className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                       </div>
                       <div>
                         <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Año Fiscal</label>
                         <input type="number" value={saldoISRAnio}
                           onChange={e => setSaldoISRAnio(Number(e.target.value))}
-                          className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                          className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                       </div>
                     </div>
                     <div>
@@ -640,7 +640,7 @@ function EmpleadoDrawer({
                       <input type="text" value={saldoISRMotivo}
                         onChange={e => setSaldoISRMotivo(e.target.value)}
                         placeholder={saldoISRTipo === 'gastos_educativos' ? 'Ej. colegiatura autorizada por DGII' : 'Ej. cambio de tramo ISR a mitad de año'}
-                        className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                        className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                     </div>
                     {saldoISRTipo === 'gastos_educativos' && (
                       <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
@@ -652,7 +652,7 @@ function EmpleadoDrawer({
                     <div className="flex justify-end gap-2 pt-1">
                       <button type="button"
                         onClick={() => { setShowSaldoISRForm(false); setSaldoISRMonto(''); setSaldoISRMotivo(''); setSaldoISRTipo('retencion_excesiva') }}
-                        className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#141722] transition-colors">
+                        className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#141722] transition-colors">
                         Cancelar
                       </button>
                       <button type="button"
@@ -730,28 +730,28 @@ function EmpleadoDrawer({
             </div>
 
             {showDepForm && (
-              <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-4 space-y-3">
+              <div className="rounded-xl border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-4 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Nuevo Dependiente</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Nombre</label>
                     <input value={depNombre} onChange={e => setDepNombre(e.target.value)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Apellido</label>
                     <input value={depApellido} onChange={e => setDepApellido(e.target.value)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Cédula (opcional)</label>
                     <input value={depCedula} onChange={e => setDepCedula(e.target.value)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Parentesco</label>
                     <select value={depParentesco} onChange={e => setDepParentesco(e.target.value as ParentescoDependiente)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none">
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none">
                       <option value="hijo_mayor_18_no_estudiante">Hijo/Hijastro +18 (no estudiante)</option>
                       <option value="hijo_mayor_21">Hijo/Hijastro +21 años</option>
                       <option value="padre_titular">Padre del Titular</option>
@@ -763,11 +763,11 @@ function EmpleadoDrawer({
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de Nacimiento</label>
                     <input type="date" value={depFechaNac} onChange={e => setDepFechaNac(e.target.value)}
-                      className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1 col-span-2">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Descuento SFS (Res. 624-02)</label>
-                    <div className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+                    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                       <span>2.9% × cotizable del empleado</span>
                       <span className="tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
                         {new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 2 }).format(depCuotaMensual)}/mes
@@ -799,7 +799,7 @@ function EmpleadoDrawer({
                     Guardar
                   </button>
                   <button onClick={() => setShowDepForm(false)}
-                    className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                    className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
                     Cancelar
                   </button>
                 </div>
@@ -996,7 +996,7 @@ function EmpleadoDrawer({
                 </p>
                 <button
                   onClick={handleExportarHistorial}
-                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Exportar Excel
@@ -1018,7 +1018,7 @@ function EmpleadoDrawer({
                   </thead>
                   <tbody>
                     {historial.map(({ periodo, resultado }) => (
-                      <tr key={periodo.id} className="border-b border-zinc-200 dark:border-[#252840] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                      <tr key={periodo.id} className="border-b border-tabler-line dark:border-[#252840] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
                         <td className="px-5 py-3">
                           <p className="font-medium text-zinc-800 dark:text-zinc-200">{labelPeriodoHist(periodo)}</p>
                           <p className="text-[10px] text-zinc-400 dark:text-zinc-500 capitalize">{periodo.tipo}</p>
@@ -1090,18 +1090,18 @@ function EmpleadoDrawer({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de inicio</label>
                 <input type="date" value={fechaSusp} onChange={e => setFechaSusp(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Motivo</label>
                 <input type="text" value={motivoSusp} onChange={e => setMotivoSusp(e.target.value)}
                   placeholder="Ej. Licencia médica no cubierta"
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setMostrarSuspension(false)}
-                className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
                 Cancelar
               </button>
               <button
@@ -1130,12 +1130,12 @@ function EmpleadoDrawer({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de salida</label>
                 <input type="date" value={fechaSalida} onChange={e => setFechaSalida(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Motivo</label>
                 <select value={motivoSalida} onChange={e => setMotivoSalida(e.target.value as MotivoLiquidacion | '')}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none">
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none">
                   <option value="">— Seleccionar —</option>
                   {Object.entries(MOTIVO_LIQUIDACION_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -1151,7 +1151,7 @@ function EmpleadoDrawer({
                 <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
                   pagoDiasSalida === 'nomina'
                     ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
-                    : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                    : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
                 }`}>
                   <input type="radio" name="pagoDiasSalida" value="nomina" checked={pagoDiasSalida === 'nomina'}
                     onChange={() => setPagoDiasSalida('nomina')} className="mt-0.5" />
@@ -1165,7 +1165,7 @@ function EmpleadoDrawer({
                 <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
                   pagoDiasSalida === 'liquidacion'
                     ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
-                    : 'border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                    : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
                 }`}>
                   <input type="radio" name="pagoDiasSalida" value="liquidacion" checked={pagoDiasSalida === 'liquidacion'}
                     onChange={() => setPagoDiasSalida('liquidacion')} className="mt-0.5" />
@@ -1180,7 +1180,7 @@ function EmpleadoDrawer({
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => { setMostrarSalida(false); setMotivoSalida(''); setPagoDiasSalida('') }}
-                className="rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
                 Cancelar
               </button>
               <button
@@ -1207,7 +1207,7 @@ function EmpleadoDrawer({
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onEditar}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
             {empleado.activo && !empleado.salidaPendiente && (
@@ -1368,7 +1368,7 @@ export default function EmpleadosPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportarEmpleados}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -1385,7 +1385,7 @@ export default function EmpleadosPage() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 md:px-6 py-3">
+        <div className="flex flex-wrap items-center gap-3 border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 md:px-6 py-3">
           <div className="relative w-full md:flex-1 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -1393,13 +1393,13 @@ export default function EmpleadosPage() {
               placeholder="Buscar por nombre, documento o cargo…"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
+              className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
             />
           </div>
           <select
             value={departamento}
             onChange={e => setDepartamento(e.target.value)}
-            className="rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-3 pr-8 text-sm text-zinc-700 focus:border-[#1B2980] focus:outline-none"
+            className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-3 pr-8 text-sm text-zinc-700 focus:border-[#1B2980] focus:outline-none"
           >
             {departamentos.map(d => <option key={d}>{d}</option>)}
           </select>
@@ -1426,7 +1426,7 @@ export default function EmpleadosPage() {
           <div className="md:hidden space-y-2.5">
             {filtrados.map(emp => (
               <button key={emp.id} onClick={() => setEmpSeleccionado(emp)}
-                className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-3 text-left active:bg-zinc-50 dark:active:bg-[#1a1d2e]">
+                className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-3 text-left active:bg-zinc-50 dark:active:bg-[#1a1d2e]">
                 <EmpleadoAvatar emp={emp} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{fullName(emp)}</p>
@@ -1450,19 +1450,19 @@ export default function EmpleadosPage() {
             )}
           </div>
 
-          <div className="hidden md:block overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+          <div className="hidden md:block overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
                   {['Empleado', 'Nacionalidad', 'Documento', 'Departamento', 'Tipo Contrato', 'Ingreso'].map(h => (
-                    <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{h}</th>
+                    <th key={h} className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">{h}</th>
                   ))}
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Salario Base</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Estado</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Salario Base</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Estado</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {filtrados.map(emp => {
                   const pais = emp.nacionalidad ? getPais(emp.nacionalidad) : undefined
                   return (

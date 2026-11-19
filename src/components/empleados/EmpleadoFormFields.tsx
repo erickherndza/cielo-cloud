@@ -12,7 +12,7 @@ import { EmpleadoAvatar } from './EmpleadoAvatar'
 import { fullName, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import type { Empleado, TipoContrato, TipoDocumento, Banco } from '@/types'
 
-export const inputCls = 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+export const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 export const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 // ── Flag image component ──────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ function NacionalidadSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
           <div className="p-2 border-b border-zinc-100 dark:border-[#252840]">
             <input
               autoFocus
@@ -150,7 +150,7 @@ function SupervisorSelect({
     : candidatos
 
   const triggerCls = disabled
-    ? 'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#16192a] px-3 py-2 text-sm text-zinc-400 dark:text-zinc-600 cursor-not-allowed flex items-center gap-2'
+    ? 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#16192a] px-3 py-2 text-sm text-zinc-400 dark:text-zinc-600 cursor-not-allowed flex items-center gap-2'
     : `${inputCls} flex items-center gap-2 text-left`
 
   return (
@@ -188,7 +188,7 @@ function SupervisorSelect({
       </button>
 
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
           <div className="p-2 border-b border-zinc-100 dark:border-[#252840]">
             <input
               autoFocus
@@ -363,7 +363,7 @@ export function EmpleadoFormFields({
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors w-fit">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors w-fit">
               <Camera className="h-3.5 w-3.5" />
               {form.fotoPerfil ? 'Cambiar foto' : 'Subir foto'}
               <input ref={fotoRef} type="file" accept="image/*" className="sr-only" onChange={handleFotoChange} />
@@ -468,7 +468,7 @@ export function EmpleadoFormFields({
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                     form.tipoDocumento === t.value
                       ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                      : 'border-zinc-200 dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                      : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
                   }`}
                 >
                   {t.label}
@@ -600,7 +600,7 @@ export function EmpleadoFormFields({
             />
           </div>
           <div>
-            <label className="flex items-center gap-2.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5 cursor-pointer">
+            <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.regimenIntermitente}

@@ -16,7 +16,7 @@ import { formatRD } from '@/lib/utils'
 interface Version { version: number; datos: unknown; motivo: string; email: string | null; creado_en: string }
 type Grupo = keyof typeof RANGOS_PARAMETROS
 
-const inputCls = 'w-24 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-2 py-1.5 text-right text-sm tabular-nums focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-24 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-2 py-1.5 text-right text-sm tabular-nums focus:border-[#1B2980] focus:outline-none'
 const fechaHora = (iso: string) => new Date(iso).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })
 
 // Etiquetas de cada campo, con el artículo del Código de Trabajo que lo respalda.
@@ -168,7 +168,7 @@ export function ParametrosLegalesPanel() {
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1 font-medium">Motivo</th>
                 {PRESTACIONES.map(([, etq]) => <th key={etq} className="py-1 text-center font-medium">{etq}</th>)}</tr></thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {(Object.keys(borrador.motivos) as MotivoParam[]).map(m => (
                   <tr key={m}>
                     <td className="py-2 text-zinc-700 dark:text-zinc-300">{MOTIVO_LIQUIDACION_LABELS[m]}</td>

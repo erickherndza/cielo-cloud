@@ -205,7 +205,7 @@ export function AgendaNomina() {
       </div>
 
       {/* Event list */}
-      <div className="flex-1 overflow-y-auto max-h-[180px] divide-y divide-zinc-200 dark:divide-[#252840]">
+      <div className="flex-1 overflow-y-auto max-h-[180px] divide-y divide-tabler-line dark:divide-[#252840]">
         {allEvents.length === 0 && (
           <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-600 py-4">
             Sin eventos este mes
@@ -271,7 +271,7 @@ export function AgendaNomina() {
           type="date"
           value={newFecha}
           onChange={e => setNewFecha(e.target.value)}
-          className="w-[108px] shrink-0 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
+          className="w-[108px] shrink-0 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
         />
         <input
           type="text"
@@ -279,7 +279,7 @@ export function AgendaNomina() {
           value={newTitulo}
           onChange={e => setNewTitulo(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addEvent()}
-          className="flex-1 min-w-0 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2.5 py-1.5 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
+          className="flex-1 min-w-0 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2.5 py-1.5 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
         />
         <button
           onClick={addEvent}

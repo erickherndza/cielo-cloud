@@ -26,7 +26,7 @@ export function SyncGate({ children }: { children: ReactNode }) {
     )
     if (acceso.esSuperadmin) {
       return (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a]">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
           <div className="flex justify-end px-6 pt-4">{salir}</div>
           <AdminPanel />
         </div>

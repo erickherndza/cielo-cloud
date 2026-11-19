@@ -30,7 +30,7 @@ const MAX_CUOTAS_PREVIEW = 360
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputCls =
-  'w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ function StatCard({
   iconColor: string
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
+    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
@@ -126,7 +126,7 @@ function TablaAmortizacion({
     : ['#', 'Cuota', 'Capital', 'Interés', 'Saldo Remanente']
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
         <div>
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{titulo}</h3>
@@ -135,7 +135,7 @@ function TablaAmortizacion({
         {onExportar && (
           <button
             onClick={onExportar}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors shrink-0"
+            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
             Exportar Excel
@@ -156,7 +156,7 @@ function TablaAmortizacion({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+          <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
             {rows.map(row => (
               <tr
                 key={row.num}
@@ -220,7 +220,7 @@ function PanelCapacidadPago({
       className={`rounded-lg border px-4 py-3 space-y-3 ${
         excede
           ? 'border-amber-300 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20'
-          : 'border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e]'
+          : 'border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e]'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ function ConfirmDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
-      <div className="mx-4 w-full max-w-sm rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
+      <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
@@ -290,7 +290,7 @@ function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+            className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
           >
             No, cancelar
           </button>
@@ -407,7 +407,7 @@ function VistaDetalle({
         actions={
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-[#252840] px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
@@ -415,10 +415,10 @@ function VistaDetalle({
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
 
         {/* Loan header card */}
-        <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm dark:shadow-none">
+        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">
             <div
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
@@ -500,7 +500,7 @@ function VistaDetalle({
 
         {/* Payment history */}
         {prestamo.pagos.length > 0 && (
-          <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
             <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Historial de Pagos</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{prestamo.pagos.length} pago{prestamo.pagos.length !== 1 ? 's' : ''} registrado{prestamo.pagos.length !== 1 ? 's' : ''}</p>
@@ -519,7 +519,7 @@ function VistaDetalle({
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                   {prestamo.pagos.map(pago => (
                     <tr key={pago.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
                       <td className="px-4 py-2.5 text-sm text-zinc-700 dark:text-zinc-300">{formatDate(pago.fecha)}</td>
@@ -544,7 +544,7 @@ function VistaDetalle({
 
         {/* Manual payment form */}
         {prestamo.estado === 'activo' && (
-          <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
             <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Registrar Pago Manual</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Pagos fuera de nómina regular</p>
@@ -868,7 +868,7 @@ export default function PrestamosPage() {
   // ── Detalle view ─────────────────────────────────────────────────────────────
   if (vista === 'detalle' && prestamoSeleccionado) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex flex-col h-full overflow-hidden bg-tabler-bg dark:bg-[#0d0f1a]">
         <VistaDetalle
           prestamo={prestamoSeleccionado}
           nombreEmpleado={getEmpleadoName(prestamoSeleccionado.empleadoId)}
@@ -898,7 +898,7 @@ export default function PrestamosPage() {
           showForm ? (
             <button
               onClick={() => setShowForm(false)}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] px-3.5 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] px-3.5 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
             >
               <X className="h-4 w-4" />
               Cerrar
@@ -907,7 +907,7 @@ export default function PrestamosPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExportarPrestamos}
-                className="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-3.5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3.5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
@@ -931,7 +931,7 @@ export default function PrestamosPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
 
         {/* Stats bar */}
         <div className="grid grid-cols-1 gap-3 p-4 pb-3 sm:grid-cols-3 sm:gap-4 md:p-6 md:pb-4">
@@ -960,7 +960,7 @@ export default function PrestamosPage() {
 
         {/* New loan form */}
         {showForm && (
-          <div className="mx-6 mb-4 rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+          <div className="mx-6 mb-4 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -1033,7 +1033,7 @@ export default function PrestamosPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors ${
                             fModoInteres === m
                               ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                              : 'border-zinc-200 dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                              : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
                           }`}
                         >
                           {m === 'francés' ? 'Francés' : 'Simple'}
@@ -1131,7 +1131,7 @@ export default function PrestamosPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             fFrecuencia === f
                               ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                              : 'border-zinc-200 dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                              : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
                           }`}
                         >
                           {frecuenciaLabel(f)}
@@ -1239,7 +1239,7 @@ export default function PrestamosPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="rounded-lg border border-zinc-200 dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -1266,7 +1266,7 @@ export default function PrestamosPage() {
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   filtroEstado === tab.value
                     ? 'bg-[#1B2980] text-white dark:bg-indigo-600'
-                    : 'border border-zinc-200 dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e]'
+                    : 'border border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e]'
                 }`}
               >
                 {tab.label}
@@ -1284,7 +1284,7 @@ export default function PrestamosPage() {
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar por nombre o departamento…"
-              className="w-full rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] py-1.5 pl-8 pr-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
+              className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] py-1.5 pl-8 pr-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
             />
             {busqueda && (
               <button
@@ -1310,7 +1310,7 @@ export default function PrestamosPage() {
               }
             />
           ) : (
-            <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
               <div className="overflow-x-auto">
                 <table className="tabla-cards w-full text-sm">
                   <thead>
@@ -1325,7 +1325,7 @@ export default function PrestamosPage() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
+                  <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
                     {prestamosFiltrados.map(prestamo => {
                       const pct      = (prestamo.monto - prestamo.saldoPendiente) / prestamo.monto * 100
                       const empName  = getEmpleadoName(prestamo.empleadoId)
@@ -1430,7 +1430,7 @@ export default function PrestamosPage() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleVerDetalle(prestamo) }}
-                                className="flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors whitespace-nowrap"
+                                className="flex items-center gap-1 rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors whitespace-nowrap"
                               >
                                 Ver detalle
                                 <ChevronRight className="h-3 w-3" />
