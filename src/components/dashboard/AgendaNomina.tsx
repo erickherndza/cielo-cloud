@@ -152,7 +152,7 @@ export function AgendaNomina() {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm flex flex-col">
+    <div className="t-card flex flex-col">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">

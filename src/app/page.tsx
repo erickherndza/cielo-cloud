@@ -49,16 +49,19 @@ function ChartCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm flex flex-col gap-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{label}</p>
-      <div>
-        <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{value}</p>
-        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{subtitle}</p>
+    <div className="t-card p-5 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="t-subheader">{label}</p>
         {delta && (
-          <p className={`mt-1.5 text-xs font-semibold ${delta.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-            {delta.positive ? '↑' : '↓'} {Math.abs(delta.pct).toFixed(1)}% vs período anterior
-          </p>
+          <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${delta.positive ? 'text-tabler-green' : 'text-tabler-red'}`}>
+            {Math.abs(delta.pct).toFixed(1)}%
+            <span aria-hidden>{delta.positive ? '↗' : '↘'}</span>
+          </span>
         )}
+      </div>
+      <div>
+        <p className="text-[1.75rem] font-semibold text-tabler-ink dark:text-zinc-100 leading-8 tabular-nums">{value}</p>
+        <p className="mt-1 text-xs text-tabler-mute dark:text-zinc-500">{subtitle}</p>
       </div>
       {children}
     </div>
@@ -70,16 +73,16 @@ type RangoMeses = typeof RANGO_OPCIONES[number]
 
 function RangoSelector({ value, onChange }: { value: RangoMeses; onChange: (v: RangoMeses) => void }) {
   return (
-    <div className="inline-flex items-center rounded-lg border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-0.5">
+    <div className="inline-flex items-center rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-0.5">
       {RANGO_OPCIONES.map(opcion => (
         <button
           key={opcion}
           type="button"
           onClick={() => onChange(opcion)}
-          className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
             value === opcion
               ? 'bg-[#1B2980] text-white'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+              : 'text-tabler-mute dark:text-zinc-400 hover:text-tabler-ink dark:hover:text-zinc-200'
           }`}
         >
           {opcion}M
@@ -183,30 +186,33 @@ export default function DashboardPage() {
     <div className="flex flex-col overflow-hidden h-full">
       <Header title={nombreEmpresa} subtitle={periodo} />
 
-      <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
 
-        {/* Company + Tabs */}
-        <div className="bg-white dark:bg-[#141722] border-b border-zinc-200 dark:border-[#252840] px-6 pt-5 pb-0">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-11 w-11 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] flex items-center justify-center shrink-0 overflow-hidden">
-              {empresa.logo ? (
-                <img src={empresa.logo} alt={nombreEmpresa} className="h-full w-full object-contain p-1" />
-              ) : (
-                <Building2 className="h-5 w-5 text-zinc-300 dark:text-zinc-600" />
-              )}
+        {/* Encabezado de página (estilo Tabler: antetítulo + título + acciones) */}
+        <div className="px-4 md:px-6 pt-5 md:pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-11 w-11 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] flex items-center justify-center shrink-0 overflow-hidden">
+                {empresa.logo ? (
+                  <img src={empresa.logo} alt={nombreEmpresa} className="h-full w-full object-contain p-1" />
+                ) : (
+                  <Building2 className="h-5 w-5 text-zinc-300 dark:text-zinc-600" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="t-pretitle">Resumen · {periodo}</p>
+                <h1 className="t-page-title truncate">{nombreEmpresa}</h1>
+                <p className="text-xs text-tabler-mute dark:text-zinc-500 truncate">{infoEmpresa}</p>
+              </div>
             </div>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500">{infoEmpresa}</p>
-          </div>
-          <div className="flex gap-6 -mb-px">
-            <button className="pb-3 text-sm font-semibold text-[#1B2980] dark:text-indigo-400 border-b-2 border-[#1B2980] dark:border-indigo-500">
-              Resumen nómina
-            </button>
-            <Link href="/reportes" className="pb-3 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
-              Análisis de costos
-            </Link>
-            <Link href="/nomina" className="pb-3 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border-b-2 border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
-              Procesar nómina
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/reportes" className="rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] transition-colors">
+                Análisis de costos
+              </Link>
+              <Link href="/nomina" className="rounded-md bg-[#1B2980] px-3 py-2 text-sm font-medium text-white hover:bg-[#151f66] transition-colors">
+                Procesar nómina
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -215,8 +221,8 @@ export default function DashboardPage() {
           {/* Selector de rango — comparte estado con las 3 chart cards de abajo */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Historial de nómina</p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+              <p className="t-card-title">Historial de nómina</p>
+              <p className="text-xs text-tabler-mute dark:text-zinc-500">
                 {periodosReales.length > 0
                   ? `${periodosReales.length} período${periodosReales.length !== 1 ? 's' : ''} real${periodosReales.length !== 1 ? 'es' : ''} procesado${periodosReales.length !== 1 ? 's' : ''}`
                   : 'Datos ilustrativos — aún no hay períodos procesados'}
@@ -263,9 +269,9 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
             {/* Retenciones */}
-            <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Retenciones</p>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{formatK(totalISR + totalTSSEmpleador)}</p>
+            <div className="t-card p-5">
+              <p className="mb-3 t-subheader">Retenciones</p>
+              <p className="text-[1.75rem] font-semibold text-tabler-ink dark:text-zinc-100 leading-8 tabular-nums">{formatK(totalISR + totalTSSEmpleador)}</p>
               <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500 mb-4">Obligaciones del período</p>
               <div className="space-y-3">
                 {[
@@ -300,14 +306,14 @@ export default function DashboardPage() {
             <AgendaNomina />
 
             {/* Empleados activos */}
-            <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm">
-              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Empleados</p>
+            <div className="t-card">
+              <div className="t-card-header">
+                <p className="t-card-title">Empleados</p>
                 <Link href="/empleados" className="text-xs text-[#1B2980] dark:text-indigo-400 hover:underline flex items-center gap-0.5">
                   Ver todos <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
-              <div className="divide-y divide-zinc-200 dark:divide-[#252840]">
+              <div className="divide-y divide-tabler-line dark:divide-[#252840]">
                 {empleadosActivos.slice(0, 5).map((emp, i) => {
                   const n = nominas[i]
                   return (

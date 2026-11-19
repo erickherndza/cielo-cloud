@@ -92,7 +92,7 @@ function BuscarTrigger() {
   return (
     <button
       onClick={open}
-      className="hidden md:flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-2.5 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-[#33395a] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+      className="hidden md:flex items-center gap-2 rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-2.5 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-[#33395a] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
     >
       <Search className="h-3.5 w-3.5" />
       <span className="w-24 text-left">Buscar…</span>
@@ -107,14 +107,14 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
   const { open: openMenu } = useMobileMenu()
   return (
     <>
-    <header className="flex h-14 shrink-0 items-center border-b border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] px-4">
+    <header className="flex h-14 shrink-0 items-center border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4">
       {/* Left */}
       <div className="flex flex-1 items-center gap-3 min-w-0">
         <button onClick={openMenu} aria-label="Abrir menú" className="md:hidden -ml-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] text-zinc-500 dark:text-zinc-400 transition-colors">
           <Menu className="h-5 w-5" />
         </button>
         <div className="min-w-0">
-          <span className="max-md:block text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">{title}</span>
+          <span className="max-md:block text-base md:text-lg font-semibold text-tabler-ink dark:text-zinc-100 truncate">{title}</span>
           {subtitle && (
             <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400 hidden sm:inline">{subtitle}</span>
           )}

@@ -13,6 +13,17 @@ const config: Config = {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // Paleta neutra estilo Tabler (el acento de marca sigue siendo cielo.navy)
+        tabler: {
+          bg:    '#f6f8fb',
+          line:  '#e6e7e9',
+          ink:   '#182433',
+          mute:  '#667382',
+          green: '#2fb344',
+          red:   '#d63939',
+          amber: '#f59f00',
+          azure: '#4299e1',
+        },
         // Cielo Cloud brand
         cielo: {
           navy:  '#1B2980',

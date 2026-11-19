@@ -28,20 +28,20 @@ function EmpresaLinks({ wide }: { wide: boolean }) {
   const { acceso } = useRemoteStore()
   const pathname = usePathname()
   if (!acceso?.activa) return null
-  const fila = 'flex w-full items-center py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] border-l-[3px] border-transparent '
+  const fila = 'flex items-center py-2 mx-2 rounded-md text-sm text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] '
   return (
     <>
       {acceso.esSuperadmin && (
         <Link href="/admin" prefetch={false} title={wide ? undefined : 'Administración'}
-          className={cn(fila, wide ? 'gap-3 px-4' : 'justify-center', pathname.startsWith('/admin') && 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-semibold')}>
-          <ShieldAlert className="h-4 w-4 shrink-0 text-zinc-400" />
+          className={cn(fila, wide ? 'gap-3 px-3' : 'justify-center', pathname.startsWith('/admin') && 'bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-medium')}>
+          <ShieldAlert strokeWidth={1.75} className="h-5 w-5 shrink-0 text-tabler-mute" />
           {wide && <span className="min-w-0 flex-1 truncate">Administración</span>}
         </Link>
       )}
       {(acceso.empresas.length > 1 || acceso.esSuperadmin) && (
         <button onClick={salirDeEmpresa} title={wide ? undefined : 'Cambiar de empresa'}
-          className={cn(fila, wide ? 'gap-3 px-4 text-left' : 'justify-center')}>
-          <Building2 className="h-4 w-4 shrink-0 text-zinc-400" />
+          className={cn(fila, wide ? 'gap-3 px-3 text-left w-[calc(100%-1rem)]' : 'justify-center w-[calc(100%-1rem)]')}>
+          <Building2 strokeWidth={1.75} className="h-5 w-5 shrink-0 text-tabler-mute" />
           {wide && <span className="min-w-0 flex-1 truncate">Cambiar de empresa</span>}
         </button>
       )}
@@ -260,10 +260,10 @@ export function Sidebar() {
         onMouseLeave={handleMouseLeave}
         className={cn(
           'hidden md:flex h-screen flex-col bg-white dark:bg-[#141722]',
-          'border-r border-zinc-200 dark:border-[#252840]',
+          'border-r border-tabler-line dark:border-[#252840]',
           'transition-[width] duration-200 ease-in-out overflow-hidden',
           c ? 'fixed left-0 top-0 z-40' : 'relative shrink-0',
-          c ? (flyout ? 'w-60' : 'w-[68px]') : 'w-60',
+          c ? (flyout ? 'w-64' : 'w-[68px]') : 'w-64',
           // La sombra vive con `c` (no con `flyout`) — el riel ya está
           // `fixed`/flotando sobre el contenido en AMBOS estados mientras
           // está colapsado, así que tenerla solo durante el flyout hacía
@@ -276,7 +276,7 @@ export function Sidebar() {
         {/* ── Logo / Brand ─────────────────────────────────────────── */}
         <div
           className={cn(
-            'flex h-[80px] shrink-0 items-center border-b border-zinc-200 dark:border-[#252840]',
+            'flex h-[80px] shrink-0 items-center border-b border-tabler-line dark:border-[#252840]',
             'transition-[padding,gap] duration-200 ease-in-out',
             wide ? 'px-5 gap-4' : 'flex-col justify-center gap-2.5 px-0',
           )}
@@ -356,25 +356,25 @@ export function Sidebar() {
                 prefetch={false}
                 title={wide ? undefined : item.label}
                 className={cn(
-                  'flex items-center py-2.5 text-sm transition-all duration-200 ease-in-out border-l-[3px]',
-                  wide ? 'gap-3 px-4' : 'justify-center px-0',
+                  'flex items-center py-2 text-sm transition-all duration-200 ease-in-out rounded-md',
+                  wide ? 'gap-3 px-3 mx-2' : 'justify-center px-0 mx-2',
                   active
-                    ? 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-semibold border-[#1B2980] dark:border-indigo-500'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:text-zinc-900 dark:hover:text-zinc-100 border-transparent',
+                    ? 'bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-medium'
+                    : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] hover:text-tabler-ink dark:hover:text-zinc-100',
                 )}
               >
                 <item.icon
+                  strokeWidth={1.75}
                   className={cn(
-                    'h-4 w-4 shrink-0',
+                    'h-5 w-5 shrink-0',
                     active
                       ? 'text-[#1B2980] dark:text-indigo-400'
-                      : 'text-zinc-400 dark:text-zinc-600',
+                      : 'text-tabler-mute dark:text-zinc-500',
                   )}
                 />
                 {wide && (
                   <>
                     <span className="min-w-0 flex-1 truncate leading-none">{item.label}</span>
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 dark:text-[#2e3355]" />
                   </>
                 )}
               </Link>
@@ -390,25 +390,25 @@ export function Sidebar() {
             prefetch={false}
             title={wide ? undefined : CONFIGURACION_ITEM.label}
             className={cn(
-              'flex items-center py-2.5 text-sm transition-all duration-200 ease-in-out border-l-[3px]',
-              wide ? 'gap-3 px-4' : 'justify-center px-0',
+              'flex items-center py-2 text-sm transition-all duration-200 ease-in-out rounded-md',
+              wide ? 'gap-3 px-3 mx-2' : 'justify-center px-0 mx-2',
               isActive(CONFIGURACION_ITEM.href)
-                ? 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-semibold border-[#1B2980] dark:border-indigo-500'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:text-zinc-900 dark:hover:text-zinc-100 border-transparent',
+                ? 'bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-medium'
+                : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] hover:text-tabler-ink dark:hover:text-zinc-100',
             )}
           >
             <CONFIGURACION_ITEM.icon
+              strokeWidth={1.75}
               className={cn(
-                'h-4 w-4 shrink-0',
+                'h-5 w-5 shrink-0',
                 isActive(CONFIGURACION_ITEM.href)
                   ? 'text-[#1B2980] dark:text-indigo-400'
-                  : 'text-zinc-400 dark:text-zinc-600',
+                  : 'text-tabler-mute dark:text-zinc-500',
               )}
             />
             {wide && (
               <>
                 <span className="min-w-0 flex-1 truncate">Configuración</span>
-                <ChevronRight className="h-3.5 w-3.5 text-zinc-300 dark:text-[#2e3355]" />
               </>
             )}
           </Link>
