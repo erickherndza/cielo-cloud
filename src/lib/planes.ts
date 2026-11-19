@@ -17,9 +17,8 @@ export const PLANES: Plan[] = [
   { id: 'popular', rango: 'De 11 a 30 empleados', precio: 59, popular: true },
   {
     id: 'pro',
-    rango: 'De 31 a 100 empleados',
+    rango: 'De 31 a 50 empleados',
     precio: 90,
-    extra: 'Incluye hasta 50 empleados. + $2.50 por empleado/mes por cada uno adicional, de 51 a 100',
   },
   { id: 'empresa', rango: 'Más de 100 empleados', cotizar: true, extra: 'Escríbenos y te preparamos una cotización' },
 ]
