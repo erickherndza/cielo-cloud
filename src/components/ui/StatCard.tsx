@@ -24,7 +24,13 @@ export function StatCard({
   return (
     <div className="t-card p-4 md:p-5 transition-colors">
       <div className="flex items-start justify-between gap-2">
-        <p className="t-subheader">{label}</p>
+        <p className="t-subheader min-w-0">{label}</p>
+        <div className={cn('hidden sm:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconColor)}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="whitespace-nowrap text-xl font-semibold text-tabler-ink dark:text-zinc-100 leading-tight tabular-nums">{value}</p>
         {trend && trendLabel && (
           <span
             className={cn(
@@ -39,12 +45,6 @@ export function StatCard({
             {trendLabel}
           </span>
         )}
-      </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <p className="min-w-0 max-md:whitespace-nowrap text-xl md:text-[1.75rem] font-semibold text-tabler-ink dark:text-zinc-100 leading-tight tabular-nums">{value}</p>
-        <div className={cn('hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', iconColor)}>
-          <Icon className="h-4 w-4" />
-        </div>
       </div>
       {sub && <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-50 dark:border-[#2a2a2a] pt-2">{sub}</p>}
     </div>
