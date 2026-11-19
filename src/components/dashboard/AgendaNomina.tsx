@@ -152,7 +152,7 @@ export function AgendaNomina() {
   }
 
   return (
-    <div className="rounded-[28px] bg-white dark:bg-[#141722] shadow-[0_1px_2px_rgba(15,27,61,0.05)] overflow-hidden flex flex-col">
+    <div className="rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm flex flex-col">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
@@ -160,13 +160,13 @@ export function AgendaNomina() {
           Agenda Nómina
         </p>
         <div className="flex items-center gap-0.5">
-          <button onClick={prevMonth} className="rounded p-2.5 sm:p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
+          <button onClick={prevMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
             <ChevronLeft className="h-3 w-3" />
           </button>
           <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 w-[104px] text-center">
             {MES_LARGO[viewMonth]} {viewYear}
           </span>
-          <button onClick={nextMonth} className="rounded p-2.5 sm:p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
+          <button onClick={nextMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
             <ChevronRight className="h-3 w-3" />
           </button>
         </div>
@@ -243,7 +243,7 @@ export function AgendaNomina() {
                 onClick={() => toggleDone(ev.id)}
                 title={isDone ? 'Marcar pendiente' : 'Completado'}
                 className={cn(
-                  'shrink-0 rounded p-2 sm:p-0.5 transition-colors',
+                  'shrink-0 rounded p-0.5 transition-colors',
                   isDone
                     ? 'text-emerald-500 hover:text-zinc-400'
                     : 'text-zinc-300 dark:text-zinc-600 hover:text-emerald-500',
@@ -255,7 +255,7 @@ export function AgendaNomina() {
                 <button
                   onClick={() => deleteEvent(ev.id)}
                   title="Eliminar"
-                  className="shrink-0 rounded p-2 sm:p-0.5 text-zinc-300 dark:text-zinc-600 hover:text-rose-500 transition-colors"
+                  className="shrink-0 rounded p-0.5 text-zinc-300 dark:text-zinc-600 hover:text-rose-500 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -283,7 +283,7 @@ export function AgendaNomina() {
         />
         <button
           onClick={addEvent}
-          className="shrink-0 rounded-lg bg-[#1B2980] hover:bg-[#151f66] text-white px-3.5 py-2.5 sm:px-2.5 sm:py-1.5 transition-colors flex items-center"
+          className="shrink-0 rounded-lg bg-[#1B2980] hover:bg-[#151f66] text-white px-2.5 py-1.5 transition-colors flex items-center"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>

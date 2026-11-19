@@ -11,8 +11,6 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-sora)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
-        cifras: ['var(--font-mono-cifras)', 'ui-monospace', 'monospace'],
       },
       colors: {
         // Cielo Cloud brand
