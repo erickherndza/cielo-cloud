@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Check, Star } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
-import { PLANES, INCLUYE } from '@/lib/planes'
+import { PLANES, INCLUYE, mailtoCotizar } from '@/lib/planes'
 import { cn } from '@/lib/utils'
 
 function Marca() {
@@ -47,7 +47,7 @@ export default function PlanesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-10 md:px-8 md:py-14">
+      <main className="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14">
         <div className="text-center">
           <p className="t-pretitle">Planes</p>
           <h1 className="mt-1 text-3xl font-semibold text-tabler-ink dark:text-zinc-100">Planes y precios</h1>
@@ -56,13 +56,13 @@ export default function PlanesPage() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3 md:items-stretch">
+        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 lg:items-stretch">
           {PLANES.map(plan => (
             <div
               key={plan.id}
               className={cn(
                 't-card relative flex flex-col overflow-hidden p-6',
-                plan.popular && 'border-2 border-amber-400 dark:border-amber-400/80 shadow-xl shadow-amber-400/25 md:-my-3',
+                plan.popular && 'border-2 border-amber-400 dark:border-amber-400/80 shadow-xl shadow-amber-400/25 lg:-my-3',
               )}
             >
               {plan.popular && (
@@ -79,11 +79,15 @@ export default function PlanesPage() {
               )}
               <p className="t-subheader relative">{plan.rango}</p>
 
-              <p className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-semibold tabular-nums text-tabler-ink dark:text-zinc-100">${plan.precio}</span>
-                <span className="text-sm text-tabler-mute dark:text-zinc-400">/mes</span>
-              </p>
-              <p className="mt-1 min-h-[2.25rem] text-xs text-tabler-mute dark:text-zinc-400">
+              {plan.cotizar ? (
+                <p className="mt-3 text-4xl font-semibold text-tabler-ink dark:text-zinc-100">A cotizar</p>
+              ) : (
+                <p className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-semibold tabular-nums text-tabler-ink dark:text-zinc-100">${plan.precio}</span>
+                  <span className="text-sm text-tabler-mute dark:text-zinc-400">/mes</span>
+                </p>
+              )}
+              <p className="mt-1 min-h-[3.5rem] text-xs text-tabler-mute dark:text-zinc-400">
                 {plan.extra ?? 'Precio fijo'}
               </p>
 
@@ -110,7 +114,7 @@ export default function PlanesPage() {
               </ul>
 
               <Link
-                href={user ? '/configuracion' : '/registro'}
+                href={plan.cotizar ? mailtoCotizar() : user ? '/configuracion' : '/registro'}
                 className={cn(
                   'mt-6 rounded-md px-4 py-2.5 text-center text-sm font-medium transition-colors',
                   plan.popular
@@ -118,7 +122,7 @@ export default function PlanesPage() {
                     : 'border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-[#262626]',
                 )}
               >
-                {user ? 'Contactar' : 'Empezar'}
+                {plan.cotizar ? 'Cotizar' : user ? 'Contactar' : 'Empezar'}
               </Link>
             </div>
           ))}
