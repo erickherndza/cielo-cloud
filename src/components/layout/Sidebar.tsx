@@ -28,7 +28,7 @@ function EmpresaLinks({ wide }: { wide: boolean }) {
   const { acceso } = useRemoteStore()
   const pathname = usePathname()
   if (!acceso?.activa) return null
-  const fila = 'flex items-center py-2 mx-2 rounded-md text-sm text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] '
+  const fila = 'flex items-center py-2 mx-2 rounded-md text-sm text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#262626] '
   return (
     <>
       {acceso.esSuperadmin && (
@@ -93,12 +93,12 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
   const nombreActivo = (activa && nombreEmpresaDe(activa.uid)) || activa?.displayName || activa?.email || 'Mi cuenta'
 
   return (
-    <div ref={ref} className="relative border-b border-tabler-line dark:border-[#252840] p-2">
+    <div ref={ref} className="relative border-b border-tabler-line dark:border-[#2e2e2e] p-2">
       <button
         onClick={() => setOpen(v => !v)}
         title={collapsed ? nombreActivo : undefined}
         className={cn(
-          'flex w-full items-center rounded-lg py-2 transition-all duration-200 ease-in-out hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]',
+          'flex w-full items-center rounded-lg py-2 transition-all duration-200 ease-in-out hover:bg-zinc-50 dark:hover:bg-[#262626]',
           collapsed ? 'justify-center px-0' : 'gap-2.5 px-2',
         )}
       >
@@ -121,7 +121,7 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
       {open && (
         <div
           className={cn(
-            'absolute z-50 top-full mt-1 w-72 overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none',
+            'absolute z-50 top-full mt-1 w-72 overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-lg shadow-zinc-200/60 dark:shadow-none',
             collapsed ? 'left-full ml-2' : 'left-2',
           )}
         >
@@ -132,9 +132,9 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
                 <div key={c.appName} className="group flex items-center gap-1 px-2">
                   <button
                     onClick={() => { cambiarCuenta(c.appName); setOpen(false) }}
-                    className="flex flex-1 min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-2 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                    className="flex flex-1 min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-2 text-left hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                   >
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-100 dark:bg-[#1a1d2e] text-[9px] font-bold text-zinc-500 dark:text-zinc-400">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-100 dark:bg-[#262626] text-[9px] font-bold text-zinc-500 dark:text-zinc-400">
                       {c.photoURL ? <img src={c.photoURL} alt="" className="h-full w-full object-cover" /> : nombreFila[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -156,7 +156,7 @@ function CuentaSwitcher({ collapsed }: { collapsed: boolean }) {
               )
             })}
           </div>
-          <div className="border-t border-zinc-100 dark:border-[#1d2035] p-1">
+          <div className="border-t border-zinc-100 dark:border-[#2a2a2a] p-1">
             <button
               onClick={() => { setMostrarModal(true); setOpen(false) }}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-[#1B2980] dark:text-indigo-400 hover:bg-[#eef0fb] dark:hover:bg-indigo-950/30 transition-colors"
@@ -259,8 +259,8 @@ export function Sidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          'hidden md:flex h-screen flex-col bg-white dark:bg-[#141722]',
-          'border-r border-tabler-line dark:border-[#252840]',
+          'hidden md:flex h-screen flex-col bg-white dark:bg-[#1f1f1f]',
+          'border-r border-tabler-line dark:border-[#2e2e2e]',
           'transition-[width] duration-200 ease-in-out overflow-hidden',
           c ? 'fixed left-0 top-0 z-40' : 'relative shrink-0',
           c ? (flyout ? 'w-64' : 'w-[68px]') : 'w-64',
@@ -276,7 +276,7 @@ export function Sidebar() {
         {/* ── Logo / Brand ─────────────────────────────────────────── */}
         <div
           className={cn(
-            'flex h-[80px] shrink-0 items-center border-b border-tabler-line dark:border-[#252840]',
+            'flex h-[80px] shrink-0 items-center border-b border-tabler-line dark:border-[#2e2e2e]',
             'transition-[padding,gap] duration-200 ease-in-out',
             wide ? 'px-5 gap-4' : 'flex-col justify-center gap-2.5 px-0',
           )}
@@ -360,7 +360,7 @@ export function Sidebar() {
                   wide ? 'gap-3 px-3 mx-2' : 'justify-center px-0 mx-2',
                   active
                     ? 'bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-medium'
-                    : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] hover:text-tabler-ink dark:hover:text-zinc-100',
+                    : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#262626] hover:text-tabler-ink dark:hover:text-zinc-100',
                 )}
               >
                 <item.icon
@@ -383,7 +383,7 @@ export function Sidebar() {
         </nav>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <div className="border-t border-tabler-line dark:border-[#252840] py-1">
+        <div className="border-t border-tabler-line dark:border-[#2e2e2e] py-1">
           <EmpresaLinks wide={wide} />
           <Link
             href={CONFIGURACION_ITEM.href}
@@ -394,7 +394,7 @@ export function Sidebar() {
               wide ? 'gap-3 px-3 mx-2' : 'justify-center px-0 mx-2',
               isActive(CONFIGURACION_ITEM.href)
                 ? 'bg-[#1B2980]/[0.07] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 font-medium'
-                : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#1a1d2e] hover:text-tabler-ink dark:hover:text-zinc-100',
+                : 'text-tabler-ink/80 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-[#262626] hover:text-tabler-ink dark:hover:text-zinc-100',
             )}
           >
             <CONFIGURACION_ITEM.icon

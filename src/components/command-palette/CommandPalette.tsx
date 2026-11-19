@@ -112,8 +112,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         onClick={onClose}
       />
 
-      <div className="animate-modal-in relative w-full max-w-[560px] overflow-hidden rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-2xl shadow-zinc-900/20">
-        <div className="flex items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-4">
+      <div className="animate-modal-in relative w-full max-w-[560px] overflow-hidden rounded-2xl border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-2xl shadow-zinc-900/20">
+        <div className="flex items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] px-4">
           <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-600" />
           <input
             ref={inputRef}
@@ -123,7 +123,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             placeholder="Buscar módulos, acciones…"
             className="w-full bg-transparent py-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none"
           />
-          <kbd className="hidden sm:block shrink-0 rounded-md border border-tabler-line dark:border-[#252840] px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-600">
+          <kbd className="hidden sm:block shrink-0 rounded-md border border-tabler-line dark:border-[#2e2e2e] px-1.5 py-0.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-600">
             esc
           </kbd>
         </div>
@@ -153,7 +153,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                       data-idx={idx}
                       onClick={() => activar(entry)}
                       onMouseEnter={() => setSelected(idx)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-sm transition-colors ${
                         active
                           ? 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400'
                           : 'text-zinc-700 dark:text-zinc-300'
@@ -170,7 +170,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           })}
         </div>
 
-        <div className="hidden sm:flex items-center gap-4 border-t border-zinc-100 dark:border-[#1d2035] px-4 py-2.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-600">
+        <div className="hidden sm:flex items-center gap-4 border-t border-zinc-100 dark:border-[#2a2a2a] px-4 py-2.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-600">
           <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3" /><ArrowDown className="h-3 w-3" /> navegar</span>
           <span className="flex items-center gap-1"><CornerDownLeft className="h-3 w-3" /> abrir</span>
           <span className="ml-auto">Cielo Cloud</span>

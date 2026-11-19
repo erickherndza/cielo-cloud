@@ -155,18 +155,18 @@ export function AgendaNomina() {
     <div className="t-card flex flex-col">
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
           Agenda Nómina
         </p>
         <div className="flex items-center gap-0.5">
-          <button onClick={prevMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
+          <button onClick={prevMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#262626] text-zinc-400 dark:text-zinc-500 transition-colors">
             <ChevronLeft className="h-3 w-3" />
           </button>
           <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 w-[104px] text-center">
             {MES_LARGO[viewMonth]} {viewYear}
           </span>
-          <button onClick={nextMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500 transition-colors">
+          <button onClick={nextMonth} className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-[#262626] text-zinc-400 dark:text-zinc-500 transition-colors">
             <ChevronRight className="h-3 w-3" />
           </button>
         </div>
@@ -205,7 +205,7 @@ export function AgendaNomina() {
       </div>
 
       {/* Event list */}
-      <div className="flex-1 overflow-y-auto max-h-[180px] divide-y divide-tabler-line dark:divide-[#252840]">
+      <div className="flex-1 overflow-y-auto max-h-[180px] divide-y divide-tabler-line dark:divide-[#2e2e2e]">
         {allEvents.length === 0 && (
           <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-600 py-4">
             Sin eventos este mes
@@ -266,12 +266,12 @@ export function AgendaNomina() {
       </div>
 
       {/* Add event */}
-      <div className="border-t border-zinc-100 dark:border-[#1d2035] px-4 py-3 flex gap-1.5">
+      <div className="border-t border-zinc-100 dark:border-[#2a2a2a] px-4 py-3 flex gap-1.5">
         <input
           type="date"
           value={newFecha}
           onChange={e => setNewFecha(e.target.value)}
-          className="w-[108px] shrink-0 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
+          className="w-[108px] shrink-0 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] text-[11px] text-zinc-700 dark:text-zinc-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
         />
         <input
           type="text"
@@ -279,7 +279,7 @@ export function AgendaNomina() {
           value={newTitulo}
           onChange={e => setNewTitulo(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addEvent()}
-          className="flex-1 min-w-0 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-[11px] text-zinc-700 dark:text-zinc-300 px-2.5 py-1.5 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
+          className="flex-1 min-w-0 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] text-[11px] text-zinc-700 dark:text-zinc-300 px-2.5 py-1.5 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[#1B2980] dark:focus:ring-indigo-500"
         />
         <button
           onClick={addEvent}

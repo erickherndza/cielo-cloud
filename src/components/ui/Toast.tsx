@@ -32,7 +32,7 @@ export function Toast({ message, type = 'success', onClose, duration = 3000 }: T
   }
 
   return (
-    <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 shadow-2xl dark:shadow-none ${exiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
+    <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-3 shadow-2xl dark:shadow-none ${exiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
       {ICONS[type]}
       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{message}</p>
       <button

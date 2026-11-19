@@ -72,7 +72,7 @@ function EmpleadoFormModal({
   if (isMin) {
     return (
       <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-        <div className="flex items-center gap-3 rounded-xl bg-[#1B2980] px-4 py-2.5 shadow-2xl">
+        <div className="flex items-center gap-3 rounded-lg bg-[#1B2980] px-4 py-2.5 shadow-2xl">
           <Globe className="h-4 w-4 text-indigo-200" />
           <span className="text-sm font-medium text-white">
             {mode === 'editar' ? 'Editar Empleado' : 'Nuevo Empleado'}
@@ -110,8 +110,8 @@ function EmpleadoFormModal({
         className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 animate-modal-in ${
           isMax
             ? 'w-full h-full rounded-none'
-            : 'w-full max-w-2xl max-h-[92vh] rounded-xl'
-        } bg-white dark:bg-[#141722]`}
+            : 'w-full max-w-2xl max-h-[92vh] rounded-lg'
+        } bg-white dark:bg-[#1f1f1f]`}
         onClick={e => e.stopPropagation()}
       >
         {/* ── Title bar ──────────────────────────────────────────── */}
@@ -165,7 +165,7 @@ function EmpleadoFormModal({
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 flex items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#1d2035] bg-white dark:bg-[#141722] px-6 py-4">
+          <div className="shrink-0 flex items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] bg-white dark:bg-[#1f1f1f] px-6 py-4">
             <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
               {Object.keys(errors).length > 0 && (
                 <span className="text-rose-500">{Object.keys(errors).length} campo{Object.keys(errors).length > 1 ? 's' : ''} requerido{Object.keys(errors).length > 1 ? 's' : ''}</span>
@@ -173,7 +173,7 @@ function EmpleadoFormModal({
             </div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={onClose}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                 Cancelar
               </button>
               <button type="submit"
@@ -286,7 +286,7 @@ function EmpleadoDrawer({
   if (isMin) {
     return (
       <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-        <div className="flex items-center gap-3 rounded-xl bg-[#1B2980] dark:bg-[#111527] px-4 py-2.5 shadow-2xl">
+        <div className="flex items-center gap-3 rounded-lg bg-[#1B2980] dark:bg-[#111527] px-4 py-2.5 shadow-2xl">
           <EmpleadoAvatar emp={empleado} size="sm" />
           <span className="text-sm font-medium text-white">{fullName(empleado)}</span>
           <div className="flex items-center gap-1 ml-2">
@@ -310,8 +310,8 @@ function EmpleadoDrawer({
       onClick={isMax ? undefined : onClose}
     >
       <div
-        className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 animate-modal-in bg-white dark:bg-[#141722] ${
-          isMax ? 'w-full h-full rounded-none' : 'w-full max-w-2xl max-h-[92vh] rounded-xl'
+        className={`flex flex-col overflow-hidden shadow-2xl transition-all duration-200 animate-modal-in bg-white dark:bg-[#1f1f1f] ${
+          isMax ? 'w-full h-full rounded-none' : 'w-full max-w-2xl max-h-[92vh] rounded-lg'
         }`}
         onClick={e => e.stopPropagation()}
       >
@@ -349,8 +349,8 @@ function EmpleadoDrawer({
         </div>
 
         {/* ── Hero strip: avatar grande + badges ──────────────────── */}
-        <div className="shrink-0 flex items-center gap-5 px-8 py-5 border-b border-zinc-100 dark:border-[#1d2035] bg-gradient-to-r from-slate-50 to-white dark:from-[#1a1d2e] dark:to-[#141722]">
-          <EmpleadoAvatar emp={empleado} size="lg" className="ring-4 ring-white dark:ring-[#252840] shadow-md" />
+        <div className="shrink-0 flex items-center gap-5 px-8 py-5 border-b border-zinc-100 dark:border-[#2a2a2a] bg-gradient-to-r from-slate-50 to-white dark:from-[#262626] dark:to-[#1f1f1f]">
+          <EmpleadoAvatar emp={empleado} size="lg" className="ring-4 ring-white dark:ring-[#2e2e2e] shadow-md" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 truncate">{fullName(empleado)}</p>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{empleado.cargo} · {empleado.departamento}</p>
@@ -371,7 +371,7 @@ function EmpleadoDrawer({
                 <Badge variant="info">De Licencia</Badge>
               )}
               {pais && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#252840] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#2e2e2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
                   <FlagImg code={pais.code} className="h-3.5 w-5" /> {pais.nombre}
                 </span>
               )}
@@ -419,7 +419,7 @@ function EmpleadoDrawer({
         </div>
 
         {/* ── Tab bar ─────────────────────────────────────────────── */}
-        <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 flex gap-0 shrink-0">
+        <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 flex gap-0 shrink-0">
           {([
             { id: 'info',         label: 'Información' },
             { id: 'dependientes', label: 'Dependientes' },
@@ -522,7 +522,7 @@ function EmpleadoDrawer({
                     {empleado.documentoIdentidad && empleado.documentoIdentidadNombre && (
                       <button type="button"
                         onClick={() => downloadBase64(empleado.documentoIdentidad!, empleado.documentoIdentidadNombre!)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors group">
                         <FileText className="h-4 w-4 text-[#1B2980] dark:text-indigo-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{labelTipoDoc(empleado.tipoDocumento)} — escaneo</p>
@@ -534,7 +534,7 @@ function EmpleadoDrawer({
                     {empleado.contratoLaboral && empleado.contratoLaboralNombre && (
                       <button type="button"
                         onClick={() => downloadBase64(empleado.contratoLaboral!, empleado.contratoLaboralNombre!)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                        className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors group">
                         <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Contrato Laboral</p>
@@ -562,7 +562,7 @@ function EmpleadoDrawer({
                     { label: 'Banco',             value: empleado.banco ?? '—' },
                     { label: 'N° Cuenta',         value: empleado.numeroCuenta ?? '—' },
                   ].map(item => (
-                    <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+                    <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                       <p className="text-[11px] font-medium uppercase text-zinc-400 dark:text-zinc-500">{item.label}</p>
                       <p className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.value}</p>
                     </div>
@@ -612,11 +612,11 @@ function EmpleadoDrawer({
                 </p>
 
                 {showSaldoISRForm && (
-                  <div className="mb-3 space-y-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-3">
+                  <div className="mb-3 space-y-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] p-3">
                     <div>
                       <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Tipo de Crédito</label>
                       <select value={saldoISRTipo} onChange={e => setSaldoISRTipo(e.target.value as TipoCreditoISR)}
-                        className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
+                        className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
                         <option value="retencion_excesiva">Retención de ISR en exceso</option>
                         <option value="gastos_educativos">Gastos educativos (Ley 179-09)</option>
                       </select>
@@ -626,13 +626,13 @@ function EmpleadoDrawer({
                         <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Monto (RD$)</label>
                         <input type="number" min="0" step="0.01" value={saldoISRMonto}
                           onChange={e => setSaldoISRMonto(e.target.value)}
-                          className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                          className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                       </div>
                       <div>
                         <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Año Fiscal</label>
                         <input type="number" value={saldoISRAnio}
                           onChange={e => setSaldoISRAnio(Number(e.target.value))}
-                          className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                          className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                       </div>
                     </div>
                     <div>
@@ -640,7 +640,7 @@ function EmpleadoDrawer({
                       <input type="text" value={saldoISRMotivo}
                         onChange={e => setSaldoISRMotivo(e.target.value)}
                         placeholder={saldoISRTipo === 'gastos_educativos' ? 'Ej. colegiatura autorizada por DGII' : 'Ej. cambio de tramo ISR a mitad de año'}
-                        className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                        className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
                     </div>
                     {saldoISRTipo === 'gastos_educativos' && (
                       <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
@@ -652,7 +652,7 @@ function EmpleadoDrawer({
                     <div className="flex justify-end gap-2 pt-1">
                       <button type="button"
                         onClick={() => { setShowSaldoISRForm(false); setSaldoISRMonto(''); setSaldoISRMotivo(''); setSaldoISRTipo('retencion_excesiva') }}
-                        className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#141722] transition-colors">
+                        className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1f1f1f] transition-colors">
                         Cancelar
                       </button>
                       <button type="button"
@@ -730,28 +730,28 @@ function EmpleadoDrawer({
             </div>
 
             {showDepForm && (
-              <div className="rounded-xl border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] p-4 space-y-3">
+              <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] p-4 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Nuevo Dependiente</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Nombre</label>
                     <input value={depNombre} onChange={e => setDepNombre(e.target.value)}
-                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Apellido</label>
                     <input value={depApellido} onChange={e => setDepApellido(e.target.value)}
-                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Cédula (opcional)</label>
                     <input value={depCedula} onChange={e => setDepCedula(e.target.value)}
-                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Parentesco</label>
                     <select value={depParentesco} onChange={e => setDepParentesco(e.target.value as ParentescoDependiente)}
-                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none">
+                      className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none">
                       <option value="hijo_mayor_18_no_estudiante">Hijo/Hijastro +18 (no estudiante)</option>
                       <option value="hijo_mayor_21">Hijo/Hijastro +21 años</option>
                       <option value="padre_titular">Padre del Titular</option>
@@ -763,11 +763,11 @@ function EmpleadoDrawer({
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de Nacimiento</label>
                     <input type="date" value={depFechaNac} onChange={e => setDepFechaNac(e.target.value)}
-                      className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
+                      className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none" />
                   </div>
                   <div className="flex flex-col gap-1 col-span-2">
                     <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Descuento SFS (Res. 624-02)</label>
-                    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+                    <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                       <span>2.9% × cotizable del empleado</span>
                       <span className="tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
                         {new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 2 }).format(depCuotaMensual)}/mes
@@ -799,7 +799,7 @@ function EmpleadoDrawer({
                     Guardar
                   </button>
                   <button onClick={() => setShowDepForm(false)}
-                    className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                     Cancelar
                   </button>
                 </div>
@@ -808,7 +808,7 @@ function EmpleadoDrawer({
 
             {(empleado.dependientes ?? []).length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                   <Users className="h-7 w-7 text-[#1B2980] dark:text-indigo-400" />
                 </div>
                 <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sin dependientes registrados</p>
@@ -817,7 +817,7 @@ function EmpleadoDrawer({
             ) : (
               <div className="space-y-2">
                 {(empleado.dependientes ?? []).map(dep => (
-                  <div key={dep.id} className="flex items-center justify-between rounded-xl border border-zinc-100 dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3">
+                  <div key={dep.id} className="flex items-center justify-between rounded-lg border border-zinc-100 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef0fb] dark:bg-indigo-900/40 text-xs font-semibold text-[#1B2980] dark:text-indigo-300">
                         {dep.nombre[0]}{dep.apellido[0]}
@@ -853,7 +853,7 @@ function EmpleadoDrawer({
                     </div>
                   </div>
                 ))}
-                <div className="rounded-xl bg-[#eef0fb] dark:bg-indigo-950/20 px-4 py-2.5 flex items-center justify-between">
+                <div className="rounded-lg bg-[#eef0fb] dark:bg-indigo-950/20 px-4 py-2.5 flex items-center justify-between">
                   <p className="text-xs font-semibold text-[#1B2980] dark:text-indigo-400">Total descuento mensual</p>
                   <p className="text-sm font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">
                     {new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 0 }).format(
@@ -913,7 +913,7 @@ function EmpleadoDrawer({
           if (historial.length === 0) {
             return (
               <div className="flex-1 overflow-y-auto p-5 flex flex-col items-center justify-center text-center">
-                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                   <Clock className="h-7 w-7 text-[#1B2980] dark:text-indigo-400" />
                 </div>
                 <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Sin historial de nómina</p>
@@ -977,26 +977,26 @@ function EmpleadoDrawer({
 
           return (
             <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-3 gap-3 p-5 border-b border-zinc-100 dark:border-[#1d2035]">
+              <div className="grid grid-cols-3 gap-3 p-5 border-b border-zinc-100 dark:border-[#2a2a2a]">
                 {[
                   { label: `Bruto YTD ${ytdYear}`, value: ytd.bruto },
                   { label: `Neto YTD ${ytdYear}`,  value: ytd.neto  },
                   { label: `ISR YTD ${ytdYear}`,   value: ytd.isr   },
                 ].map(kpi => (
-                  <div key={kpi.label} className="rounded-xl border border-zinc-100 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+                  <div key={kpi.label} className="rounded-lg border border-zinc-100 dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{kpi.label}</p>
                     <p className="mt-1 text-sm font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">{formatRD(kpi.value)}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 dark:border-[#1d2035]">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 dark:border-[#2a2a2a]">
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                   Detalle por Período
                 </p>
                 <button
                   onClick={handleExportarHistorial}
-                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Exportar Excel
@@ -1006,7 +1006,7 @@ function EmpleadoDrawer({
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                    <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                       <th className="px-5 py-2.5 font-semibold uppercase tracking-wide text-zinc-400">Período</th>
                       <th className="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-zinc-400">S. Bruto</th>
                       <th className="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-zinc-400">AFP+SFS</th>
@@ -1018,7 +1018,7 @@ function EmpleadoDrawer({
                   </thead>
                   <tbody>
                     {historial.map(({ periodo, resultado }) => (
-                      <tr key={periodo.id} className="border-b border-tabler-line dark:border-[#252840] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                      <tr key={periodo.id} className="border-b border-tabler-line dark:border-[#2e2e2e] hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                         <td className="px-5 py-3">
                           <p className="font-medium text-zinc-800 dark:text-zinc-200">{labelPeriodoHist(periodo)}</p>
                           <p className="text-[10px] text-zinc-400 dark:text-zinc-500 capitalize">{periodo.tipo}</p>
@@ -1038,7 +1038,7 @@ function EmpleadoDrawer({
                         <td className="px-3 py-3 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">{formatRD(resultado.salarioNeto)}</td>
                         <td className="px-3 py-3">
                           {periodo.estado === 'cerrada' ? (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-[#1a1d2e] dark:text-zinc-400">Cerrada</span>
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-[#262626] dark:text-zinc-400">Cerrada</span>
                           ) : periodo.estado === 'procesada' ? (
                             <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">Procesada</span>
                           ) : (
@@ -1049,7 +1049,7 @@ function EmpleadoDrawer({
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                    <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                       <td className="px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                         Total — {historial.length} período{historial.length !== 1 ? 's' : ''}
                       </td>
@@ -1090,18 +1090,18 @@ function EmpleadoDrawer({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de inicio</label>
                 <input type="date" value={fechaSusp} onChange={e => setFechaSusp(e.target.value)}
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Motivo</label>
                 <input type="text" value={motivoSusp} onChange={e => setMotivoSusp(e.target.value)}
                   placeholder="Ej. Licencia médica no cubierta"
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setMostrarSuspension(false)}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#262626] transition-colors">
                 Cancelar
               </button>
               <button
@@ -1130,12 +1130,12 @@ function EmpleadoDrawer({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Fecha de salida</label>
                 <input type="date" value={fechaSalida} onChange={e => setFechaSalida(e.target.value)}
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Motivo</label>
                 <select value={motivoSalida} onChange={e => setMotivoSalida(e.target.value as MotivoLiquidacion | '')}
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none">
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none">
                   <option value="">— Seleccionar —</option>
                   {Object.entries(MOTIVO_LIQUIDACION_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -1150,8 +1150,8 @@ function EmpleadoDrawer({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
                   pagoDiasSalida === 'nomina'
-                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
-                    : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#262626] ring-1 ring-[#1B2980] dark:ring-indigo-500'
+                    : 'border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] hover:border-zinc-300 dark:hover:border-zinc-600'
                 }`}>
                   <input type="radio" name="pagoDiasSalida" value="nomina" checked={pagoDiasSalida === 'nomina'}
                     onChange={() => setPagoDiasSalida('nomina')} className="mt-0.5" />
@@ -1164,8 +1164,8 @@ function EmpleadoDrawer({
                 </label>
                 <label className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-xs transition-colors ${
                   pagoDiasSalida === 'liquidacion'
-                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#1a1d2e] ring-1 ring-[#1B2980] dark:ring-indigo-500'
-                    : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] hover:border-zinc-300 dark:hover:border-zinc-600'
+                    ? 'border-[#1B2980] dark:border-indigo-500 bg-white dark:bg-[#262626] ring-1 ring-[#1B2980] dark:ring-indigo-500'
+                    : 'border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] hover:border-zinc-300 dark:hover:border-zinc-600'
                 }`}>
                   <input type="radio" name="pagoDiasSalida" value="liquidacion" checked={pagoDiasSalida === 'liquidacion'}
                     onChange={() => setPagoDiasSalida('liquidacion')} className="mt-0.5" />
@@ -1180,7 +1180,7 @@ function EmpleadoDrawer({
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => { setMostrarSalida(false); setMotivoSalida(''); setPagoDiasSalida('') }}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#1a1d2e] transition-colors">
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-[#262626] transition-colors">
                 Cancelar
               </button>
               <button
@@ -1200,14 +1200,14 @@ function EmpleadoDrawer({
         )}
 
         {/* ── Footer actions ──────────────────────────────────────── */}
-        <div className="shrink-0 flex items-center justify-between gap-2 border-t border-zinc-100 dark:border-[#1d2035] bg-white dark:bg-[#141722] px-6 py-4">
+        <div className="shrink-0 flex items-center justify-between gap-2 border-t border-zinc-100 dark:border-[#2a2a2a] bg-white dark:bg-[#1f1f1f] px-6 py-4">
           <button onClick={onEliminar}
             className="rounded-lg border border-rose-200 dark:border-rose-800/50 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors">
             Eliminar
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onEditar}
-              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
             {empleado.activo && !empleado.salidaPendiente && (
@@ -1368,7 +1368,7 @@ export default function EmpleadosPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportarEmpleados}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -1385,7 +1385,7 @@ export default function EmpleadosPage() {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-wrap items-center gap-3 border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 md:px-6 py-3">
+        <div className="flex flex-wrap items-center gap-3 border-b border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 md:px-6 py-3">
           <div className="relative w-full md:flex-1 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -1393,13 +1393,13 @@ export default function EmpleadosPage() {
               placeholder="Buscar por nombre, documento o cargo…"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
-              className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
+              className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
             />
           </div>
           <select
             value={departamento}
             onChange={e => setDepartamento(e.target.value)}
-            className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 py-2 pl-3 pr-8 text-sm text-zinc-700 focus:border-[#1B2980] focus:outline-none"
+            className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 py-2 pl-3 pr-8 text-sm text-zinc-700 focus:border-[#1B2980] focus:outline-none"
           >
             {departamentos.map(d => <option key={d}>{d}</option>)}
           </select>
@@ -1426,7 +1426,7 @@ export default function EmpleadosPage() {
           <div className="md:hidden space-y-2.5">
             {filtrados.map(emp => (
               <button key={emp.id} onClick={() => setEmpSeleccionado(emp)}
-                className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-3 text-left active:bg-zinc-50 dark:active:bg-[#1a1d2e]">
+                className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-3 text-left active:bg-zinc-50 dark:active:bg-[#262626]">
                 <EmpleadoAvatar emp={emp} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{fullName(emp)}</p>
@@ -1450,10 +1450,10 @@ export default function EmpleadosPage() {
             )}
           </div>
 
-          <div className="hidden md:block overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+          <div className="hidden md:block overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                   {['Empleado', 'Nacionalidad', 'Documento', 'Departamento', 'Tipo Contrato', 'Ingreso'].map(h => (
                     <th key={h} className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">{h}</th>
                   ))}
@@ -1462,12 +1462,12 @@ export default function EmpleadosPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {filtrados.map(emp => {
                   const pais = emp.nacionalidad ? getPais(emp.nacionalidad) : undefined
                   return (
                     <tr key={emp.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors cursor-pointer"
+                      className="hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors cursor-pointer"
                       onClick={() => setEmpSeleccionado(emp)}>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">

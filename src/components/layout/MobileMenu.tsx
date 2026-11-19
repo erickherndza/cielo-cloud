@@ -60,7 +60,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
     .filter(h => h === '/' ? pathname === '/' : (pathname === h || pathname.startsWith(`${h}/`)))
     .sort((a, b) => b.length - a.length)[0]
 
-  const fila = 'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-[#1a1d2e]'
+  const fila = 'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-[15px] text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-[#262626]'
 
   async function handleLogout() {
     onClose()
@@ -71,18 +71,18 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <div className="md:hidden fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Menú de navegación">
       <div className="absolute inset-0 bg-black/40 animate-backdrop-in" onClick={onClose} />
-      <div className="absolute inset-y-0 left-0 flex w-[84%] max-w-sm flex-col bg-white dark:bg-[#141722] shadow-2xl animate-content-in">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-tabler-line dark:border-[#252840] px-4 pt-[env(safe-area-inset-top)]">
+      <div className="absolute inset-y-0 left-0 flex w-[84%] max-w-sm flex-col bg-white dark:bg-[#1f1f1f] shadow-2xl animate-content-in">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-tabler-line dark:border-[#2e2e2e] px-4 pt-[env(safe-area-inset-top)]">
           <span className="text-lg font-bold tracking-tight text-[#1B2980] dark:text-indigo-400">Cielo Cloud</span>
           <button onClick={onClose} aria-label="Cerrar menú"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e]">
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-[#262626]">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="px-3 pt-3">
           <button onClick={() => { onClose(); palette.open() }}
-            className="flex w-full items-center gap-2 rounded-xl border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-3 text-sm text-zinc-400">
+            className="flex w-full items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-3 text-sm text-zinc-400">
             <Search className="h-4 w-4" /> Buscar módulo o acción…
           </button>
         </div>
@@ -110,7 +110,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           )}
         </nav>
 
-        <div className="shrink-0 border-t border-tabler-line dark:border-[#252840] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-tabler-line dark:border-[#2e2e2e] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1B2980] text-sm font-bold text-white">
               {user?.displayName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? 'U'}

@@ -12,7 +12,7 @@ import { EmpleadoAvatar } from './EmpleadoAvatar'
 import { fullName, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import type { Empleado, TipoContrato, TipoDocumento, Banco } from '@/types'
 
-export const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+export const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 export const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 // ── Flag image component ──────────────────────────────────────────────────────
@@ -83,15 +83,15 @@ function NacionalidadSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-zinc-100 dark:border-[#252840]">
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-zinc-100 dark:border-[#2e2e2e]">
             <input
               autoFocus
               type="text"
               placeholder="Buscar país…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full rounded-lg bg-zinc-50 dark:bg-[#141722] px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
+              className="w-full rounded-lg bg-zinc-50 dark:bg-[#1f1f1f] px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
             />
           </div>
           <ul className="max-h-52 overflow-y-auto py-1">
@@ -100,7 +100,7 @@ function NacionalidadSelect({
                 <button
                   type="button"
                   onClick={() => { onChange(p.code, p); setOpen(false); setQuery('') }}
-                  className={`flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors ${
+                  className={`flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-[#2e2e2e] transition-colors ${
                     value === p.code ? 'bg-indigo-50 dark:bg-indigo-950/30 text-[#1B2980] dark:text-indigo-300 font-medium' : 'text-zinc-800 dark:text-zinc-200'
                   }`}
                 >
@@ -150,7 +150,7 @@ function SupervisorSelect({
     : candidatos
 
   const triggerCls = disabled
-    ? 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#16192a] px-3 py-2 text-sm text-zinc-400 dark:text-zinc-600 cursor-not-allowed flex items-center gap-2'
+    ? 'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#16192a] px-3 py-2 text-sm text-zinc-400 dark:text-zinc-600 cursor-not-allowed flex items-center gap-2'
     : `${inputCls} flex items-center gap-2 text-left`
 
   return (
@@ -188,15 +188,15 @@ function SupervisorSelect({
       </button>
 
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-zinc-100 dark:border-[#252840]">
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-zinc-100 dark:border-[#2e2e2e]">
             <input
               autoFocus
               type="text"
               placeholder="Buscar por nombre o cargo…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full rounded-lg bg-zinc-50 dark:bg-[#141722] px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
+              className="w-full rounded-lg bg-zinc-50 dark:bg-[#1f1f1f] px-3 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
             />
           </div>
           <ul className="max-h-56 overflow-y-auto py-1">
@@ -204,7 +204,7 @@ function SupervisorSelect({
               <button
                 type="button"
                 onClick={() => { onChange(''); setOpen(false); setQuery('') }}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors italic ${!value ? 'bg-zinc-50 dark:bg-[#252840]' : ''}`}
+                className={`flex w-full items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#2e2e2e] transition-colors italic ${!value ? 'bg-zinc-50 dark:bg-[#2e2e2e]' : ''}`}
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-zinc-300 dark:border-zinc-600">
                   <X className="h-3.5 w-3.5 text-zinc-400" />
@@ -217,7 +217,7 @@ function SupervisorSelect({
                 <button
                   type="button"
                   onClick={() => { onChange(emp.id); setOpen(false); setQuery('') }}
-                  className={`flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-[#252840] transition-colors ${
+                  className={`flex w-full items-center gap-3 px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-[#2e2e2e] transition-colors ${
                     value === emp.id ? 'bg-indigo-50 dark:bg-indigo-950/30' : ''
                   }`}
                 >
@@ -282,7 +282,7 @@ export function FileUploadRow({
           </button>
         </div>
       ) : (
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400 hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400 hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
           <Upload className="h-4 w-4 shrink-0" />
           <span>Adjuntar archivo…</span>
           <input ref={ref} type="file" accept={accept} className="sr-only" onChange={handleChange} />
@@ -348,9 +348,9 @@ export function EmpleadoFormFields({
         <div className="flex items-start gap-4">
           <div className="relative shrink-0">
             {form.fotoPerfil ? (
-              <img src={form.fotoPerfil} alt="Foto" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-[#252840]" />
+              <img src={form.fotoPerfil} alt="Foto" className="h-16 w-16 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-[#2e2e2e]" />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-white ring-2 ring-zinc-200 dark:ring-[#252840]"
+              <div className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-white ring-2 ring-zinc-200 dark:ring-[#2e2e2e]"
                 style={{ backgroundColor: form.avatarColor }}>
                 {initials}
               </div>
@@ -363,7 +363,7 @@ export function EmpleadoFormFields({
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors w-fit">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors w-fit">
               <Camera className="h-3.5 w-3.5" />
               {form.fotoPerfil ? 'Cambiar foto' : 'Subir foto'}
               <input ref={fotoRef} type="file" accept="image/*" className="sr-only" onChange={handleFotoChange} />
@@ -373,7 +373,7 @@ export function EmpleadoFormFields({
               <div className="flex gap-2">
                 {AVATAR_COLORS.map(color => (
                   <button key={color} type="button" onClick={() => set('avatarColor', color)}
-                    className={`h-6 w-6 rounded-full transition-transform hover:scale-110 ${form.avatarColor === color ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#141722] ring-zinc-400' : ''}`}
+                    className={`h-6 w-6 rounded-full transition-transform hover:scale-110 ${form.avatarColor === color ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#1f1f1f] ring-zinc-400' : ''}`}
                     style={{ backgroundColor: color }} />
                 ))}
               </div>
@@ -468,7 +468,7 @@ export function EmpleadoFormFields({
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                     form.tipoDocumento === t.value
                       ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                      : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                      : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                   }`}
                 >
                   {t.label}
@@ -600,7 +600,7 @@ export function EmpleadoFormFields({
             />
           </div>
           <div>
-            <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5 cursor-pointer">
+            <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.regimenIntermitente}

@@ -45,7 +45,7 @@ const ROLES: { value: RolUsuario; label: string; descripcion: string }[] = [
 ]
 
 const INPUT_CLASS =
-  'w-full rounded-xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
 
 function OptionCard({
   active, onClick, title, subtitle, extra,
@@ -54,10 +54,10 @@ function OptionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`relative rounded-xl border p-3.5 text-left transition-colors ${
+      className={`relative rounded-lg border p-3.5 text-left transition-colors ${
         active
           ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30'
-          : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] hover:border-zinc-300 dark:hover:border-[#33395a]'
+          : 'border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] hover:border-zinc-300 dark:hover:border-[#3a3a3a]'
       }`}
     >
       {active && (
@@ -127,7 +127,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a] p-6">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#171717] p-6">
       <div className="w-full max-w-xl">
 
         {/* Progress */}
@@ -136,7 +136,7 @@ export function OnboardingWizard() {
             <div
               key={n}
               className={`h-1.5 rounded-full transition-all ${
-                n === paso ? 'w-8 bg-[#1B2980] dark:bg-indigo-500' : n < paso ? 'w-4 bg-[#1B2980]/40 dark:bg-indigo-500/40' : 'w-4 bg-zinc-200 dark:bg-[#252840]'
+                n === paso ? 'w-8 bg-[#1B2980] dark:bg-indigo-500' : n < paso ? 'w-4 bg-[#1B2980]/40 dark:bg-indigo-500/40' : 'w-4 bg-zinc-200 dark:bg-[#2e2e2e]'
               }`}
             />
           ))}
@@ -149,7 +149,7 @@ export function OnboardingWizard() {
         {paso === 1 && (
           <div>
             <div className="flex justify-center mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/40">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/40">
                 <Building2 className="h-6 w-6 text-[#1B2980] dark:text-indigo-400" />
               </div>
             </div>
@@ -184,7 +184,7 @@ export function OnboardingWizard() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 cursor-pointer">
+              <label className="flex items-center gap-2.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-3 cursor-pointer">
                 <input type="checkbox" checked={zonaFranca} onChange={e => setZonaFranca(e.target.checked)} className="h-4 w-4 rounded accent-[#1B2980]" />
                 <span className="text-sm text-zinc-700 dark:text-zinc-300">Mi empresa opera bajo régimen de zona franca</span>
               </label>
@@ -211,7 +211,7 @@ export function OnboardingWizard() {
         {paso === 2 && (
           <div>
             <div className="flex justify-center mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/40">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/40">
                 <Users className="h-6 w-6 text-[#1B2980] dark:text-indigo-400" />
               </div>
             </div>
@@ -243,7 +243,7 @@ export function OnboardingWizard() {
 
               <div>
                 <label className="mb-2 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Modalidad de nómina preferida</label>
-                <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] w-fit">
+                <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] w-fit">
                   {(['mensual', 'quincenal'] as const).map(m => (
                     <button
                       key={m}
@@ -252,7 +252,7 @@ export function OnboardingWizard() {
                       className={`px-5 py-2 text-sm font-medium capitalize transition-colors ${
                         modalidad === m
                           ? 'bg-[#1B2980] text-white'
-                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                          : 'bg-white dark:bg-[#1f1f1f] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                       }`}
                     >
                       {m === 'mensual' ? 'Mensual' : 'Quincenal'}
@@ -268,7 +268,7 @@ export function OnboardingWizard() {
         {paso === 3 && (
           <div>
             <div className="flex justify-center mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/40">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/40">
                 <UserCircle className="h-6 w-6 text-[#1B2980] dark:text-indigo-400" />
               </div>
             </div>
@@ -293,7 +293,7 @@ export function OnboardingWizard() {
             <button
               type="button"
               onClick={() => setPaso(p => p - 1)}
-              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Atrás
@@ -305,7 +305,7 @@ export function OnboardingWizard() {
               type="button"
               onClick={() => setPaso(p => p + 1)}
               disabled={paso === 1 ? !paso1Valido : !paso2Valido}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed py-3 text-sm font-semibold text-white transition-colors"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed py-3 text-sm font-semibold text-white transition-colors"
             >
               Continuar
               <ArrowRight className="h-4 w-4" />
@@ -315,7 +315,7 @@ export function OnboardingWizard() {
               type="button"
               onClick={finalizar}
               disabled={!paso3Valido}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed py-3 text-sm font-semibold text-white transition-colors"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1B2980] hover:bg-[#151f66] disabled:opacity-40 disabled:cursor-not-allowed py-3 text-sm font-semibold text-white transition-colors"
             >
               Ir al Dashboard
               <ArrowRight className="h-4 w-4" />

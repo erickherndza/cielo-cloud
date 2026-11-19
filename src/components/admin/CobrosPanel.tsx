@@ -17,7 +17,7 @@ export interface CobrosData {
 }
 interface Pago { id: string; monto: number; fecha_pago: string; metodo: string; referencia: string; nota: string; anulado: boolean }
 
-const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 const rd = (n: number) => `RD$${n.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const ESTADO: Record<FilaCobro['estado_cobro'], { l: string; c: string }> = {
   al_dia: { l: 'Al día', c: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' },
@@ -90,7 +90,7 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
           ['Por cobrar (vencido)', rd(data.porCobrar), `${cuenta('vencido')} empresa(s) vencida(s)`],
           ['Vencen en 7 días', String(cuenta('por_vencer')), `${cuenta('sin_plan') + cuenta('sin_fecha')} sin plan o sin fecha`],
         ].map(([l, v, s]) => (
-          <div key={l} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <div key={l} className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="text-xs font-medium text-zinc-500">{l}</p>
             <p className="mt-1 text-xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{v}</p>
             {s && <p className="mt-1 text-[11px] text-zinc-400">{s}</p>}
@@ -99,16 +99,16 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
+          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <table className="w-full text-sm">
-              <thead><tr className="bg-zinc-50 text-left text-xs text-zinc-500 dark:bg-[#1a1d2e]">
+              <thead><tr className="bg-zinc-50 text-left text-xs text-zinc-500 dark:bg-[#262626]">
                 <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Plan</th>
                 <th className="px-4 py-2 font-medium text-right">Monto</th><th className="px-4 py-2 font-medium">Renovación</th>
                 <th className="px-4 py-2 font-medium">Estado</th></tr></thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {data.empresas.map(f => (
                   <tr key={f.id} onClick={() => elegir(f)}
-                    className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] ${sel?.id === f.id ? 'bg-[#eef0fb] dark:bg-[#1a1d2e]' : ''}`}>
+                    className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#262626] ${sel?.id === f.id ? 'bg-[#eef0fb] dark:bg-[#262626]' : ''}`}>
                     <td className="px-4 py-2.5 font-medium text-[#1B2980] dark:text-indigo-300">{f.nombre || '(sin nombre)'}
                       <span className="block text-[11px] font-normal text-zinc-400">{f.ultimo_pago ? `Último pago ${formatDate(f.ultimo_pago)}` : 'Sin pagos registrados'}</span></td>
                     <td className="px-4 py-2.5 text-zinc-500">{f.plan || '—'}</td>
@@ -120,21 +120,21 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
               </tbody>
             </table>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Cobrado por mes</p>
             {!data.cobradoPorMes.length ? <p className="py-4 text-center text-sm text-zinc-400">Aún no hay pagos registrados</p> : (
               <div className="space-y-1.5">
                 {data.cobradoPorMes.map(m => (
                   <div key={m.mes} className="flex items-center gap-2 text-xs">
                     <span className="w-14 tabular-nums text-zinc-500">{m.mes}</span>
-                    <div className="h-3 flex-1 rounded bg-zinc-100 dark:bg-[#1a1d2e]"><div className="h-3 rounded bg-emerald-600" style={{ width: `${(m.total / max) * 100}%` }} /></div>
+                    <div className="h-3 flex-1 rounded bg-zinc-100 dark:bg-[#262626]"><div className="h-3 rounded bg-emerald-600" style={{ width: `${(m.total / max) * 100}%` }} /></div>
                     <span className="w-28 text-right tabular-nums text-zinc-600 dark:text-zinc-300">{rd(m.total)}</span>
                   </div>))}
               </div>)}
           </div>
         </div>
 
-        <aside className="h-fit space-y-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+        <aside className="h-fit space-y-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
           {!sel ? <p className="py-8 text-center text-sm text-zinc-400">Elige una empresa para ver su plan y registrar pagos</p> : (<>
             <p className="font-semibold text-zinc-900 dark:text-zinc-100">{sel.nombre || '(sin nombre)'}</p>
             {msg && (
@@ -155,7 +155,7 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
               <input className={inputCls} placeholder="Notas (opcional)" value={plan.notas} onChange={e => setPlan({ ...plan, notas: e.target.value })} />
               <button onClick={guardarPlan} className="w-full rounded-lg bg-[#1B2980] px-3 py-2 text-xs font-semibold text-white">Guardar plan</button>
             </div>
-            <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-[#252840]">
+            <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-[#2e2e2e]">
               <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200"><Plus className="h-3.5 w-3.5" /> Registrar pago</p>
               <div className="grid grid-cols-2 gap-2">
                 <input className={inputCls} type="number" min="0" step="0.01" placeholder="Monto RD$" value={pago.monto} onChange={e => setPago({ ...pago, monto: e.target.value })} />
@@ -168,7 +168,7 @@ export function CobrosPanel({ onCambio }: { onCambio?: () => void }) {
                 <input type="checkbox" checked={pago.renovar} onChange={e => setPago({ ...pago, renovar: e.target.checked })} /> Correr la renovación un {plan.ciclo === 'anual' ? 'año' : 'mes'}</label>
               <button onClick={registrarPago} disabled={!(Number(pago.monto) > 0)} className="w-full rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">Registrar pago</button>
             </div>
-            <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#252840]">
+            <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#2e2e2e]">
               <p className="font-semibold text-zinc-700 dark:text-zinc-200">Pagos de esta empresa</p>
               {pagos.map(p => (
                 <p key={p.id} className={`flex items-center justify-between gap-2 ${p.anulado ? 'text-zinc-400 line-through' : 'text-zinc-500'}`}>

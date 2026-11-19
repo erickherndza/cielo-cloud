@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
 
 const EMPTY_FORM = { posicion: '', salarioMinimo: '', salarioMedio: '', salarioMaximo: '' }
 
@@ -204,7 +204,7 @@ export default function BandasSalarialesPage() {
         title="Bandas Salariales"
         subtitle="Niveles por posición, empleados fuera de banda y distribución"
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {/* ── Stat cards ───────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -239,8 +239,8 @@ export default function BandasSalarialesPage() {
         </div>
 
         {/* ── Form: crear/editar banda ─────────────────────────────────── */}
-        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between">
+        <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 {editandoId ? 'Editar Banda Salarial' : 'Nueva Banda Salarial'}
@@ -252,7 +252,7 @@ export default function BandasSalarialesPage() {
             {editandoId && (
               <button
                 onClick={resetForm}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <X className="h-3.5 w-3.5" /> Cancelar edición
               </button>
@@ -316,13 +316,13 @@ export default function BandasSalarialesPage() {
         </div>
 
         {/* ── Table: bandas definidas ──────────────────────────────────── */}
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between gap-2">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Bandas Definidas</h2>
             {(bandasOrdenadas.length > 0 || fueraDeBanda.length > 0) && (
               <button
                 onClick={handleExportar}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
                 title="Exporta el catálogo de bandas y los empleados fuera de banda (2 hojas)"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -333,7 +333,7 @@ export default function BandasSalarialesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Posición</th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Mínimo</th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Medio</th>
@@ -342,12 +342,12 @@ export default function BandasSalarialesPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {bandasOrdenadas.length === 0 && (
                   <tr>
                     <td colSpan={6}>
                       <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                           <BarChart2 className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
                         </div>
                         <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Sin bandas salariales definidas</p>
@@ -398,8 +398,8 @@ export default function BandasSalarialesPage() {
         </div>
 
         {/* ── Empleados fuera de banda ─────────────────────────────────── */}
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Empleados Fuera de Banda</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Empleados activos cuyo salario base está fuera del rango mínimo–máximo de su posición
@@ -407,7 +407,7 @@ export default function BandasSalarialesPage() {
           </div>
           {fueraDeBanda.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                 <ListChecks className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
               </div>
               <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Todos los empleados están dentro de banda</p>
@@ -419,7 +419,7 @@ export default function BandasSalarialesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Banda</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Salario Actual</th>
@@ -427,7 +427,7 @@ export default function BandasSalarialesPage() {
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Diferencia</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {fueraDeBanda.map(({ empleado, banda, direccion, diferencia }) => (
                     <tr key={empleado.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
                       <td className="px-5 py-3.5">
@@ -463,7 +463,7 @@ export default function BandasSalarialesPage() {
         </div>
 
         {/* ── Distribución salarial ────────────────────────────────────── */}
-        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none p-5">
+        <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none p-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400 mb-4">
             Distribución Salarial — Empleados Activos
           </p>

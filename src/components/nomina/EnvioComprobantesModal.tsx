@@ -194,8 +194,8 @@ export function EnvioComprobantesModal({
         onClick={onClose}
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#141722] shadow-2xl animate-modal-in flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#1d2035]">
+        <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl animate-modal-in flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#2a2a2a]">
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-[#1B2980] dark:text-indigo-400" />
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -209,7 +209,7 @@ export function EnvioComprobantesModal({
 
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
             {REMOTE_ENABLED ? (
-              <div className="rounded-lg bg-[#eef0fb] dark:bg-[#1a1d2e] border border-[#1B2980]/15 dark:border-[#252840] px-4 py-3 text-[11px] text-[#1B2980] dark:text-indigo-300">
+              <div className="rounded-lg bg-[#eef0fb] dark:bg-[#262626] border border-[#1B2980]/15 dark:border-[#2e2e2e] px-4 py-3 text-[11px] text-[#1B2980] dark:text-indigo-300">
                 Los correos salen de la cuenta del sistema (no-responder) con el PDF del comprobante adjunto.
                 Los empleados no pueden responder a ese correo.
               </div>
@@ -225,7 +225,7 @@ export function EnvioComprobantesModal({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Asunto</label>
                 <input
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none"
                   value={plantillaComprobante.asunto}
                   onChange={e => setPlantillaComprobante(prev => ({ ...prev, asunto: e.target.value }))}
                 />
@@ -233,7 +233,7 @@ export function EnvioComprobantesModal({
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">Cuerpo del correo</label>
                 <textarea
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-xs font-mono focus:border-[#1B2980] focus:outline-none"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-xs font-mono focus:border-[#1B2980] focus:outline-none"
                   rows={7}
                   value={plantillaComprobante.cuerpo}
                   onChange={e => setPlantillaComprobante(prev => ({ ...prev, cuerpo: e.target.value }))}
@@ -269,17 +269,17 @@ export function EnvioComprobantesModal({
                 </span>
               </div>
             )}
-            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
+            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-zinc-50 dark:bg-[#1a1d2e] text-left text-zinc-500 dark:text-zinc-400">
+                  <tr className="bg-zinc-50 dark:bg-[#262626] text-left text-zinc-500 dark:text-zinc-400">
                     <th className="px-3 py-2 font-medium">Empleado</th>
                     <th className="px-3 py-2 font-medium">Correo</th>
                     <th className="px-3 py-2 font-medium text-right">Neto</th>
                     <th className="px-3 py-2 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {filas.map(({ empleado: emp, resultado }) => (
                     <tr key={emp.id}>
                       <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(emp)}</td>
@@ -295,7 +295,7 @@ export function EnvioComprobantesModal({
                           <button
                             onClick={() => descargarComprobantePDF(emp, resultado, periodoLabel, empresa)}
                             title="Descargar PDF"
-                            className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] transition-colors"
+                            className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#2e2e2e] transition-colors"
                           >
                             <Download className="h-3.5 w-3.5" />
                           </button>
@@ -324,7 +324,7 @@ export function EnvioComprobantesModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4">
+          <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4">
             <button onClick={onClose} className={BTN_PRIMARY}>
               Cerrar
             </button>

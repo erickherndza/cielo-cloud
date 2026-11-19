@@ -26,7 +26,7 @@ const ROLES = [
   { v: 'admin', l: 'Administrador' }, { v: 'gerente', l: 'Gerente' },
   { v: 'rrhh', l: 'RRHH' }, { v: 'contador', l: 'Contador' },
 ]
-const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 const DIA = 86_400_000
 const hace = (iso: string | null) => {
   if (!iso) return 'Nunca'
@@ -150,13 +150,13 @@ export function AdminPanel() {
         <div className="flex flex-wrap items-center gap-2">
         {miEmpresa && (
           <button onClick={() => elegirEmpresa(miEmpresa)}
-            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:border-[#252840] dark:text-zinc-300">
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:border-[#2e2e2e] dark:text-zinc-300">
             <Building2 className="h-3.5 w-3.5" /> Ir a mi empresa</button>
         )}
-        <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-[#1a1d2e]">
+        <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-[#262626]">
           {(['resumen', 'empresas', 'usuarios', 'cobros', 'errores', 'legal', 'accesos'] as const).map(v => (
             <button key={v} onClick={() => setVista(v)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize ${vista === v ? 'bg-white text-[#1B2980] shadow-sm dark:bg-[#252840] dark:text-indigo-300' : 'text-zinc-500'}`}>
+              className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize ${vista === v ? 'bg-white text-[#1B2980] shadow-sm dark:bg-[#2e2e2e] dark:text-indigo-300' : 'text-zinc-500'}`}>
               {v === 'accesos' ? 'Historial de accesos' : v === 'legal' ? 'Parámetros legales' : v}
             </button>
           ))}
@@ -175,16 +175,16 @@ export function AdminPanel() {
       {vista === 'resumen' ? (
         <ResumenVista r={resumen} empresas={empresas} cobros={cobros} irA={setVista} />
       ) : vista === 'usuarios' ? (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
-          <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#252840] dark:text-zinc-100">
+        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
+          <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#2e2e2e] dark:text-zinc-100">
             <Users className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" /> Usuarios con acceso ({usuarios.length})
           </div>
           <table className="w-full text-xs">
-            <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#1a1d2e]">
+            <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#262626]">
               <th className="px-4 py-2 font-medium">Correo</th><th className="px-4 py-2 font-medium">Rol</th>
               <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Desde</th>
               <th className="px-4 py-2 font-medium">Último acceso</th><th className="px-4 py-2 font-medium">Actividad de la empresa</th></tr></thead>
-            <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+            <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
               {usuarios.map(u => (
                 <tr key={`${u.empresa_id}-${u.uid}`}>
                   <td className="px-4 py-2 text-zinc-700 dark:text-zinc-300">{u.email ?? u.uid}</td>
@@ -198,7 +198,7 @@ export function AdminPanel() {
               {!usuarios.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-400">Sin usuarios</td></tr>}
             </tbody>
           </table>
-          <p className="border-t border-zinc-200 px-4 py-2 text-[10px] text-zinc-400 dark:border-[#252840]">«Último acceso» se registra desde que se aplicó la actualización; antes aparece como «Nunca». La actividad de la empresa es la de su último guardado.</p>
+          <p className="border-t border-zinc-200 px-4 py-2 text-[10px] text-zinc-400 dark:border-[#2e2e2e]">«Último acceso» se registra desde que se aplicó la actualización; antes aparece como «Nunca». La actividad de la empresa es la de su último guardado.</p>
         </div>
       ) : vista === 'cobros' ? (
         <CobrosPanel />
@@ -207,15 +207,15 @@ export function AdminPanel() {
       ) : vista === 'legal' ? (
         <ParametrosLegalesPanel />
       ) : vista === 'accesos' ? (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
-          <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#252840] dark:text-zinc-100">
+        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
+          <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 text-sm font-semibold dark:border-[#2e2e2e] dark:text-zinc-100">
             <History className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" /> Accesos de super admin a empresas
           </div>
           <table className="w-full text-xs">
-            <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#1a1d2e]">
+            <thead><tr className="bg-zinc-50 text-left text-zinc-500 dark:bg-[#262626]">
               <th className="px-4 py-2 font-medium">Fecha</th><th className="px-4 py-2 font-medium">Quién</th>
               <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">Acción</th></tr></thead>
-            <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+            <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
               {accesos.map(a => (
                 <tr key={a.id}><td className="px-4 py-2 tabular-nums text-zinc-500">{fechaHora(a.creado_en)}</td>
                   <td className="px-4 py-2 text-zinc-700 dark:text-zinc-300">{a.email}</td>
@@ -229,7 +229,7 @@ export function AdminPanel() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
           <div className="space-y-4">
-            <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+            <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
               <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><Plus className="h-4 w-4" /> Nueva empresa</p>
               <div className="grid items-start gap-3 sm:grid-cols-[1fr_20rem_auto]">
                 <input className={inputCls} placeholder="Nombre de la empresa" value={nuevo.nombre} onChange={e => setNuevo({ ...nuevo, nombre: e.target.value })} />
@@ -243,16 +243,16 @@ export function AdminPanel() {
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
               <input className={`${inputCls} pl-9`} placeholder="Buscar por nombre o RNC" value={q} onChange={e => setQ(e.target.value)} />
             </div>
-            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-[#252840] dark:bg-[#141722]">
+            <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
               <table className="w-full text-sm">
-                <thead><tr className="bg-zinc-50 text-left text-xs text-zinc-500 dark:bg-[#1a1d2e]">
+                <thead><tr className="bg-zinc-50 text-left text-xs text-zinc-500 dark:bg-[#262626]">
                   <th className="px-4 py-2 font-medium">Empresa</th><th className="px-4 py-2 font-medium">RNC</th>
                   <th className="px-4 py-2 font-medium text-right">Empleados</th><th className="px-4 py-2 font-medium text-right">Usuarios</th>
                   <th className="px-4 py-2 font-medium">Actividad</th><th className="px-4 py-2 font-medium">Estado</th></tr></thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {empresas.map(e => (
                     <tr key={e.id} onClick={() => setSel(e)}
-                      className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] ${sel?.id === e.id ? 'bg-[#eef0fb] dark:bg-[#1a1d2e]' : ''}`}>
+                      className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#262626] ${sel?.id === e.id ? 'bg-[#eef0fb] dark:bg-[#262626]' : ''}`}>
                       <td className="px-4 py-2.5 font-medium text-[#1B2980] dark:text-indigo-300">{e.nombre || '(sin nombre)'}
                         {e.contacto && <span className="block text-[11px] font-normal text-zinc-400">{e.contacto}</span>}</td>
                       <td className="px-4 py-2.5 tabular-nums text-zinc-500">{e.rnc ?? '—'}</td>
@@ -269,7 +269,7 @@ export function AdminPanel() {
             </div>
           </div>
 
-          <aside className="h-fit space-y-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <aside className="h-fit space-y-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             {!sel ? <p className="py-8 text-center text-sm text-zinc-400">Elige una empresa para administrarla</p> : (<>
               <div>
                 <p className="font-semibold text-zinc-900 dark:text-zinc-100">{sel.nombre || '(sin nombre)'}</p>
@@ -281,10 +281,10 @@ export function AdminPanel() {
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1B2980] px-3 py-2 text-xs font-semibold text-white">
                   <LogIn className="h-3.5 w-3.5" /> Entrar (queda registrado)</button>
                 <button onClick={() => cambiarEstado(sel)}
-                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 dark:border-[#252840] dark:text-zinc-300">
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 dark:border-[#2e2e2e] dark:text-zinc-300">
                   {sel.estado === 'activa' ? <><Pause className="h-3.5 w-3.5" /> Suspender</> : <><Play className="h-3.5 w-3.5" /> Reactivar</>}</button>
               </div>
-              <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-[#252840]">
+              <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-[#2e2e2e]">
                 <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200"><UserPlus className="h-3.5 w-3.5" /> Invitar usuario</p>
                 <input className={inputCls} type="email" placeholder="correo@empresa.com" value={inv.email} onChange={e => setInv({ ...inv, email: e.target.value })} />
                 <div className="flex gap-2">
@@ -294,14 +294,14 @@ export function AdminPanel() {
                 </div>
                 <p className="text-[10px] text-zinc-400">No se envía correo: usa «copiar invitación» en la lista y mándasela tú. La persona queda asignada cuando entre con ese correo verificado.</p>
               </div>
-              <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#252840]">
+              <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#2e2e2e]">
                 <p className="font-semibold text-zinc-700 dark:text-zinc-200">Usuarios</p>
                 {det?.miembros.map(m => (
                   <p key={m.uid} className="flex items-center justify-between gap-2 text-zinc-500">
                     <span className="min-w-0 truncate">{m.email ?? m.uid}</span>
                     <span className="flex shrink-0 items-center gap-2">
                       <select aria-label="Rol" value={m.rol} onChange={e => cambiarRol(m, e.target.value)}
-                        className="rounded border border-zinc-200 bg-transparent px-1 py-0.5 text-xs dark:border-[#252840]">
+                        className="rounded border border-zinc-200 bg-transparent px-1 py-0.5 text-xs dark:border-[#2e2e2e]">
                         {ROLES.map(r => <option key={r.v} value={r.v}>{r.l}</option>)}</select>
                       <button onClick={() => quitarMiembro(m)} className="text-rose-600 underline dark:text-rose-400">quitar</button>
                     </span></p>))}
@@ -323,7 +323,7 @@ export function AdminPanel() {
 
 function Kpi({ label, valor, sub }: { label: string; valor: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+    <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
       <p className="text-xs font-medium text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{valor}</p>
       {sub && <p className="mt-1 text-[11px] text-zinc-400">{sub}</p>}
@@ -353,19 +353,19 @@ function ResumenVista({ r, empresas, cobros, irA }: { r: Resumen | null; empresa
           </button>)}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><LayoutDashboard className="h-4 w-4" /> Empresas nuevas por mes</p>
           {!r.altasPorMes.length ? <p className="py-6 text-center text-sm text-zinc-400">Sin altas en los últimos 12 meses</p> : (
             <div className="space-y-1.5">
               {r.altasPorMes.map(a => (
                 <div key={a.mes} className="flex items-center gap-2 text-xs">
                   <span className="w-14 tabular-nums text-zinc-500">{a.mes}</span>
-                  <div className="h-3 flex-1 rounded bg-zinc-100 dark:bg-[#1a1d2e]"><div className="h-3 rounded bg-[#1B2980]" style={{ width: `${(a.n / max) * 100}%` }} /></div>
+                  <div className="h-3 flex-1 rounded bg-zinc-100 dark:bg-[#262626]"><div className="h-3 rounded bg-[#1B2980]" style={{ width: `${(a.n / max) * 100}%` }} /></div>
                   <span className="w-6 text-right tabular-nums text-zinc-600 dark:text-zinc-300">{a.n}</span>
                 </div>))}
             </div>)}
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><Activity className="h-4 w-4" /> Sin actividad en 30 días ({inactivas.length})</p>
           {!inactivas.length ? <p className="py-6 text-center text-sm text-zinc-400">Todas las empresas activas guardaron algo en el último mes</p> : (
             <ul className="space-y-1.5 text-xs">

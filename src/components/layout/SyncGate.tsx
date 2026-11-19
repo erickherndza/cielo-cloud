@@ -26,15 +26,15 @@ export function SyncGate({ children }: { children: ReactNode }) {
     )
     if (acceso.esSuperadmin) {
       return (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-tabler-bg dark:bg-[#171717]">
           <div className="flex justify-end px-6 pt-4">{salir}</div>
           <AdminPanel />
         </div>
       )
     }
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-50 p-6 dark:bg-[#0d0f1a]">
-        <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-[#252840] dark:bg-[#141722]">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-50 p-6 dark:bg-[#171717]">
+        <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-xl dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
           {!Array.isArray(acceso.empresas) || acceso.empresas.length === 0 ? (
             <>
               <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Tu cuenta aún no tiene una empresa asignada</p>
@@ -52,7 +52,7 @@ export function SyncGate({ children }: { children: ReactNode }) {
               <div className="mt-4 space-y-2">
                 {acceso.empresas.map(e => (
                   <button key={e.id} onClick={() => elegirEmpresa(e)} disabled={e.estado === 'suspendida'}
-                    className="flex w-full items-center justify-between rounded-xl border border-zinc-200 px-4 py-3 text-left hover:border-[#1B2980] disabled:opacity-50 dark:border-[#252840]">
+                    className="flex w-full items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 text-left hover:border-[#1B2980] disabled:opacity-50 dark:border-[#2e2e2e]">
                     <span>
                       <span className="block text-sm font-semibold text-[#1B2980] dark:text-indigo-300">{e.nombre || '(sin nombre)'}</span>
                       <span className="text-xs text-zinc-500">RNC {e.rnc ?? '—'} · {e.rol}{e.estado === 'suspendida' ? ' · suspendida' : ''}</span>
@@ -70,7 +70,7 @@ export function SyncGate({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white p-6 dark:bg-[#0d0f1a]">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white p-6 dark:bg-[#171717]">
         <div className="max-w-sm text-center">
           {error ? (
             <>

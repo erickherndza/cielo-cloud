@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           } catch(e) {}
         `}} />
       </head>
-      <body className="flex h-screen overflow-hidden bg-tabler-bg dark:bg-[#0d0f1a] font-sans transition-colors duration-200">
+      <body className="flex h-screen overflow-hidden bg-tabler-bg dark:bg-[#171717] font-sans transition-colors duration-200">
         <ThemeProvider>
           <ConfirmProvider>
           <AuthProvider>

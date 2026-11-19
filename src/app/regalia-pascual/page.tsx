@@ -228,7 +228,7 @@ export default function RegaliaPage() {
     return (
       <div className="flex flex-col overflow-hidden h-full">
         <Header title="Regalía Pascual" subtitle="Art. 219 · Código de Trabajo · Ley 16-92" />
-        <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a] p-4 md:p-10">
+        <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#171717] p-4 md:p-10">
           <div className="mx-auto max-w-3xl">
             <div className="mb-8 text-center">
               <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">¿Qué quieres ver?</h1>
@@ -240,7 +240,7 @@ export default function RegaliaPage() {
               <button
                 type="button"
                 onClick={() => setPantalla('actual')}
-                className="group relative overflow-hidden rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 text-left shadow-sm dark:shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#1B2980]/10"
+                className="group relative overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 text-left shadow-sm dark:shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#1B2980]/10"
               >
                 <div className="relative mb-4 h-12 w-12">
                   <div className="absolute inset-0 rounded-2xl bg-[#1B2980] blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
@@ -250,7 +250,7 @@ export default function RegaliaPage() {
                 </div>
                 <p className="text-base font-bold text-zinc-900 dark:text-zinc-100">Acumulación Actual</p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Ciclo {anioActual} en progreso</p>
-                <div className="mt-4 flex items-baseline justify-between rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+                <div className="mt-4 flex items-baseline justify-between rounded-lg bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                   <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Acumulado a hoy</span>
                   <span className="text-sm font-bold tabular-nums text-[#1B2980] dark:text-indigo-300">{formatRD(totalAcumulado)}</span>
                 </div>
@@ -262,7 +262,7 @@ export default function RegaliaPage() {
               <button
                 type="button"
                 onClick={() => setPantalla('historial')}
-                className="group relative overflow-hidden rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 text-left shadow-sm dark:shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/10"
+                className="group relative overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 text-left shadow-sm dark:shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/10"
               >
                 <div className="relative mb-4 h-12 w-12">
                   <div className="absolute inset-0 rounded-2xl bg-emerald-600 blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
@@ -275,7 +275,7 @@ export default function RegaliaPage() {
                   {historialRegalia.length} ciclo{historialRegalia.length !== 1 ? 's' : ''} ya pagado{historialRegalia.length !== 1 ? 's' : ''}
                 </p>
                 {masReciente && (
-                  <div className="mt-4 flex items-baseline justify-between rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+                  <div className="mt-4 flex items-baseline justify-between rounded-lg bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                     <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Último ciclo — {masReciente.anio}</span>
                     <span className="text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{formatRD(masReciente.totales.bruto)}</span>
                   </div>
@@ -301,19 +301,19 @@ export default function RegaliaPage() {
           actions={
             <button
               onClick={() => setPantalla('elegir')}
-              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Layers className="h-4 w-4" />
               Cambiar de vista
             </button>
           }
         />
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Ciclo</th>
                     <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleados</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Total Pagado</th>
@@ -322,7 +322,7 @@ export default function RegaliaPage() {
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {historialRegalia.map(p => (
                     <tr key={p.id} className="hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-zinc-900 dark:text-zinc-100">Regalía Pascual {p.anio}</td>
@@ -337,7 +337,7 @@ export default function RegaliaPage() {
                       <td className="px-4 py-3.5 text-right">
                         <Link
                           href="/nomina"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                         >
                           <ExternalLink className="h-3.5 w-3.5" /> Ver en Nómina
                         </Link>
@@ -363,7 +363,7 @@ export default function RegaliaPage() {
             {tieneHistorial && (
               <button
                 onClick={() => setPantalla('elegir')}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <Layers className="h-4 w-4" />
                 Cambiar de vista
@@ -371,7 +371,7 @@ export default function RegaliaPage() {
             )}
             <button
               onClick={handleExportar}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -387,7 +387,7 @@ export default function RegaliaPage() {
             ) : periodoRegaliaPagado ? (
               <Link
                 href={periodoRegaliaPagado.pagada ? '/nomina/envios' : '/nomina'}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#2e2e2e] transition-colors"
                 title={periodoRegaliaPagado.pagada
                   ? 'Ya se pagó y se confirmó el envío — para corregirlo, deshaz el pago primero en Gestión de Envíos'
                   : 'Ya se pagó este ciclo — para corregirlo, reabre el período desde Nómina'}
@@ -408,10 +408,10 @@ export default function RegaliaPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {pendientesPasados.map(p => (
-          <div key={p.anio} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 px-5 py-3.5 text-sm text-rose-800 dark:text-rose-300">
+          <div key={p.anio} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 px-5 py-3.5 text-sm text-rose-800 dark:text-rose-300">
             <span>
               La Regalía Pascual <strong>{p.anio}</strong> figura sin pagar en Cielo Cloud (venció hace {Math.abs(p.diasRestantes)} día(s)).
               Esta pantalla solo liquida el año {anioActual}: si ya se pagó fuera del sistema, o no aplica, márcalo para apagar la alerta.
@@ -431,7 +431,7 @@ export default function RegaliaPage() {
         ))}
 
         {periodoRegaliaExistente && (
-          <div className="flex items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20 px-5 py-3.5 text-sm">
+          <div className="flex items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20 px-5 py-3.5 text-sm">
             <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               Ya se solicitó la liquidación de Regalía Pascual {anioActual} — continúa el pago desde Nómina.
@@ -443,7 +443,7 @@ export default function RegaliaPage() {
         )}
 
         {periodoRegaliaPagado && (
-          <div className="flex items-center justify-between rounded-xl border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3.5 text-sm">
+          <div className="flex items-center justify-between rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-5 py-3.5 text-sm">
             <div className="flex items-center gap-2.5 text-zinc-600 dark:text-zinc-300">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               {periodoRegaliaPagado.pagada
@@ -487,14 +487,14 @@ export default function RegaliaPage() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Provisión por Empleado — Año {hoy.getFullYear()}</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Cálculo: Salario mensual ÷ 12 × meses laborados en el año. Pago obligatorio entre el 1 y 20 de diciembre.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3">
+          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] px-5 py-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
@@ -502,13 +502,13 @@ export default function RegaliaPage() {
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre o cédula…"
-                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroDepto}
               onChange={e => setFiltroDepto(e.target.value)}
-              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los departamentos</option>
               {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
@@ -528,7 +528,7 @@ export default function RegaliaPage() {
           <div className="overflow-x-auto">
             <table className="tabla-cards w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Salario Mensual</th>
                   <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Meses Acum.</th>
@@ -537,12 +537,12 @@ export default function RegaliaPage() {
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Progreso</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {filas.length === 0 && (
                   <tr>
                     <td colSpan={6} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20 12V22H4V12" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M22 7H2v5h20V7z" />
@@ -588,7 +588,7 @@ export default function RegaliaPage() {
                       {formatRD(empleado.salarioBase)}
                     </td>
                     <td data-col="num" data-label="Meses acumulados" className="px-4 py-3.5 text-center">
-                      <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-400">
+                      <span className="rounded-full bg-zinc-100 dark:bg-[#262626] px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-400">
                         {mesesAcumulados}/12
                       </span>
                     </td>
@@ -600,7 +600,7 @@ export default function RegaliaPage() {
                     </td>
                     <td data-col="full" className="px-4 py-3.5 md:w-36 max-md:pt-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-[#1a1d2e]">
+                        <div className="flex-1 h-1.5 rounded-full bg-zinc-100 dark:bg-[#262626]">
                           <div
                             className="h-1.5 rounded-full bg-emerald-500"
                             style={{ width: `${Math.min(porcentaje, 100)}%` }}
@@ -615,7 +615,7 @@ export default function RegaliaPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                   <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
                     {hayFiltrosActivos ? 'TOTAL (filtrado)' : 'TOTAL'}
                   </td>
@@ -628,7 +628,7 @@ export default function RegaliaPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/30 px-5 py-4 text-xs text-amber-800 dark:text-amber-300">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/30 px-5 py-4 text-xs text-amber-800 dark:text-amber-300">
           <p className="font-semibold mb-1">Art. 219, Código de Trabajo — República Dominicana</p>
           <p>Todo empleador tiene la obligación de pagar a cada uno de sus trabajadores, en el período navideño, <strong>una regalía pascual equivalente a un salario ordinario del mes de diciembre</strong>. Dicha regalía deberá pagarse en la primera quincena del mes de diciembre. El trabajador que al 30 de noviembre no haya completado el año de servicio recibirá la parte proporcional correspondiente.</p>
         </div>
@@ -645,10 +645,10 @@ export default function RegaliaPage() {
               onClick={() => setSolicitudAbierta(false)}
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#141722] shadow-2xl animate-modal-in flex flex-col">
+              <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl animate-modal-in flex flex-col">
                 {periodoCreado ? (
                   <div className="flex flex-col items-center justify-center px-8 py-14 text-center">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
                       <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Liquidación solicitada</p>
@@ -666,7 +666,7 @@ export default function RegaliaPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#1d2035]">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#2a2a2a]">
                       <div className="flex items-center gap-2">
                         <Gift className="h-5 w-5 text-[#1B2980] dark:text-indigo-400" />
                         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -685,16 +685,16 @@ export default function RegaliaPage() {
                         (motivo obligatorio) — útil si hace falta un ajuste puntual.
                       </p>
 
-                      <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
+                      <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="bg-zinc-50 dark:bg-[#1a1d2e] text-left text-zinc-500 dark:text-zinc-400">
+                            <tr className="bg-zinc-50 dark:bg-[#262626] text-left text-zinc-500 dark:text-zinc-400">
                               <th className="px-3 py-2 font-medium">Empleado</th>
                               <th className="px-3 py-2 font-medium text-right">Monto a Liquidar</th>
                               <th className="px-3 py-2 font-medium text-right">Acciones</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                          <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                             {filasSolicitud.map(({ empleado, acumulado }) => {
                               const monto = montoDe(empleado.id, acumulado)
                               const ov = overrides[empleado.id]
@@ -716,7 +716,7 @@ export default function RegaliaPage() {
                                         autoFocus
                                         value={montoEdit}
                                         onChange={e => setMontoEdit(e.target.value)}
-                                        className="w-28 rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#0d0f1a] dark:text-zinc-200 px-2 py-1 text-right text-xs focus:border-[#1B2980] focus:outline-none"
+                                        className="w-28 rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#171717] dark:text-zinc-200 px-2 py-1 text-right text-xs focus:border-[#1B2980] focus:outline-none"
                                       />
                                     ) : (
                                       <span className={`tabular-nums font-semibold ${ov ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
@@ -732,7 +732,7 @@ export default function RegaliaPage() {
                                           placeholder="Motivo del ajuste (obligatorio)"
                                           value={motivoEdit}
                                           onChange={e => setMotivoEdit(e.target.value)}
-                                          className="w-40 rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#0d0f1a] dark:text-zinc-200 px-2 py-1 text-xs focus:border-[#1B2980] focus:outline-none"
+                                          className="w-40 rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#171717] dark:text-zinc-200 px-2 py-1 text-xs focus:border-[#1B2980] focus:outline-none"
                                         />
                                         <button
                                           onClick={() => guardarEdicion(empleado.id)}
@@ -745,7 +745,7 @@ export default function RegaliaPage() {
                                         <button
                                           onClick={() => setEditandoId(null)}
                                           title="Cancelar"
-                                          className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e]"
+                                          className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#262626]"
                                         >
                                           <X className="h-3.5 w-3.5" />
                                         </button>
@@ -755,7 +755,7 @@ export default function RegaliaPage() {
                                         <button
                                           onClick={() => abrirEdicion(empleado.id, monto)}
                                           title="Ajustar manualmente"
-                                          className="rounded-md p-1 text-zinc-400 hover:text-[#1B2980] dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] transition-colors"
+                                          className="rounded-md p-1 text-zinc-400 hover:text-[#1B2980] dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-colors"
                                         >
                                           <Pencil className="h-3.5 w-3.5" />
                                         </button>
@@ -763,7 +763,7 @@ export default function RegaliaPage() {
                                           <button
                                             onClick={() => quitarEdicion(empleado.id)}
                                             title="Quitar ajuste manual"
-                                            className="rounded-md p-1 text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] transition-colors"
+                                            className="rounded-md p-1 text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-colors"
                                           >
                                             <X className="h-3.5 w-3.5" />
                                           </button>
@@ -791,10 +791,10 @@ export default function RegaliaPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4">
+                    <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4">
                       <button
                         onClick={() => setSolicitudAbierta(false)}
-                        className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                        className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                       >
                         Cancelar
                       </button>

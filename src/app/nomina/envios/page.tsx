@@ -68,17 +68,17 @@ export default function GestionEnviosPage() {
         title="Gestión de Envíos"
         subtitle="Marca el pago y envía los comprobantes de nómina a cada empleado"
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {pendientesPago > 0 && (
-          <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
             <Wallet className="h-4 w-4 shrink-0" />
             {pendientesPago} período{pendientesPago !== 1 ? 's' : ''} cerrado{pendientesPago !== 1 ? 's' : ''} pendiente{pendientesPago !== 1 ? 's' : ''} de confirmar pago.
           </div>
         )}
 
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-5 py-3">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
@@ -86,13 +86,13 @@ export default function GestionEnviosPage() {
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar período…"
-                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroAnio}
               onChange={e => setFiltroAnio(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
-              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los años</option>
               {anios.map(a => <option key={a} value={a}>{a}</option>)}
@@ -112,7 +112,7 @@ export default function GestionEnviosPage() {
 
           {cerrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                 <Wallet className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
               </div>
               <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Sin períodos cerrados todavía</p>
@@ -124,7 +124,7 @@ export default function GestionEnviosPage() {
             <div className="overflow-x-auto">
               <table className="tabla-cards w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Período</th>
                     <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleados</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Total Neto</th>
@@ -132,7 +132,7 @@ export default function GestionEnviosPage() {
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {filas.length === 0 && (
                     <tr>
                       <td data-col="full" colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
@@ -164,7 +164,7 @@ export default function GestionEnviosPage() {
                             </button>
                             <button
                               onClick={() => setEnvioPeriodoId(p.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                             >
                               <Mail className="h-3.5 w-3.5" /> Comprobantes
                             </button>

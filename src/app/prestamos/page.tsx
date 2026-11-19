@@ -30,7 +30,7 @@ const MAX_CUOTAS_PREVIEW = 360
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputCls =
-  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ function StatCard({
   iconColor: string
 }) {
   return (
-    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-4 shadow-sm dark:shadow-none">
+    <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-4 shadow-sm dark:shadow-none">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
@@ -95,7 +95,7 @@ function StatCard({
 function ProgressBar({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct))
   return (
-    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#252840] overflow-hidden">
+    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#2e2e2e] overflow-hidden">
       <div
         className="h-full rounded-full bg-emerald-500 transition-all"
         style={{ width: `${clamped}%` }}
@@ -126,8 +126,8 @@ function TablaAmortizacion({
     : ['#', 'Cuota', 'Capital', 'Interés', 'Saldo Remanente']
 
   return (
-    <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
-      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+    <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
         <div>
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{titulo}</h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitulo}</p>
@@ -135,7 +135,7 @@ function TablaAmortizacion({
         {onExportar && (
           <button
             onClick={onExportar}
-            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors shrink-0"
+            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
             Exportar Excel
@@ -145,7 +145,7 @@ function TablaAmortizacion({
       <div className="overflow-x-auto max-h-96 overflow-y-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+            <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
               {headers.map(h => (
                 <th
                   key={h}
@@ -156,7 +156,7 @@ function TablaAmortizacion({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+          <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
             {rows.map(row => (
               <tr
                 key={row.num}
@@ -220,7 +220,7 @@ function PanelCapacidadPago({
       className={`rounded-lg border px-4 py-3 space-y-3 ${
         excede
           ? 'border-amber-300 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20'
-          : 'border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e]'
+          : 'border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626]'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ function ConfirmDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
-      <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
+      <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 shadow-2xl animate-modal-in">
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
@@ -290,7 +290,7 @@ function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+            className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
           >
             No, cancelar
           </button>
@@ -407,7 +407,7 @@ function VistaDetalle({
         actions={
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
@@ -415,13 +415,13 @@ function VistaDetalle({
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {/* Loan header card */}
-        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-5 shadow-sm dark:shadow-none">
+        <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-5 shadow-sm dark:shadow-none">
           <div className="flex items-start gap-4">
             <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
               style={{ backgroundColor: '#1B2980' }}
             >
               {initials}
@@ -470,7 +470,7 @@ function VistaDetalle({
               { label: 'Frecuencia',       value: frecuenciaLabel(prestamo.frecuencia) },
               { label: 'Pagos Realizados', value: `${prestamo.pagos.length} de ${prestamo.cuotas}` },
             ].map(item => (
-              <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+              <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase text-zinc-400 dark:text-zinc-500">{item.label}</p>
                 <p className={`mt-0.5 text-sm font-semibold tabular-nums ${item.highlight ? 'text-[#1B2980] dark:text-indigo-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
                   {item.value}
@@ -500,15 +500,15 @@ function VistaDetalle({
 
         {/* Payment history */}
         {prestamo.pagos.length > 0 && (
-          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Historial de Pagos</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{prestamo.pagos.length} pago{prestamo.pagos.length !== 1 ? 's' : ''} registrado{prestamo.pagos.length !== 1 ? 's' : ''}</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     {['Fecha', 'Período', 'Monto Pagado', 'Tipo'].map(h => (
                       <th
                         key={h}
@@ -519,9 +519,9 @@ function VistaDetalle({
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {prestamo.pagos.map(pago => (
-                    <tr key={pago.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                    <tr key={pago.id} className="hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                       <td className="px-4 py-2.5 text-sm text-zinc-700 dark:text-zinc-300">{formatDate(pago.fecha)}</td>
                       <td className="px-4 py-2.5 text-sm text-zinc-500 dark:text-zinc-400 font-mono text-xs">
                         {pago.periodoId ?? '—'}
@@ -544,8 +544,8 @@ function VistaDetalle({
 
         {/* Manual payment form */}
         {prestamo.estado === 'activo' && (
-          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Registrar Pago Manual</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Pagos fuera de nómina regular</p>
             </div>
@@ -868,7 +868,7 @@ export default function PrestamosPage() {
   // ── Detalle view ─────────────────────────────────────────────────────────────
   if (vista === 'detalle' && prestamoSeleccionado) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex flex-col h-full overflow-hidden bg-tabler-bg dark:bg-[#171717]">
         <VistaDetalle
           prestamo={prestamoSeleccionado}
           nombreEmpleado={getEmpleadoName(prestamoSeleccionado.empleadoId)}
@@ -898,7 +898,7 @@ export default function PrestamosPage() {
           showForm ? (
             <button
               onClick={() => setShowForm(false)}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] px-3.5 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3.5 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <X className="h-4 w-4" />
               Cerrar
@@ -907,7 +907,7 @@ export default function PrestamosPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExportarPrestamos}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3.5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3.5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
@@ -931,7 +931,7 @@ export default function PrestamosPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#171717]">
 
         {/* Stats bar */}
         <div className="grid grid-cols-1 gap-3 p-4 pb-3 sm:grid-cols-3 sm:gap-4 md:p-6 md:pb-4">
@@ -960,8 +960,8 @@ export default function PrestamosPage() {
 
         {/* New loan form */}
         {showForm && (
-          <div className="mx-6 mb-4 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="mx-6 mb-4 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   {modoNuevo === 'avance' ? 'Nuevo Avance de Salario' : 'Nuevo Préstamo'}
@@ -1033,7 +1033,7 @@ export default function PrestamosPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors ${
                             fModoInteres === m
                               ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                              : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                              : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                           }`}
                         >
                           {m === 'francés' ? 'Francés' : 'Simple'}
@@ -1131,7 +1131,7 @@ export default function PrestamosPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             fFrecuencia === f
                               ? 'border-[#1B2980] bg-[#1B2980] text-white dark:border-indigo-600 dark:bg-indigo-600'
-                              : 'border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                              : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                           }`}
                         >
                           {frecuenciaLabel(f)}
@@ -1172,7 +1172,7 @@ export default function PrestamosPage() {
                         </button>
                       </div>
                     ) : (
-                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400 hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400 hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
                         <Upload className="h-4 w-4 shrink-0" />
                         <span>Adjuntar PDF escaneado…</span>
                         <input
@@ -1239,7 +1239,7 @@ export default function PrestamosPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -1266,7 +1266,7 @@ export default function PrestamosPage() {
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   filtroEstado === tab.value
                     ? 'bg-[#1B2980] text-white dark:bg-indigo-600'
-                    : 'border border-tabler-line dark:border-[#252840] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e]'
+                    : 'border border-tabler-line dark:border-[#2e2e2e] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#262626]'
                 }`}
               >
                 {tab.label}
@@ -1284,7 +1284,7 @@ export default function PrestamosPage() {
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar por nombre o departamento…"
-              className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] py-1.5 pl-8 pr-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
+              className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] py-1.5 pl-8 pr-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10"
             />
             {busqueda && (
               <button
@@ -1310,11 +1310,11 @@ export default function PrestamosPage() {
               }
             />
           ) : (
-            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+            <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
               <div className="overflow-x-auto">
                 <table className="tabla-cards w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                    <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                       {['Empleado', 'Monto Original', 'Saldo Pendiente', 'Cuota', 'Cuotas', 'Tasa', 'Frecuencia', 'Fecha', 'Doc', 'Estado', ''].map(h => (
                         <th
                           key={h || 'actions'}
@@ -1325,7 +1325,7 @@ export default function PrestamosPage() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                  <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                     {prestamosFiltrados.map(prestamo => {
                       const pct      = (prestamo.monto - prestamo.saldoPendiente) / prestamo.monto * 100
                       const empName  = getEmpleadoName(prestamo.empleadoId)
@@ -1336,7 +1336,7 @@ export default function PrestamosPage() {
                         <tr
                           key={prestamo.id}
                           onClick={() => handleVerDetalle(prestamo)}
-                          className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                          className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                         >
                           {/* Empleado */}
                           <td data-col="emp100" className="px-4 py-3">
@@ -1430,7 +1430,7 @@ export default function PrestamosPage() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleVerDetalle(prestamo) }}
-                                className="flex items-center gap-1 rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors whitespace-nowrap"
+                                className="flex items-center gap-1 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors whitespace-nowrap"
                               >
                                 Ver detalle
                                 <ChevronRight className="h-3 w-3" />

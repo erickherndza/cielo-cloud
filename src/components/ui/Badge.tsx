@@ -12,7 +12,7 @@ const VARIANTS = {
   warning: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800/50',
   danger:  'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:ring-rose-800/50',
   info:    'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:ring-sky-800/50',
-  neutral: 'bg-zinc-100 text-zinc-700 ring-zinc-200 dark:bg-[#1a1d2e] dark:text-zinc-400 dark:ring-[#252840]',
+  neutral: 'bg-zinc-100 text-zinc-700 ring-zinc-200 dark:bg-[#262626] dark:text-zinc-400 dark:ring-[#2e2e2e]',
 }
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {

@@ -15,7 +15,7 @@ function OpcionRespuesta({
     <button
       type="button"
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1B2980]/30 dark:hover:border-indigo-500/40 hover:shadow-[0_20px_40px_-16px_rgba(27,41,128,0.25)] dark:hover:shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]"
+      className="group relative overflow-hidden rounded-lg border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1B2980]/30 dark:hover:border-indigo-500/40 hover:shadow-[0_20px_40px_-16px_rgba(27,41,128,0.25)] dark:hover:shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]"
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-[#1B2980]/10 to-transparent blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-indigo-500/10" />
       <div className="relative">
@@ -42,7 +42,7 @@ export function PromptConfiguracionInicial() {
 
   if (vista === 'flujo') {
     return (
-      <div className="flex flex-1 flex-col overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex flex-1 flex-col overflow-y-auto bg-tabler-bg dark:bg-[#171717]">
         <div className="mx-auto w-full max-w-4xl flex-1 p-6">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Configuración Inicial</h1>
@@ -53,7 +53,7 @@ export function PromptConfiguracionInicial() {
           </div>
           <ConfiguracionInicialFlow />
         </div>
-        <div className="sticky bottom-0 border-t border-tabler-line dark:border-[#252840] bg-white/90 dark:bg-[#141722]/90 backdrop-blur px-6 py-4">
+        <div className="sticky bottom-0 border-t border-tabler-line dark:border-[#2e2e2e] bg-white/90 dark:bg-[#1f1f1f]/90 backdrop-blur px-6 py-4">
           <div className="mx-auto flex max-w-4xl justify-end">
             <button
               onClick={resolver}
@@ -69,7 +69,7 @@ export function PromptConfiguracionInicial() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a] p-6">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-tabler-bg dark:bg-[#171717] p-6">
       <div className="w-full max-w-xl">
         <div className="flex justify-center mb-5">
           <div className="relative">

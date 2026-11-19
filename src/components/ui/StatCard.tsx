@@ -31,7 +31,7 @@ export function StatCard({
               'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold shrink-0',
               trend === 'up'   ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' :
               trend === 'down' ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400' :
-                                  'bg-zinc-50 text-zinc-600 dark:bg-[#1a1d2e] dark:text-zinc-400'
+                                  'bg-zinc-50 text-zinc-600 dark:bg-[#262626] dark:text-zinc-400'
             )}
           >
             {trend === 'up' && <TrendingUp className="h-3 w-3" />}
@@ -46,7 +46,7 @@ export function StatCard({
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      {sub && <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-50 dark:border-[#1d2035] pt-2">{sub}</p>}
+      {sub && <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-50 dark:border-[#2a2a2a] pt-2">{sub}</p>}
     </div>
   )
 }

@@ -73,7 +73,7 @@ type RangoMeses = typeof RANGO_OPCIONES[number]
 
 function RangoSelector({ value, onChange }: { value: RangoMeses; onChange: (v: RangoMeses) => void }) {
   return (
-    <div className="inline-flex items-center rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-0.5">
+    <div className="inline-flex items-center rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-0.5">
       {RANGO_OPCIONES.map(opcion => (
         <button
           key={opcion}
@@ -186,13 +186,13 @@ export default function DashboardPage() {
     <div className="flex flex-col overflow-hidden h-full">
       <Header title={nombreEmpresa} subtitle={periodo} />
 
-      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto bg-tabler-bg dark:bg-[#171717]">
 
         {/* Encabezado de página (estilo Tabler: antetítulo + título + acciones) */}
         <div className="px-4 md:px-6 pt-5 md:pt-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-11 w-11 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="h-11 w-11 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] flex items-center justify-center shrink-0 overflow-hidden">
                 {empresa.logo ? (
                   <img src={empresa.logo} alt={nombreEmpresa} className="h-full w-full object-contain p-1" />
                 ) : (
@@ -206,7 +206,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/reportes" className="rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] transition-colors">
+              <Link href="/reportes" className="rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm font-medium text-tabler-ink dark:text-zinc-200 hover:bg-black/[0.03] transition-colors">
                 Análisis de costos
               </Link>
               <Link href="/nomina" className="rounded-md bg-[#1B2980] px-3 py-2 text-sm font-medium text-white hover:bg-[#151f66] transition-colors">
@@ -287,12 +287,12 @@ export default function DashboardPage() {
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                         {row.label}
                         {row.badge && (
-                          <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-1 py-0.5 text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase">{row.badge}</span>
+                          <span className="rounded-full bg-zinc-100 dark:bg-[#262626] px-1 py-0.5 text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase">{row.badge}</span>
                         )}
                       </span>
                       <span className="text-xs font-semibold tabular-nums text-zinc-700 dark:text-zinc-300">{formatK(row.value)}</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-zinc-100 dark:bg-[#1a1d2e] overflow-hidden">
+                    <div className="h-1.5 w-full rounded-full bg-zinc-100 dark:bg-[#262626] overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${(row.value / maxBar) * 100}%`, backgroundColor: row.color }}
@@ -313,12 +313,12 @@ export default function DashboardPage() {
                   Ver todos <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
-              <div className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <div className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {empleadosActivos.slice(0, 5).map((emp, i) => {
                   const n = nominas[i]
                   return (
                     <div key={emp.id} className="flex items-center gap-3 px-5 py-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e] text-xs font-bold text-zinc-600 dark:text-zinc-400">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-[#262626] text-xs font-bold text-zinc-600 dark:text-zinc-400">
                         {emp.nombre[0]}{emp.apellido[0]}
                       </div>
                       <div className="flex-1 min-w-0">

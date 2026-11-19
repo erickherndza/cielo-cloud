@@ -194,14 +194,14 @@ export default function VacacionesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportar}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
             </button>
             <button
               onClick={() => abrirModalVenta()}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Banknote className="h-4 w-4" />
               Vender Vacaciones
@@ -213,7 +213,7 @@ export default function VacacionesPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
@@ -260,15 +260,15 @@ export default function VacacionesPage() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vacaciones por Empleado</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               14 días laborables (1–5 años) · 18 días laborables (más de 5 años). Tarifa diaria = salario ÷ 23.83
               (÷ 26 en régimen de trabajo intermitente). Días Disponibles resta lo ya tomado en Disfrutes registrados.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3">
+          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] px-5 py-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
@@ -276,13 +276,13 @@ export default function VacacionesPage() {
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre o cédula…"
-                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroDepto}
               onChange={e => setFiltroDepto(e.target.value)}
-              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los departamentos</option>
               {departamentos.map(d => <option key={d} value={d}>{d}</option>)}
@@ -302,7 +302,7 @@ export default function VacacionesPage() {
           <div className="overflow-x-auto">
             <table className="tabla-cards w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Antigüedad</th>
                   <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Días/Año</th>
@@ -314,12 +314,12 @@ export default function VacacionesPage() {
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {filas.length === 0 && (
                   <tr>
                     <td colSpan={9} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 13v4M10 15h4" />
@@ -358,7 +358,7 @@ export default function VacacionesPage() {
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         diasAnuales === getParametros().vacaciones.diasMas5 && diasAnuales !== getParametros().vacaciones.diasHasta5
                           ? 'bg-[#eef0fb] text-[#151f66] dark:bg-indigo-950/40 dark:text-indigo-300'
-                          : 'bg-zinc-100 text-zinc-700 dark:bg-[#1a1d2e] dark:text-zinc-400'
+                          : 'bg-zinc-100 text-zinc-700 dark:bg-[#262626] dark:text-zinc-400'
                       }`}>
                         {diasAnuales} días
                       </span>
@@ -407,7 +407,7 @@ export default function VacacionesPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                   <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#1B2980] dark:text-indigo-400">
                     {hayFiltrosActivos ? 'TOTAL (filtrado)' : 'TOTAL'}
                   </td>
@@ -422,8 +422,8 @@ export default function VacacionesPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Disfrutes y Ventas Registradas</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Cada registro resta de los días disponibles. Un <strong>Disfrute</strong> prorratea el salario normal
@@ -444,7 +444,7 @@ export default function VacacionesPage() {
             <div className="overflow-x-auto">
               <table className="tabla-cards w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Tipo</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Desde</th>
@@ -454,12 +454,12 @@ export default function VacacionesPage() {
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {disfrutesOrdenados.map(d => {
                     const emp = empleadosEnNomina.find(e => e.id === d.empleadoId)
                     const esVenta = d.tipo === 'venta'
                     return (
-                      <tr key={d.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+                      <tr key={d.id} className="hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                         <td data-col="emp100" className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">{emp ? fullName(emp) : '—'}</td>
                         <td data-col="num" data-label="Tipo" className="px-4 py-3.5">
                           {esVenta
@@ -488,7 +488,7 @@ export default function VacacionesPage() {
           )}
         </div>
 
-        <div className="rounded-xl border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/30 px-5 py-4 text-xs text-sky-800 dark:text-sky-300">
+        <div className="rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/30 px-5 py-4 text-xs text-sky-800 dark:text-sky-300">
           <p className="font-semibold mb-1">Art. 177–179, Código de Trabajo — República Dominicana</p>
           <p>Después de un trabajo continuo no menor de un año, el trabajador tendrá derecho a <strong>un período de vacaciones remuneradas de catorce (14) días laborables</strong>. Después de cinco años de servicio ininterrumpido, el trabajador tendrá derecho a <strong>dieciocho (18) días laborables</strong> de vacaciones. Las vacaciones no pueden ser sustituidas por una compensación en dinero, excepto cuando el contrato termina sin que hayan sido disfrutadas.</p>
           <p className="mt-2">A diferencia de la cesantía/preaviso (indemnizaciones exentas) y de la Regalía Pascual (100% exenta, Art. 219), las vacaciones son salario ordinario continuado (Art. 178) — llevan AFP, SFS e ISR normales si el monto supera la exención del ISR. La columna "Neto Estimado" muestra lo que el empleado recibiría hoy después de esas retenciones.</p>
@@ -499,10 +499,10 @@ export default function VacacionesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalAbierto(false)}>
           <div className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60 animate-backdrop-in" />
           <div
-            className="relative w-full max-w-md rounded-xl bg-white dark:bg-[#141722] shadow-2xl dark:shadow-none animate-modal-in"
+            className="relative w-full max-w-md rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl dark:shadow-none animate-modal-in"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Registrar Disfrute de Vacaciones</h3>
               <button onClick={() => setModalAbierto(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                 <X className="h-4 w-4" />
@@ -514,7 +514,7 @@ export default function VacacionesPage() {
                 <select
                   value={empId}
                   onChange={e => setEmpId(e.target.value)}
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 >
                   <option value="">Selecciona un empleado…</option>
                   {empleadosEnNomina.map(e => (
@@ -529,7 +529,7 @@ export default function VacacionesPage() {
                     type="date"
                     value={fechaInicio}
                     onChange={e => setFechaInicio(e.target.value)}
-                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
@@ -539,7 +539,7 @@ export default function VacacionesPage() {
                     value={fechaFin}
                     onChange={e => setFechaFin(e.target.value)}
                     min={fechaInicio || undefined}
-                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -550,7 +550,7 @@ export default function VacacionesPage() {
                   value={notas}
                   onChange={e => setNotas(e.target.value)}
                   placeholder="Ej. Viaje familiar"
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 />
               </div>
               {diasLaborablesPreview > 0 && (
@@ -568,10 +568,10 @@ export default function VacacionesPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <button
                 onClick={() => setModalAbierto(false)}
-                className="rounded-lg px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="rounded-lg px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 Cancelar
               </button>
@@ -591,10 +591,10 @@ export default function VacacionesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalVentaAbierto(false)}>
           <div className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60 animate-backdrop-in" />
           <div
-            className="relative w-full max-w-md rounded-xl bg-white dark:bg-[#141722] shadow-2xl dark:shadow-none animate-modal-in"
+            className="relative w-full max-w-md rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl dark:shadow-none animate-modal-in"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vender Vacaciones</h3>
               <button onClick={() => setModalVentaAbierto(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                 <X className="h-4 w-4" />
@@ -610,7 +610,7 @@ export default function VacacionesPage() {
                 <select
                   value={empIdVenta}
                   onChange={e => setEmpIdVenta(e.target.value)}
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 >
                   <option value="">Selecciona un empleado…</option>
                   {empleadosEnNomina.map(e => (
@@ -628,7 +628,7 @@ export default function VacacionesPage() {
                     value={diasVenta}
                     onChange={e => setDiasVenta(e.target.value)}
                     placeholder="Ej. 14"
-                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
                 <div>
@@ -637,7 +637,7 @@ export default function VacacionesPage() {
                     type="date"
                     value={fechaEfectivaVenta}
                     onChange={e => setFechaEfectivaVenta(e.target.value)}
-                    className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -648,7 +648,7 @@ export default function VacacionesPage() {
                   value={notasVenta}
                   onChange={e => setNotasVenta(e.target.value)}
                   placeholder="Ej. Acordado con gerencia"
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100"
                 />
               </div>
               {diasVentaNum > 0 && empSeleccionadoVenta && (
@@ -666,10 +666,10 @@ export default function VacacionesPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-2 border-t border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <button
                 onClick={() => setModalVentaAbierto(false)}
-                className="rounded-lg px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="rounded-lg px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 Cancelar
               </button>

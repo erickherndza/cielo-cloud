@@ -20,14 +20,14 @@ export function PayrollBarChart({ data }: Props) {
 
   if (!mounted) return <ChartSkeleton variant="bars" height={120} />
 
-  const gridColor   = isDark ? '#252840' : '#f4f4f5'
+  const gridColor   = isDark ? '#2e2e2e' : '#f4f4f5'
   const tickColor   = isDark ? '#515868' : '#a1a1aa'
-  const cursorColor = isDark ? '#1a1d2e' : '#f4f4f5'
+  const cursorColor = isDark ? '#262626' : '#f4f4f5'
   const tooltipStyle = {
     fontSize: 11,
-    border: `1px solid ${isDark ? '#252840' : '#e4e4e7'}`,
+    border: `1px solid ${isDark ? '#2e2e2e' : '#e4e4e7'}`,
     borderRadius: 8,
-    backgroundColor: isDark ? '#1a1d2e' : '#ffffff',
+    backgroundColor: isDark ? '#262626' : '#ffffff',
     color: isDark ? '#e2e8f0' : '#18181b',
     boxShadow: isDark ? 'none' : '0 4px 12px rgba(0,0,0,.08)',
   }

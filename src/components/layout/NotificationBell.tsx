@@ -65,13 +65,13 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
         title="Notificaciones"
       >
         <Bell className="h-4 w-4" />
         {severidadMasAlta && (
           <span className={cn(
-            'absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-white dark:ring-[#141722]',
+            'absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-white dark:ring-[#1f1f1f]',
             SEVERIDAD_BADGE[severidadMasAlta],
           )}>
             {alertas.length}
@@ -85,8 +85,8 @@ export function NotificationBell() {
         // izquierda de la pantalla cuando la campana está cerca del borde
         // derecho de un viewport móvil, cortando el contenido. Desde `sm:`
         // en adelante vuelve al anclaje normal junto al botón.
-        <div className="fixed inset-x-4 top-14 z-50 max-h-[75vh] overflow-y-auto rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-[22rem]">
-          <div className="sticky top-0 border-b border-zinc-100 dark:border-[#1d2035] bg-white dark:bg-[#141722] px-4 py-3">
+        <div className="fixed inset-x-4 top-14 z-50 max-h-[75vh] overflow-y-auto rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-lg shadow-zinc-200/60 dark:shadow-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-[22rem]">
+          <div className="sticky top-0 border-b border-zinc-100 dark:border-[#2a2a2a] bg-white dark:bg-[#1f1f1f] px-4 py-3">
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Notificaciones</p>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">
               {alertas.length === 0 ? 'Sin alertas pendientes' : `${alertas.length} alerta${alertas.length !== 1 ? 's' : ''} por revisar`}
@@ -107,14 +107,14 @@ export function NotificationBell() {
               <p className="text-sm text-zinc-600 dark:text-zinc-300">Todo en orden — nada pendiente.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100 dark:divide-[#1d2035]">
+            <ul className="divide-y divide-zinc-100 dark:divide-[#2a2a2a]">
               {alertas.map(item => (
                 <li key={item.id}>
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      'group flex items-start gap-3 border-l-2 border-transparent px-4 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]',
+                      'group flex items-start gap-3 border-l-2 border-transparent px-4 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-[#262626]',
                       SEVERIDAD_BORDE[item.severidad],
                     )}
                   >
@@ -137,13 +137,13 @@ export function NotificationBell() {
                           {item.detalle.map((d, i) => (
                             <span
                               key={i}
-                              className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:text-zinc-400"
+                              className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#262626] px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:text-zinc-400"
                             >
                               {d}
                             </span>
                           ))}
                           {item.detalleTotal !== undefined && item.detalleTotal > item.detalle.length && (
-                            <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                            <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#262626] px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
                               +{item.detalleTotal - item.detalle.length} más
                             </span>
                           )}

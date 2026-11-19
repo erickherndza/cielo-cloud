@@ -99,7 +99,7 @@ function PasoIndicador({ actual }: { actual: Paso }) {
                   ? 'bg-emerald-500 text-white'
                   : i === idx
                     ? 'bg-gradient-to-br from-[#1B2980] to-[#2f3fa8] text-white shadow-md shadow-[#1B2980]/30'
-                    : 'bg-zinc-100 dark:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-600'
+                    : 'bg-zinc-100 dark:bg-[#262626] text-zinc-400 dark:text-zinc-600'
               }`}
             >
               {i < idx ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -109,7 +109,7 @@ function PasoIndicador({ actual }: { actual: Paso }) {
             </span>
           </div>
           {i < PASOS.length - 1 && (
-            <div className={`mx-2 mb-4 h-px w-10 sm:w-16 ${i < idx ? 'bg-emerald-400' : 'bg-zinc-200 dark:bg-[#252840]'}`} />
+            <div className={`mx-2 mb-4 h-px w-10 sm:w-16 ${i < idx ? 'bg-emerald-400' : 'bg-zinc-200 dark:bg-[#2e2e2e]'}`} />
           )}
         </div>
       ))}
@@ -474,11 +474,11 @@ export function ImportadorExcel({ onFinish }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)] space-y-6">
+    <div className="rounded-lg border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)] space-y-6">
 
       {/* Paso indicator */}
       {paso !== 'exito' && (
-        <div className="flex justify-center border-b border-zinc-100 dark:border-[#1d2035] pb-6">
+        <div className="flex justify-center border-b border-zinc-100 dark:border-[#2a2a2a] pb-6">
           <PasoIndicador actual={paso} />
         </div>
       )}
@@ -543,7 +543,7 @@ export function ImportadorExcel({ onFinish }: Props) {
             </div>
           </div>
 
-          <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-tabler-line dark:border-[#252840] px-6 py-10 text-center cursor-pointer hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
+          <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-tabler-line dark:border-[#2e2e2e] px-6 py-10 text-center cursor-pointer hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors">
             <input
               ref={fileInputRef}
               type="file"
@@ -589,7 +589,7 @@ export function ImportadorExcel({ onFinish }: Props) {
       {/* PASO 3: Vista previa y confirmación */}
       {paso === 'previa' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-[#1d2035] rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-zinc-50/60 dark:bg-[#1a1d2e]/40 overflow-hidden">
+          <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-[#2a2a2a] rounded-lg border border-zinc-200/70 dark:border-[#2e2e2e] bg-zinc-50/60 dark:bg-[#262626]/40 overflow-hidden">
             <div className="px-5 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Filas válidas</p>
               <p className="mt-1 text-xl font-bold text-[#1B2980] dark:text-indigo-400 tabular-nums">{filasValidas.length}</p>
@@ -604,10 +604,10 @@ export function ImportadorExcel({ onFinish }: Props) {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-tabler-line dark:border-[#252840]">
+          <div className="overflow-x-auto rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] text-left text-xs text-zinc-500 dark:text-zinc-400">
+                <tr className="border-b border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] text-left text-xs text-zinc-500 dark:text-zinc-400">
                   <th className="px-4 py-2.5 font-medium">Fila</th>
                   <th className="px-4 py-2.5 font-medium">Empleado</th>
                   <th className="px-4 py-2.5 font-medium">Acción</th>
@@ -618,7 +618,7 @@ export function ImportadorExcel({ onFinish }: Props) {
                   <th className="px-4 py-2.5 font-medium">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {filas.map(f => (
                   <tr key={f.fila}>
                     <td className="px-4 py-2.5 text-zinc-400 tabular-nums">{f.fila}</td>

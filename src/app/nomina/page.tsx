@@ -192,7 +192,7 @@ function DetalleNomina({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-2xl rounded-xl bg-white dark:bg-[#141722] shadow-2xl dark:shadow-none animate-modal-in"
+        className="relative w-full max-w-2xl rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl dark:shadow-none animate-modal-in"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-start justify-between rounded-t-xl bg-zinc-950 dark:bg-[#080a12] px-6 py-5 text-white">
@@ -213,7 +213,7 @@ function DetalleNomina({
           <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-400 hover:text-white transition-colors">✕</button>
         </div>
 
-        <div className="grid grid-cols-2 gap-0 divide-x divide-zinc-100 dark:divide-[#1d2035]">
+        <div className="grid grid-cols-2 gap-0 divide-x divide-zinc-100 dark:divide-[#2a2a2a]">
           <div className="p-6">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Devengos</p>
             <div className="space-y-2">
@@ -249,7 +249,7 @@ function DetalleNomina({
                   Días laborables de un ingreso a mitad del período anterior, arrastrados y pagados aquí a la tarifa diaria legal
                 </p>
               )}
-              <div className="border-t border-zinc-100 dark:border-[#1d2035] pt-2 flex justify-between font-semibold text-sm">
+              <div className="border-t border-zinc-100 dark:border-[#2a2a2a] pt-2 flex justify-between font-semibold text-sm">
                 <span className="text-zinc-800 dark:text-zinc-200">Total Bruto</span>
                 <span className="text-emerald-700 dark:text-emerald-400 tabular-nums">{fmt(nomina.totalBruto)}</span>
               </div>
@@ -288,7 +288,7 @@ function DetalleNomina({
                   — esta empresa solo retiene su porción proporcional
                 </p>
               )}
-              <div className="border-t border-zinc-100 dark:border-[#1d2035] pt-2 flex justify-between font-semibold text-sm">
+              <div className="border-t border-zinc-100 dark:border-[#2a2a2a] pt-2 flex justify-between font-semibold text-sm">
                 <span className="text-zinc-800 dark:text-zinc-200">Total Descuentos</span>
                 <span className="text-rose-700 dark:text-rose-400 tabular-nums">({fmt(nomina.totalDescuentos)})</span>
               </div>
@@ -296,8 +296,8 @@ function DetalleNomina({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] p-6 rounded-b-xl">
-          <div className="rounded-xl bg-white dark:bg-[#141722] border border-tabler-line dark:border-[#252840] p-4">
+        <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] p-6 rounded-b-xl">
+          <div className="rounded-lg bg-white dark:bg-[#1f1f1f] border border-tabler-line dark:border-[#2e2e2e] p-4">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide">Salario Neto a Pagar</p>
             <p className="mt-1 text-2xl font-bold text-[#151f66] dark:text-indigo-300 tabular-nums">{fmt(nomina.salarioNeto)}</p>
             {nomina.grossingUpEmpresa > 0 && (
@@ -306,7 +306,7 @@ function DetalleNomina({
               </p>
             )}
           </div>
-          <div className="rounded-xl bg-white dark:bg-[#141722] border border-tabler-line dark:border-[#252840] p-4 space-y-1.5">
+          <div className="rounded-lg bg-white dark:bg-[#1f1f1f] border border-tabler-line dark:border-[#2e2e2e] p-4 space-y-1.5">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide mb-2">Aportes Empresa (TSS)</p>
             <div className="flex justify-between text-xs">
               <span className="text-zinc-600 dark:text-zinc-400">AFP Empleador (7.10%)</span>
@@ -336,14 +336,14 @@ function DetalleNomina({
                 <span className="tabular-nums font-medium dark:text-zinc-200">{fmt(nomina.grossingUpEmpresa)}</span>
               </div>
             )}
-            <div className="border-t border-zinc-100 dark:border-[#1d2035] pt-1.5 flex justify-between text-xs font-bold">
+            <div className="border-t border-zinc-100 dark:border-[#2a2a2a] pt-1.5 flex justify-between text-xs font-bold">
               <span className="dark:text-zinc-200">Costo Total Empresa</span>
               <span className="text-amber-700 dark:text-amber-400 tabular-nums">{fmt(nomina.totalCostoEmpleador)}</span>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4 flex items-center justify-between gap-4">
+        <div className="border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex gap-4 text-xs text-zinc-500 dark:text-zinc-400">
             <span>Regalía/período: <strong className="text-zinc-800 dark:text-zinc-200">{fmt(nomina.regaliaPascual)}</strong></span>
             <span>Vacaciones: <strong className="text-zinc-800 dark:text-zinc-200">{nomina.vacacionesMensualesDias.toFixed(2)} días</strong></span>
@@ -1149,14 +1149,14 @@ export default function NominaPage() {
       <div className="flex flex-col overflow-hidden h-full">
         <Header title="Cálculo de Nómina" subtitle="Calcula los devengados y deducciones de tu equipo de trabajo" />
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
           {/* Selección de período a calcular */}
-          <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none px-5 py-4">
+          <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none px-5 py-4">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Frecuencia</label>
-                <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
+                <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
                   {(['mensual', 'quincenal'] as TipoPeriodo[]).map(t => (
                     <button
                       key={t}
@@ -1164,7 +1164,7 @@ export default function NominaPage() {
                       className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                         nuevoTipo === t
                           ? 'bg-[#1B2980] text-white'
-                          : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                          : 'bg-white dark:bg-[#1f1f1f] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                       }`}
                     >
                       {t === 'mensual' ? 'Mensual' : 'Quincenal'}
@@ -1178,7 +1178,7 @@ export default function NominaPage() {
                 <select
                   value={nuevoMes}
                   onChange={e => setNuevoMes(Number(e.target.value))}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                 >
                   {MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
                 </select>
@@ -1189,7 +1189,7 @@ export default function NominaPage() {
                 <select
                   value={nuevoAnio}
                   onChange={e => setNuevoAnio(Number(e.target.value))}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                 >
                   {anios.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
@@ -1201,7 +1201,7 @@ export default function NominaPage() {
                   <select
                     value={nuevaQuincena}
                     onChange={e => setNuevaQuincena(Number(e.target.value) as 1 | 2)}
-                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                   >
                     <option value={1}>1ª Quincena (1–15)</option>
                     <option value={2}>2ª Quincena (16–fin)</option>
@@ -1211,7 +1211,7 @@ export default function NominaPage() {
 
               <div className="flex items-center gap-2 pb-2">
                 <span className="text-sm text-zinc-500 dark:text-zinc-400">Empleados</span>
-                <span className="rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                <span className="rounded-full bg-zinc-100 dark:bg-[#262626] px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   {empleadosEnNomina.length}
                 </span>
               </div>
@@ -1233,8 +1233,8 @@ export default function NominaPage() {
           </div>
 
           {/* Historial de períodos */}
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] px-5 py-3">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                 <input
@@ -1242,13 +1242,13 @@ export default function NominaPage() {
                   value={busquedaPeriodo}
                   onChange={e => setBusquedaPeriodo(e.target.value)}
                   placeholder="Buscar período…"
-                  className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                  className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
                 />
               </div>
               <select
                 value={filtroEstadoPeriodo}
                 onChange={e => setFiltroEstadoPeriodo(e.target.value as 'todos' | EstadoPeriodo)}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               >
                 <option value="todos">Todos los estados</option>
                 <option value="en_proceso">En Proceso</option>
@@ -1258,7 +1258,7 @@ export default function NominaPage() {
               <select
                 value={filtroAnioPeriodo}
                 onChange={e => setFiltroAnioPeriodo(e.target.value === 'todos' ? 'todos' : Number(e.target.value))}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               >
                 <option value="todos">Todos los años</option>
                 {aniosPeriodos.map(a => <option key={a} value={a}>{a}</option>)}
@@ -1278,7 +1278,7 @@ export default function NominaPage() {
 
             {periodos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 2v4M8 2v4M3 10h18" />
@@ -1294,7 +1294,7 @@ export default function NominaPage() {
               <div className="overflow-x-auto">
                 <table className="tabla-cards w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                    <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                       <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Período de Nómina</th>
                       <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">S. Bruto</th>
                       <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Total Neto</th>
@@ -1303,7 +1303,7 @@ export default function NominaPage() {
                       <th className="px-4 py-3" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                  <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                     {periodosFiltrados.length === 0 && (
                       <tr>
                         <td data-col="full" colSpan={6} className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
@@ -1354,7 +1354,7 @@ export default function NominaPage() {
                             <button
                               onClick={e => { e.stopPropagation(); setPeriodoAbierto(p.id) }}
                               title="Ver período"
-                              className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#2e2e2e] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
@@ -1362,7 +1362,7 @@ export default function NominaPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); registrarPagosPrestamos(p); cerrar(p.id) }}
                                 title="Cerrar período"
-                                className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#252840] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-1.5 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#2e2e2e] hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                               >
                                 <Lock className="h-4 w-4" />
                               </button>
@@ -1372,7 +1372,7 @@ export default function NominaPage() {
                                 <button
                                   disabled
                                   title="Período ya pagado — no se puede reabrir. Deshaz el pago primero en Gestión de Envíos."
-                                  className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+                                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
                                 >
                                   <Unlock className="h-4 w-4" />
                                 </button>
@@ -1411,7 +1411,7 @@ export default function NominaPage() {
                               <button
                                 disabled
                                 title="Un período cerrado es un registro histórico — no se puede eliminar. Reábrelo primero si necesitas corregirlo."
-                                className="rounded-lg border border-tabler-line dark:border-[#252840] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+                                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -1476,7 +1476,7 @@ export default function NominaPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPeriodoAbierto(null)}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Períodos
@@ -1496,7 +1496,7 @@ export default function NominaPage() {
               {esProcesadaReg && (
                 <button
                   onClick={handleCerrarPeriodo}
-                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                 >
                   <Lock className="h-4 w-4" />
                   Cerrar
@@ -1504,7 +1504,7 @@ export default function NominaPage() {
               )}
               <button
                 onClick={handleExportar}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
@@ -1513,7 +1513,7 @@ export default function NominaPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             <StatCard
               label="Total a Pagar"
@@ -1544,8 +1544,8 @@ export default function NominaPage() {
             para Vacaciones y Regalía dentro de Liquidación.
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 Detalle por Empleado — {periodoActualLabel}
               </h2>
@@ -1553,7 +1553,7 @@ export default function NominaPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                     <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Monto Regalía</th>
                     <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Estado</th>
@@ -1576,7 +1576,7 @@ export default function NominaPage() {
                       <tr
                         key={empId}
                         onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
-                        className={`cursor-pointer border-b border-tabler-line dark:border-[#252840] transition-colors ${
+                        className={`cursor-pointer border-b border-tabler-line dark:border-[#2e2e2e] transition-colors ${
                           isProcesado ? 'bg-emerald-50/40 dark:bg-emerald-950/10' : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
                         }`}
                       >
@@ -1610,7 +1610,7 @@ export default function NominaPage() {
                           {esEnProcesoReg && !isProcesado && (
                             <button
                               onClick={e => { e.stopPropagation(); handleProcesarRegalia([empId]) }}
-                              className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                             >
                               Procesar
                             </button>
@@ -1674,7 +1674,7 @@ export default function NominaPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPeriodoAbierto(null)}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Períodos
@@ -1694,7 +1694,7 @@ export default function NominaPage() {
               {esProcesadaBon && (
                 <button
                   onClick={handleCerrarPeriodo}
-                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                 >
                   <Lock className="h-4 w-4" />
                   Cerrar
@@ -1702,7 +1702,7 @@ export default function NominaPage() {
               )}
               <button
                 onClick={handleExportar}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
@@ -1711,7 +1711,7 @@ export default function NominaPage() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
             <StatCard
               label="Total Bruto a Pagar"
@@ -1742,8 +1742,8 @@ export default function NominaPage() {
             calculados sobre el monto bruto como si fuera el salario del mes.
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 Detalle por Empleado — {periodoActualLabel}
               </h2>
@@ -1751,7 +1751,7 @@ export default function NominaPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                     <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Monto Bruto</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Neto a Pagar</th>
@@ -1775,7 +1775,7 @@ export default function NominaPage() {
                       <tr
                         key={empId}
                         onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
-                        className={`cursor-pointer border-b border-tabler-line dark:border-[#252840] transition-colors ${
+                        className={`cursor-pointer border-b border-tabler-line dark:border-[#2e2e2e] transition-colors ${
                           isProcesado ? 'bg-emerald-50/40 dark:bg-emerald-950/10' : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
                         }`}
                       >
@@ -1812,7 +1812,7 @@ export default function NominaPage() {
                           {esEnProcesoBon && !isProcesado && (
                             <button
                               onClick={e => { e.stopPropagation(); handleProcesarBonificacion([empId]) }}
-                              className="rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                             >
                               Procesar
                             </button>
@@ -1898,7 +1898,7 @@ export default function NominaPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setPeriodoAbierto(null); setSelectedEmps(new Set()) }}
-              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Períodos
@@ -1915,7 +1915,7 @@ export default function NominaPage() {
             {esProcesada && (
               <button
                 onClick={handleCerrarPeriodo}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 <Lock className="h-4 w-4" />
                 Cerrar
@@ -1924,7 +1924,7 @@ export default function NominaPage() {
             {esEnProceso && (
               <button
                 onClick={() => setImportarHorasAbierto(true)}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                 title="Cargar horas extra/recargo nocturno masivamente desde un archivo Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" />
@@ -1933,13 +1933,13 @@ export default function NominaPage() {
             )}
             <button
               onClick={handleExportar}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
             </button>
             {empresa.tasaCambioUSD && (
-              <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]" title="Solo cambia lo que se muestra en pantalla — el PDF, el CSV y el correo siguen en RD$">
+              <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]" title="Solo cambia lo que se muestra en pantalla — el PDF, el CSV y el correo siguen en RD$">
                 {(['RD$', 'USD'] as const).map(moneda => (
                   <button
                     key={moneda}
@@ -1947,7 +1947,7 @@ export default function NominaPage() {
                     className={`px-3 py-2 text-sm font-medium transition-colors ${
                       (moneda === 'USD') === mostrarUSD
                         ? 'bg-[#1B2980] text-white'
-                        : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                        : 'bg-white dark:bg-[#1f1f1f] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                     }`}
                   >
                     {moneda}
@@ -1959,7 +1959,7 @@ export default function NominaPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -1994,8 +1994,8 @@ export default function NominaPage() {
         </div>
 
         {/* Employee table */}
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Detalle por Empleado — {periodoActualLabel}
             </h2>
@@ -2006,7 +2006,7 @@ export default function NominaPage() {
                   className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                     mostrarFiltros
                       ? 'border-[#1B2980]/30 bg-[#eef0fb] text-[#1B2980] dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50'
-                      : 'border-tabler-line dark:border-[#252840] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                      : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'
                   }`}
                 >
                   <Filter className="h-3.5 w-3.5" />
@@ -2024,11 +2024,11 @@ export default function NominaPage() {
             </div>
           </div>
           {esEnProceso && mostrarFiltros && (
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3 flex flex-wrap items-end gap-3">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] px-5 py-3 flex flex-wrap items-end gap-3">
               <div>
                 <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Departamento</label>
                 <select value={filtroDepto} onChange={e => setFiltroDepto(e.target.value)}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none">
                   <option value="todos">Todos</option>
                   {Array.from(new Set(empleadosPeriodo.map(e => e.departamento))).sort().map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -2038,12 +2038,12 @@ export default function NominaPage() {
               <div>
                 <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Ingreso Desde</label>
                 <input type="date" value={filtroIngresoDesde} onChange={e => setFiltroIngresoDesde(e.target.value)}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Ingreso Hasta</label>
                 <input type="date" value={filtroIngresoHasta} onChange={e => setFiltroIngresoHasta(e.target.value)}
-                  className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
+                  className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none" />
               </div>
               <button
                 onClick={seleccionarPorCriterio}
@@ -2057,7 +2057,7 @@ export default function NominaPage() {
               </p>
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] px-5 py-3">
+          <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] px-5 py-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
@@ -2065,13 +2065,13 @@ export default function NominaPage() {
                 value={busquedaEmpleado}
                 onChange={e => setBusquedaEmpleado(e.target.value)}
                 placeholder="Buscar por nombre o cédula…"
-                className="w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+                className="w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
               />
             </div>
             <select
               value={filtroDeptoTabla}
               onChange={e => setFiltroDeptoTabla(e.target.value)}
-              className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
+              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] dark:text-zinc-200 px-2.5 py-1.5 text-xs focus:border-[#1B2980] focus:outline-none"
             >
               <option value="todos">Todos los departamentos</option>
               {departamentosPeriodo.map(d => <option key={d} value={d}>{d}</option>)}
@@ -2091,7 +2091,7 @@ export default function NominaPage() {
           <div className="overflow-x-auto">
             <table className="tabla-cards w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e] text-left">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] text-left">
                   {esEnProceso && (
                     <th className="pl-4 pr-2 py-3 w-8">
                       <button
@@ -2135,7 +2135,7 @@ export default function NominaPage() {
                     <Fragment key={empleado.id}>
                       <tr
                         onClick={() => setDetalleModal({ emp: empleado, nom: resultado })}
-                        className={`cursor-pointer border-b border-tabler-line dark:border-[#252840] transition-colors ${
+                        className={`cursor-pointer border-b border-tabler-line dark:border-[#2e2e2e] transition-colors ${
                           isProcesado
                             ? 'bg-emerald-50/40 dark:bg-emerald-950/10'
                             : 'hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20'
@@ -2203,7 +2203,7 @@ export default function NominaPage() {
                             {esEnProceso && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); isExpanded ? setExpandedEmpId(null) : openAjusteForm(empleado.id) }}
-                                className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-zinc-100 dark:bg-[#252840] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#2d3152] transition-colors"
+                                className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-zinc-100 dark:bg-[#2e2e2e] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-[#2d3152] transition-colors"
                                 title="Agregar ajuste"
                               >
                                 <Plus className="h-3 w-3" />
@@ -2247,7 +2247,7 @@ export default function NominaPage() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); setDetalleModal({ emp: empleado, nom: resultado }) }}
-                              className="rounded-lg p-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] transition-colors"
+                              className="rounded-lg p-1 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-colors"
                               title="Ver comprobante"
                             >
                               <ChevronRight className="h-4 w-4" />
@@ -2259,10 +2259,10 @@ export default function NominaPage() {
                       {/* Inline ajuste form */}
                       {isExpanded && (
                         <tr
-                          className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]"
+                          className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]"
                         >
                           <td data-col="full" colSpan={colSpanTotal} className="px-5 py-4">
-                            <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-4">
+                            <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-4">
                               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">
                                 Agregar ajuste — {fullName(empleado)}
                               </p>
@@ -2270,16 +2270,16 @@ export default function NominaPage() {
 
                                 <div className="flex flex-col gap-1.5">
                                   <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Tipo</label>
-                                  <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
+                                  <div className="flex overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
                                     <button
                                       onClick={() => { setNewTipo('ingreso'); setNewConcepto('bono'); setNewConceptoPersId(null) }}
-                                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${newTipo === 'ingreso' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'}`}
+                                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${newTipo === 'ingreso' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-[#1f1f1f] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'}`}
                                     >
                                       Ingreso
                                     </button>
                                     <button
                                       onClick={() => { setNewTipo('deduccion'); setNewConcepto('prestamo'); setNewConceptoPersId(null) }}
-                                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${newTipo === 'deduccion' ? 'bg-rose-600 text-white' : 'bg-white dark:bg-[#141722] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'}`}
+                                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${newTipo === 'deduccion' ? 'bg-rose-600 text-white' : 'bg-white dark:bg-[#1f1f1f] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626]'}`}
                                     >
                                       Deducción
                                     </button>
@@ -2300,7 +2300,7 @@ export default function NominaPage() {
                                         setNewConceptoPersId(null)
                                       }
                                     }}
-                                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                                   >
                                     {(newTipo === 'ingreso' ? conceptosIngreso : conceptosDeduccion).map(c => (
                                       <option key={c} value={c}>{labelConcepto(c)}</option>
@@ -2326,7 +2326,7 @@ export default function NominaPage() {
                                     placeholder={isHorasConcepto(newConcepto) ? '0' : '0.00'}
                                     min="0"
                                     step={isHorasConcepto(newConcepto) ? '1' : '0.01'}
-                                    className="w-32 rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                                    className="w-32 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                                   />
                                 </div>
 
@@ -2337,7 +2337,7 @@ export default function NominaPage() {
                                     value={newDesc}
                                     onChange={e => setNewDesc(e.target.value)}
                                     placeholder="Nota o referencia"
-                                    className="rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
+                                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] dark:text-zinc-200 px-3 py-1.5 text-sm focus:border-[#1B2980] focus:outline-none"
                                   />
                                 </div>
 
@@ -2351,7 +2351,7 @@ export default function NominaPage() {
                                   </button>
                                   <button
                                     onClick={() => setExpandedEmpId(null)}
-                                    className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                                   >
                                     Cancelar
                                   </button>
@@ -2396,7 +2396,7 @@ export default function NominaPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                   <td data-col="full" className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400" colSpan={esEnProceso ? 3 : 2}>
                     {hayFiltrosTabla ? `TOTAL (filtrado) — ${nominasVisibles.length} empleados` : `TOTALES — ${empleadosPeriodo.length} empleados`}
                   </td>
@@ -2415,7 +2415,7 @@ export default function NominaPage() {
         </div>
 
         {/* Nota legal */}
-        <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-3.5">
+        <div className="rounded-lg border border-indigo-100 dark:border-indigo-900/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-3.5">
           <div className="flex items-start gap-3">
             <Info className="mt-0.5 h-4 w-4 text-[#1B2980] dark:text-indigo-300 shrink-0" />
             <div className="text-xs text-[#151f66] dark:text-indigo-200 space-y-0.5">
@@ -2542,8 +2542,8 @@ export default function NominaPage() {
               onClick={() => setAuditoriaIds(null)}
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#141722] shadow-2xl animate-modal-in flex flex-col">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#1d2035]">
+              <div className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl animate-modal-in flex flex-col">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-[#2a2a2a]">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-[#1B2980] dark:text-indigo-400" />
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Auditoría pre-cierre</h2>
@@ -2568,16 +2568,16 @@ export default function NominaPage() {
                   ) : (
                     <>
                       {filasConAlerta.length > 0 && (
-                        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840]">
+                        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e]">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="bg-zinc-50 dark:bg-[#1a1d2e] text-left text-zinc-500 dark:text-zinc-400">
+                              <tr className="bg-zinc-50 dark:bg-[#262626] text-left text-zinc-500 dark:text-zinc-400">
                                 <th className="px-3 py-2 font-medium">Empleado</th>
                                 <th className="px-3 py-2 font-medium text-right">Neto</th>
                                 <th className="px-3 py-2 font-medium">Alerta</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                            <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                               {filasConAlerta.map(f => (
                                 <tr key={f.empleado.id}>
                                   <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{fullName(f.empleado)}</td>
@@ -2639,10 +2639,10 @@ export default function NominaPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4">
+                <div className="flex items-center justify-end gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4">
                   <button
                     onClick={() => setAuditoriaIds(null)}
-                    className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                    className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
                   >
                     Cancelar
                   </button>

@@ -34,7 +34,7 @@ export function EmpleadoInfoReadOnly({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="flex w-full max-w-2xl max-h-[92vh] flex-col overflow-hidden rounded-xl bg-white dark:bg-[#141722] shadow-2xl animate-modal-in"
+        className="flex w-full max-w-2xl max-h-[92vh] flex-col overflow-hidden rounded-xl bg-white dark:bg-[#1f1f1f] shadow-2xl animate-modal-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Title bar */}
@@ -53,8 +53,8 @@ export function EmpleadoInfoReadOnly({
         </div>
 
         {/* Hero strip */}
-        <div className="shrink-0 flex items-center gap-5 px-8 py-5 border-b border-zinc-100 dark:border-[#1d2035] bg-gradient-to-r from-slate-50 to-white dark:from-[#1a1d2e] dark:to-[#141722]">
-          <EmpleadoAvatar emp={empleado} size="lg" className="ring-4 ring-white dark:ring-[#252840] shadow-md" />
+        <div className="shrink-0 flex items-center gap-5 px-8 py-5 border-b border-zinc-100 dark:border-[#2a2a2a] bg-gradient-to-r from-slate-50 to-white dark:from-[#262626] dark:to-[#1f1f1f]">
+          <EmpleadoAvatar emp={empleado} size="lg" className="ring-4 ring-white dark:ring-[#2e2e2e] shadow-md" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100 truncate">{fullName(empleado)}</p>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{empleado.cargo} · {empleado.departamento}</p>
@@ -68,7 +68,7 @@ export function EmpleadoInfoReadOnly({
               {empleado.activo && empleado.suspendido && <Badge variant="warning">Suspendido</Badge>}
               {empleado.activo && empleado.salidaPendiente && <Badge variant="danger">Salida Pendiente</Badge>}
               {pais && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#252840] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-[#2e2e2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
                   <FlagImg code={pais.code} className="h-3.5 w-5" /> {pais.nombre}
                 </span>
               )}
@@ -159,7 +159,7 @@ export function EmpleadoInfoReadOnly({
                   {empleado.documentoIdentidad && empleado.documentoIdentidadNombre && (
                     <button type="button"
                       onClick={() => downloadBase64(empleado.documentoIdentidad!, empleado.documentoIdentidadNombre!)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors group">
                       <FileText className="h-4 w-4 text-[#1B2980] dark:text-indigo-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{labelTipoDoc(empleado.tipoDocumento)} — escaneo</p>
@@ -171,7 +171,7 @@ export function EmpleadoInfoReadOnly({
                   {empleado.contratoLaboral && empleado.contratoLaboralNombre && (
                     <button type="button"
                       onClick={() => downloadBase64(empleado.contratoLaboral!, empleado.contratoLaboralNombre!)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors group">
+                      className="flex w-full items-center gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors group">
                       <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Contrato Laboral</p>
@@ -196,7 +196,7 @@ export function EmpleadoInfoReadOnly({
                   { label: 'Banco',             value: empleado.banco ?? '—' },
                   { label: 'N° Cuenta',         value: empleado.numeroCuenta ?? '—' },
                 ].map(item => (
-                  <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+                  <div key={item.label} className="rounded-lg bg-zinc-50 dark:bg-[#262626] px-3 py-2.5">
                     <p className="text-[11px] font-medium uppercase text-zinc-400 dark:text-zinc-500">{item.label}</p>
                     <p className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.value}</p>
                   </div>

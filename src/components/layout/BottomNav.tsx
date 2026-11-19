@@ -27,7 +27,7 @@ export function BottomNav() {
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center border-t pb-[env(safe-area-inset-bottom)] box-content border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center border-t pb-[env(safe-area-inset-bottom)] box-content border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-1">
       {BOTTOM_ITEMS.map((item) => {
         const active = isActive(item.href)
         return (

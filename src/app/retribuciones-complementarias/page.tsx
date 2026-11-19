@@ -71,7 +71,7 @@ function textoDesglose(l: RetribucionComplementaria, info?: { reduccionVehiculo:
 }
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 tabular-nums focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 tabular-nums focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
 
 const hoy = new Date()
 
@@ -474,7 +474,7 @@ export default function RetribucionesComplementariasPage() {
             <button
               onClick={handleExportarPDF}
               disabled={lineasDelMes.length === 0}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title={lineasDelMes.length === 0 ? `Sin retribuciones en ${MESES[mesSel - 1]} ${anioSel}` : undefined}
             >
               <FileDown className="h-4 w-4" />
@@ -483,7 +483,7 @@ export default function RetribucionesComplementariasPage() {
             <button
               onClick={handleExportarExcel}
               disabled={retribuciones.length === 0}
-              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Download className="h-4 w-4" />
               Exportar Excel
@@ -491,14 +491,14 @@ export default function RetribucionesComplementariasPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {/* ── Selector de mes + estado de declaración ─────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-5 py-3.5 shadow-sm dark:shadow-none">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-5 py-3.5 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-2">
             <button
               onClick={() => cambiarMes(-1)}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#262626] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               title="Mes anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -508,7 +508,7 @@ export default function RetribucionesComplementariasPage() {
             </span>
             <button
               onClick={() => cambiarMes(1)}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#262626] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               title="Mes siguiente"
             >
               <ChevronRight className="h-4 w-4" />
@@ -549,8 +549,8 @@ export default function RetribucionesComplementariasPage() {
         </div>
 
         {/* ── Form: registrar nueva retribución ──────────────────────────── */}
-        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Registrar Retribución — {MESES[mesSel - 1]} {anioSel}
             </h2>
@@ -600,7 +600,7 @@ export default function RetribucionesComplementariasPage() {
 
               {/* ── Desglose de Vivienda: suma de gastos reales imputados ── */}
               {esVivienda && (
-                <div className="w-full rounded-lg border border-zinc-100 dark:border-[#1d2035] bg-zinc-50/60 dark:bg-[#1a1d2e]/60 p-4 space-y-3">
+                <div className="w-full rounded-lg border border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50/60 dark:bg-[#262626]/60 p-4 space-y-3">
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     La base gravable de la vivienda es la <strong>suma de los gastos reales imputados</strong> (Guía DGII No.14).
                   </p>
@@ -627,7 +627,7 @@ export default function RetribucionesComplementariasPage() {
 
               {/* ── Desglose de Vehículo: valor × % de uso personal presunto ── */}
               {esVehiculo && (
-                <div className="w-full rounded-lg border border-zinc-100 dark:border-[#1d2035] bg-zinc-50/60 dark:bg-[#1a1d2e]/60 p-4 space-y-3">
+                <div className="w-full rounded-lg border border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50/60 dark:bg-[#262626]/60 p-4 space-y-3">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div className="space-y-1.5">
                       <label htmlFor="vehValor" className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Valor mensual del vehículo</label>
@@ -705,10 +705,10 @@ export default function RetribucionesComplementariasPage() {
         </div>
 
         {/* ── Detector de diferenciales de interés (Art. 318) ─────────────── */}
-        <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
+        <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef0fb] dark:bg-indigo-950/40">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/40">
                 <HandCoins className="h-4 w-4 text-[#1B2980] dark:text-indigo-400" />
               </div>
               <div>
@@ -731,7 +731,7 @@ export default function RetribucionesComplementariasPage() {
             ) : (
               <Link
                 href="/configuracion"
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] px-3 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 Ir a Configuración
               </Link>
@@ -739,7 +739,7 @@ export default function RetribucionesComplementariasPage() {
           </div>
 
           {tasaReferencia && mostrarDetector && (
-            <div className="border-t border-zinc-100 dark:border-[#1d2035]">
+            <div className="border-t border-zinc-100 dark:border-[#2a2a2a]">
               {diferenciales.length === 0 ? (
                 <p className="px-5 py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
                   Ningún préstamo activo está por debajo de la tasa de referencia en {MESES[mesSel - 1]} {anioSel}.
@@ -749,7 +749,7 @@ export default function RetribucionesComplementariasPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                        <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                           <th className="px-5 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                           <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Saldo Pendiente</th>
                           <th className="px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Tasa Préstamo</th>
@@ -758,7 +758,7 @@ export default function RetribucionesComplementariasPage() {
                           <th className="px-4 py-2.5 w-32" />
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                      <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                         {diferenciales.map(d => {
                           const emp = empMap[d.empleadoId]
                           const yaAgregado = prestamosYaAgregados.has(d.prestamoId)
@@ -792,7 +792,7 @@ export default function RetribucionesComplementariasPage() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#1d2035] px-5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] px-5 py-3">
                     <p className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-xl">
                       Diferencial = saldo pendiente × (referencia anual − tasa del préstamo × 12) ÷ 100 ÷ 12. La tasa de los
                       préstamos se registra mensual y se anualiza de forma nominal. Usa el saldo pendiente actual. Los avances de
@@ -838,8 +838,8 @@ export default function RetribucionesComplementariasPage() {
         </div>
 
         {/* ── Table ────────────────────────────────────────────────────── */}
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Detalle de Retribuciones — {MESES[mesSel - 1]} {anioSel}
             </h2>
@@ -847,7 +847,7 @@ export default function RetribucionesComplementariasPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Concepto</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Base Gravable</th>
@@ -855,12 +855,12 @@ export default function RetribucionesComplementariasPage() {
                   <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400 w-16"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {lineasDelMes.length === 0 && (
                   <tr>
                     <td colSpan={5}>
                       <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                           <Landmark className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
                         </div>
                         <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">
@@ -917,7 +917,7 @@ export default function RetribucionesComplementariasPage() {
               </tbody>
               {lineasDelMes.length > 0 && (
                 <tfoot>
-                  <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                  <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                     <td colSpan={2} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                       TOTAL — {lineasDelMes.length} concepto(s)
                     </td>
@@ -937,15 +937,15 @@ export default function RetribucionesComplementariasPage() {
 
         {/* ── Historial de meses ───────────────────────────────────────── */}
         {historialMeses.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center gap-2">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center gap-2">
               <History className="h-4 w-4 text-zinc-400" />
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Historial de Declaraciones IR-17</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Mes</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Valor Total</th>
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Impuesto (27%)</th>
@@ -953,7 +953,7 @@ export default function RetribucionesComplementariasPage() {
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {historialMeses.map(g => (
                     <tr
                       key={`${g.anio}-${g.mes}`}
@@ -991,8 +991,8 @@ export default function RetribucionesComplementariasPage() {
 
         {/* ── Acumulado por empleado ───────────────────────────────────── */}
         {acumuladoPorEmpleado.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-            <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center gap-2">
+          <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+            <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center gap-2">
               <Users className="h-4 w-4 text-zinc-400" />
               <div>
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Acumulado por Empleado</h2>
@@ -1004,7 +1004,7 @@ export default function RetribucionesComplementariasPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                  <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                     <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Meses</th>
                     <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Conceptos</th>
@@ -1012,7 +1012,7 @@ export default function RetribucionesComplementariasPage() {
                     <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Impuesto Sustitutivo Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {acumuladoPorEmpleado.map(g => {
                     const emp = g.empleadoId ? empMap[g.empleadoId] : undefined
                     return (
@@ -1040,7 +1040,7 @@ export default function RetribucionesComplementariasPage() {
         )}
 
         {/* ── Legal note ─────────────────────────────────────────────────── */}
-        <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-4">
+        <div className="rounded-lg border border-indigo-100 dark:border-indigo-900/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-4">
           <div className="flex items-start gap-3">
             <Info className="mt-0.5 h-4 w-4 text-[#1B2980] dark:text-indigo-300 shrink-0" />
             <div className="text-xs text-[#151f66] dark:text-indigo-200 space-y-1.5">

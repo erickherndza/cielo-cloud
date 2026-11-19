@@ -80,7 +80,7 @@ const METODO_PAGO_REF_LABEL: Record<MetodoPago, string> = {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none'
 
 // ── Planilla en PDF — Recibo de Descargo y Liquidación de Prestaciones ─────
 // Documento pensado para que empleado y empleador firmen: usa el snapshot
@@ -322,14 +322,14 @@ function ConceptoLiquidacionCard({
   }
 
   return (
-    <div className={`group relative rounded-2xl border ${colores.border} bg-white dark:bg-[#141722] shadow-sm dark:shadow-none ${colores.hoverShadow} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}>
+    <div className={`group relative rounded-lg border ${colores.border} bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none ${colores.hoverShadow} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}>
       <div className="p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative shrink-0">
               <div className={`absolute inset-0 rounded-2xl ${colores.halo} blur-md opacity-30 group-hover:opacity-50 transition-opacity`} />
               <div
-                className="relative flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-md"
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg text-white shadow-md"
                 style={{ backgroundImage: `linear-gradient(135deg, ${colores.gradFrom}, ${colores.gradTo})` }}
               >
                 <Icon className="h-4.5 w-4.5" />
@@ -344,7 +344,7 @@ function ConceptoLiquidacionCard({
             <button
               onClick={iniciarEdicion}
               title={override ? 'Editar ajuste' : 'Ajustar manualmente'}
-              className="shrink-0 rounded-lg p-1.5 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:!text-[#1B2980] dark:hover:!text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] transition-all"
+              className="shrink-0 rounded-lg p-1.5 text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 hover:!text-[#1B2980] dark:hover:!text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-all"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -379,7 +379,7 @@ function ConceptoLiquidacionCard({
               <input
                 type="number" step="0.01" min="0" value={montoInput}
                 onChange={e => setMontoInput(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-2.5 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-2.5 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
@@ -387,11 +387,11 @@ function ConceptoLiquidacionCard({
               <input
                 type="text" value={motivoInput} onChange={e => setMotivoInput(e.target.value)}
                 placeholder="Ej. Acordado entre las partes no pagar preaviso"
-                className="mt-1 w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-2.5 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-2.5 py-1.5 text-sm text-zinc-900 dark:text-zinc-100 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div className="flex justify-end gap-2 pt-0.5">
-              <button onClick={() => setEditando(false)} className="rounded-lg border border-tabler-line dark:border-[#252840] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+              <button onClick={() => setEditando(false)} className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                 Cancelar
               </button>
               <button
@@ -905,11 +905,11 @@ export default function LiquidacionPage() {
         subtitle="Cálculo de prestaciones laborales · Ley 16-92"
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#0d0f1a]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-tabler-bg dark:bg-[#171717]">
 
         {/* ── Indicador de pasos ────────────────────────────────────────── */}
         {(paso !== 1 || emp) && (
-          <div className="rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none px-5 py-4">
+          <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none px-5 py-4">
             <div className="flex items-center gap-2">
               {([1, 2, 3] as const).map((n, i) => {
                 const StepIcon = n === 1 ? UserMinus : n === 2 ? Calculator : Wallet
@@ -917,7 +917,7 @@ export default function LiquidacionPage() {
                   <div key={n} className="flex items-center gap-2 flex-1">
                     <div className={`flex items-center gap-2 ${i > 0 ? 'flex-1' : ''}`}>
                       {i > 0 && (
-                        <div className="relative h-0.5 flex-1 rounded-full bg-zinc-200 dark:bg-[#252840] overflow-hidden">
+                        <div className="relative h-0.5 flex-1 rounded-full bg-zinc-200 dark:bg-[#2e2e2e] overflow-hidden">
                           <div className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#1B2980] to-[#2f3fa8] dark:from-indigo-500 dark:to-indigo-400 transition-all duration-500 ${pasoNumero > i ? 'w-full' : 'w-0'}`} />
                         </div>
                       )}
@@ -926,7 +926,7 @@ export default function LiquidacionPage() {
                           ? 'bg-gradient-to-br from-[#1B2980] to-[#2f3fa8] dark:from-indigo-500 dark:to-indigo-400 text-white shadow-md shadow-[#1B2980]/30 scale-105'
                           : pasoNumero > n
                           ? 'bg-[#eef0fb] dark:bg-indigo-950/40 text-[#1B2980] dark:text-indigo-400 ring-1 ring-inset ring-[#1B2980]/30 dark:ring-indigo-500/30'
-                          : 'bg-zinc-100 dark:bg-[#1a1d2e] text-zinc-400 dark:text-zinc-500'
+                          : 'bg-zinc-100 dark:bg-[#262626] text-zinc-400 dark:text-zinc-500'
                       }`}>
                         {pasoNumero > n ? <CheckCircle2 className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                       </div>
@@ -943,7 +943,7 @@ export default function LiquidacionPage() {
 
         {/* ── Pendientes por liquidar (solo paso 1) ────────────────────── */}
         {paso === 1 && pendientesLiquidar.length > 0 && (
-          <div className="rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 overflow-hidden">
+          <div className="rounded-lg border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-950/20 overflow-hidden">
             <div className="px-5 py-3.5 flex items-center gap-2 border-b border-rose-100 dark:border-rose-900/40">
               <Clock className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
               <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
@@ -963,7 +963,7 @@ export default function LiquidacionPage() {
                       {e.cargo} · sale el {formatDate(e.fechaSalidaPendiente!)} · {MOTIVO_LIQUIDACION_LABELS[e.motivoSalidaPendiente!]}
                     </span>
                   </div>
-                  <span className="shrink-0 rounded-full bg-white dark:bg-[#141722] px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-400 ring-1 ring-inset ring-rose-200 dark:ring-rose-800/50">
+                  <span className="shrink-0 rounded-full bg-white dark:bg-[#1f1f1f] px-2.5 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-400 ring-1 ring-inset ring-rose-200 dark:ring-rose-800/50">
                     Calcular →
                   </span>
                 </button>
@@ -975,8 +975,8 @@ export default function LiquidacionPage() {
         {/* ══════════════════════ PASO 1 — Datos de Terminación ══════════ */}
         {paso === 1 && (
           <>
-            <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-              <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+              <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
                 <div className="flex items-center gap-2">
                   <UserMinus className="h-4 w-4 text-rose-500 dark:text-rose-400 shrink-0" />
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Datos de Terminación</h2>
@@ -1024,7 +1024,7 @@ export default function LiquidacionPage() {
                 </div>
 
                 {motivo === 'renuncia' && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-zinc-100 dark:border-[#1d2035] pt-4">
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-zinc-100 dark:border-[#2a2a2a] pt-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                         Fecha en que el Empleado Notificó su Renuncia
@@ -1075,7 +1075,7 @@ export default function LiquidacionPage() {
                 elocuente que otro grid de estadísticas como en el resto de
                 la app. */}
             {emp && (
-              <div className="relative rounded-2xl border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="relative rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
                 <div className="px-6 py-6">
                   <div className="flex items-center gap-4">
                     <div className="relative shrink-0">
@@ -1122,7 +1122,7 @@ export default function LiquidacionPage() {
             )}
 
             {legalNote && (
-              <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/40 bg-indigo-50 dark:bg-indigo-950/30 px-5 py-4">
+              <div className="rounded-lg border border-indigo-200 dark:border-indigo-800/40 bg-indigo-50 dark:bg-indigo-950/30 px-5 py-4">
                 <div className="flex items-start gap-3">
                   <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
                   <div>
@@ -1134,8 +1134,8 @@ export default function LiquidacionPage() {
             )}
 
             {!emp && (
-              <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-6 py-12 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e]">
+              <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-6 py-12 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100 dark:bg-[#262626]">
                   <UserMinus className="h-7 w-7 text-zinc-400 dark:text-zinc-500" />
                 </div>
                 <p className="mt-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">Seleccione un empleado para calcular su liquidación</p>
@@ -1165,13 +1165,13 @@ export default function LiquidacionPage() {
                   Cada tarjeta muestra la fórmula aplicada. Puedes ajustar cualquier monto manualmente si corresponde.
                 </p>
               </div>
-              <button onClick={() => setPaso(1)} className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+              <button onClick={() => setPaso(1)} className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /> Atrás
               </button>
             </div>
 
             {resultado.salarioOrdinario > emp.salarioBase + 0.01 && (
-              <div className="rounded-xl border border-indigo-200 dark:border-indigo-800/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-3.5 flex items-start gap-3">
+              <div className="rounded-lg border border-indigo-200 dark:border-indigo-800/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-3.5 flex items-start gap-3">
                 <Info className="h-4 w-4 text-[#1B2980] dark:text-indigo-300 shrink-0 mt-0.5" />
                 <p className="text-xs text-[#151f66] dark:text-indigo-200">
                   Cesantía, Preaviso y Asistencia Económica se calculan sobre{' '}
@@ -1183,7 +1183,7 @@ export default function LiquidacionPage() {
             )}
 
             {diasSinCubrirPorNomina && (
-              <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 flex items-start gap-3">
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   Este empleado eligió pagar sus <strong>{diasSinCubrirPorNomina.diasTrabajados} días trabajados</strong> pendientes
@@ -1214,7 +1214,7 @@ export default function LiquidacionPage() {
               })}
 
               {resultado.saldoISR > 0 && (
-                <div className="group relative rounded-2xl border border-teal-200 dark:border-teal-800/40 bg-white dark:bg-[#141722] shadow-sm dark:shadow-none hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden p-5">
+                <div className="group relative rounded-lg border border-teal-200 dark:border-teal-800/40 bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden p-5">
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 rounded-2xl bg-teal-500 blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
@@ -1233,7 +1233,7 @@ export default function LiquidacionPage() {
             </div>
 
             {prestamosActivos.length > 0 && (
-              <div className="rounded-xl border border-rose-200 dark:border-rose-800/40 bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+              <div className="rounded-lg border border-rose-200 dark:border-rose-800/40 bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
                 <div className="border-b border-rose-100 dark:border-rose-900/40 px-5 py-4 flex items-center gap-2">
                   <HandCoins className="h-4 w-4 text-rose-500 dark:text-rose-400 shrink-0" />
                   <div>
@@ -1241,14 +1241,14 @@ export default function LiquidacionPage() {
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Seleccione los préstamos/avances a descontar del finiquito</p>
                   </div>
                 </div>
-                <div className="divide-y divide-tabler-line dark:divide-[#252840]">
+                <div className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                   {prestamosActivos.map(p => (
                     <label key={p.id} className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-rose-50/40 dark:hover:bg-rose-950/10 transition-colors">
                       <input
                         type="checkbox"
                         checked={prestamosADescontar.includes(p.id)}
                         onChange={e => setPrestamosADescontar(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                        className="h-4 w-4 rounded border-zinc-300 dark:border-[#252840] text-[#1B2980] focus:ring-[#1B2980]/30"
+                        className="h-4 w-4 rounded border-zinc-300 dark:border-[#2e2e2e] text-[#1B2980] focus:ring-[#1B2980]/30"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -1274,7 +1274,7 @@ export default function LiquidacionPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-5 py-4">
+            <div className="flex items-center justify-between rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-5 py-4">
               <div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Subtotal prestaciones</p>
                 <p className="text-lg font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{formatRD(totalFinal, 2)}</p>
@@ -1294,7 +1294,7 @@ export default function LiquidacionPage() {
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Confirmación y Pago — {fullName(emp)}</h2>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Revisa el resumen, indica el método de pago y confirma para registrar la salida.</p>
               </div>
-              <button onClick={() => setPaso(2)} className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors">
+              <button onClick={() => setPaso(2)} className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors">
                 <ArrowLeft className="h-3.5 w-3.5" /> Atrás
               </button>
             </div>
@@ -1319,8 +1319,8 @@ export default function LiquidacionPage() {
                 {/* Perforación tipo recibo desprendible */}
                 <div className="relative -mx-6 mt-4">
                   <div className="border-t border-dashed border-white/25" />
-                  <div className="absolute left-0 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-tabler-bg dark:bg-[#0d0f1a]" />
-                  <div className="absolute right-0 top-0 h-4 w-4 translate-x-1/2 -translate-y-1/2 rounded-full bg-tabler-bg dark:bg-[#0d0f1a]" />
+                  <div className="absolute left-0 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-tabler-bg dark:bg-[#171717]" />
+                  <div className="absolute right-0 top-0 h-4 w-4 translate-x-1/2 -translate-y-1/2 rounded-full bg-tabler-bg dark:bg-[#171717]" />
                 </div>
 
                 <div className="pt-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
@@ -1349,8 +1349,8 @@ export default function LiquidacionPage() {
             </div>
 
             {/* Método de pago */}
-            <div className="rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-              <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4">
+            <div className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+              <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Método de Pago</h2>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Quedará impreso en la planilla de firma</p>
               </div>
@@ -1366,10 +1366,10 @@ export default function LiquidacionPage() {
                         className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                           activo
                             ? 'border-[#1B2980] dark:border-indigo-500 bg-[#eef0fb] dark:bg-indigo-950/30 ring-1 ring-[#1B2980] dark:ring-indigo-500'
-                            : 'border-tabler-line dark:border-[#252840] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                            : 'border-tabler-line dark:border-[#2e2e2e] hover:bg-zinc-50 dark:hover:bg-[#262626]'
                         }`}
                       >
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activo ? 'bg-[#1B2980] dark:bg-indigo-500 text-white' : 'bg-zinc-100 dark:bg-[#1a1d2e] text-zinc-500 dark:text-zinc-400'}`}>
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activo ? 'bg-[#1B2980] dark:bg-indigo-500 text-white' : 'bg-zinc-100 dark:bg-[#262626] text-zinc-500 dark:text-zinc-400'}`}>
                           <Icon className="h-4 w-4" />
                         </div>
                         <span className={`text-sm font-medium ${activo ? 'text-[#1B2980] dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300'}`}>
@@ -1395,14 +1395,14 @@ export default function LiquidacionPage() {
             </div>
 
             {/* Confirmación explícita */}
-            <label className={`flex items-start gap-3 rounded-xl border px-5 py-4 cursor-pointer transition-colors ${
+            <label className={`flex items-start gap-3 rounded-lg border px-5 py-4 cursor-pointer transition-colors ${
               confirmoRevision
                 ? 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/20'
-                : 'border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]'
+                : 'border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] hover:bg-zinc-50 dark:hover:bg-[#262626]'
             }`}>
               <input
                 type="checkbox" checked={confirmoRevision} onChange={e => setConfirmoRevision(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-[#252840] text-emerald-600 focus:ring-emerald-500/30"
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 dark:border-[#2e2e2e] text-emerald-600 focus:ring-emerald-500/30"
               />
               <div>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
@@ -1418,7 +1418,7 @@ export default function LiquidacionPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleExportExcel}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
               >
                 <Download className="h-4 w-4" /> Exportar Borrador (Excel)
               </button>
@@ -1435,7 +1435,7 @@ export default function LiquidacionPage() {
 
         {/* ══════════════════════ ÉXITO ══════════════════════════════════ */}
         {paso === 'exito' && ultimaLiquidacion && (
-          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/40 bg-white dark:bg-[#141722] shadow-sm dark:shadow-none overflow-hidden">
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800/40 bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none overflow-hidden">
             <div className="bg-emerald-50 dark:bg-emerald-950/20 px-6 py-8 text-center">
               <div className="relative mx-auto h-16 w-16">
                 <div className="absolute inset-0 rounded-2xl bg-emerald-500 blur-lg opacity-40" />
@@ -1458,12 +1458,12 @@ export default function LiquidacionPage() {
               </button>
               <button
                 onClick={handleRegistrarOtra}
-                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 Registrar Otra Liquidación
               </button>
             </div>
-            <div className="border-t border-zinc-100 dark:border-[#1d2035] px-6 py-4 text-center">
+            <div className="border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4 text-center">
               <p className="text-xs text-zinc-400 dark:text-zinc-500">
                 La planilla incluye el desglose completo del cálculo, el método de pago y las líneas de firma para
                 empleado y empleador.
@@ -1473,8 +1473,8 @@ export default function LiquidacionPage() {
         )}
 
         {/* ── Liquidaciones registradas ─────────────────────────────────── */}
-        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-sm dark:shadow-none">
-          <div className="border-b border-zinc-100 dark:border-[#1d2035] px-5 py-4 flex items-center justify-between gap-2">
+        <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
+          <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Liquidaciones Registradas</h2>
@@ -1482,7 +1482,7 @@ export default function LiquidacionPage() {
             {liquidacionesOrdenadas.length > 0 && (
               <button
                 onClick={handleExportHistorial}
-                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] hover:border-[#1B2980] dark:hover:border-indigo-500 transition-colors"
               >
                 <Download className="h-3.5 w-3.5" /> Exportar Excel
               </button>
@@ -1491,7 +1491,7 @@ export default function LiquidacionPage() {
           <div className="overflow-x-auto">
             <table className="tabla-cards w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 dark:border-[#1d2035] bg-zinc-50 dark:bg-[#1a1d2e]">
+                <tr className="border-b border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626]">
                   <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Empleado</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Fecha Terminación</th>
                   <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Motivo</th>
@@ -1499,12 +1499,12 @@ export default function LiquidacionPage() {
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {liquidacionesOrdenadas.length === 0 && (
                   <tr>
                     <td colSpan={5} data-col="full">
                       <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef0fb] dark:bg-indigo-950/30">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-[#eef0fb] dark:bg-indigo-950/30">
                           <History className="h-8 w-8 text-[#1B2980] dark:text-indigo-400" />
                         </div>
                         <p className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Sin liquidaciones registradas</p>
@@ -1531,7 +1531,7 @@ export default function LiquidacionPage() {
                       </td>
                       <td data-col="num" data-label="Terminación" className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaTerminacion)}</td>
                       <td data-col="num" data-label="Motivo" className="px-4 py-3.5">
-                        <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#1a1d2e] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                        <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-[#262626] px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                           {MOTIVO_LABELS[l.motivo]}
                         </span>
                       </td>
@@ -1541,7 +1541,7 @@ export default function LiquidacionPage() {
                           <button
                             onClick={() => descargarPlanillaLiquidacionPDF(l, empL, empresa)}
                             title="Descargar planilla de liquidación (PDF)"
-                            className="rounded-lg p-1.5 text-zinc-400 dark:text-zinc-500 hover:text-[#1B2980] dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#1a1d2e] transition-colors"
+                            className="rounded-lg p-1.5 text-zinc-400 dark:text-zinc-500 hover:text-[#1B2980] dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-colors"
                           >
                             <Printer className="h-4 w-4" />
                           </button>
@@ -1553,7 +1553,7 @@ export default function LiquidacionPage() {
               </tbody>
               {liquidacionesOrdenadas.length > 0 && (
                 <tfoot>
-                  <tr className="border-t-2 border-[#c7cef0] dark:border-[#252840] bg-[#eef0fb] dark:bg-[#1a1d2e]">
+                  <tr className="border-t-2 border-[#c7cef0] dark:border-[#2e2e2e] bg-[#eef0fb] dark:bg-[#262626]">
                     <td colSpan={3} data-col="full" className="px-5 py-3 text-xs font-semibold uppercase tracking-widest text-[#1B2980] dark:text-indigo-400">
                       TOTAL — {liquidacionesOrdenadas.length} liquidación(es)
                     </td>
@@ -1571,7 +1571,7 @@ export default function LiquidacionPage() {
       {/* ── Confirm finalizar dialog ───────────────────────────────────── */}
       {confirmFinalizar && emp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
-          <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] p-6 shadow-2xl animate-modal-in">
+          <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 shadow-2xl animate-modal-in">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
@@ -1586,7 +1586,7 @@ export default function LiquidacionPage() {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => setConfirmFinalizar(false)}
-                className="rounded-lg border border-tabler-line dark:border-[#252840] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
               >
                 Cancelar
               </button>

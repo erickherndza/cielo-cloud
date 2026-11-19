@@ -15,7 +15,7 @@ function OpcionCarga({
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] p-7 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1B2980]/30 dark:hover:border-indigo-500/40 hover:shadow-[0_20px_40px_-16px_rgba(27,41,128,0.25)] dark:hover:shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]"
+      className="group relative overflow-hidden rounded-lg border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-7 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1B2980]/30 dark:hover:border-indigo-500/40 hover:shadow-[0_20px_40px_-16px_rgba(27,41,128,0.25)] dark:hover:shadow-[0_20px_40px_-16px_rgba(0,0,0,0.6)]"
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gradient-to-br from-[#1B2980]/10 to-transparent blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:from-indigo-500/10" />
       <div className="relative">
@@ -56,7 +56,7 @@ export function ConfiguracionInicialFlow() {
 
       {modo === 'menu' && (
         <>
-          <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-[#1d2035] rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-zinc-50/60 dark:bg-[#1a1d2e]/40 overflow-hidden">
+          <div className="grid grid-cols-3 divide-x divide-zinc-100 dark:divide-[#2a2a2a] rounded-lg border border-zinc-200/70 dark:border-[#2e2e2e] bg-zinc-50/60 dark:bg-[#262626]/40 overflow-hidden">
             <div className="px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Empleados Activos</p>
               <p className="mt-1.5 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{empleadosActivos.length}</p>

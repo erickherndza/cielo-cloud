@@ -27,7 +27,7 @@ interface Props {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-tabler-line dark:border-[#252840] bg-zinc-50 dark:bg-[#1a1d2e] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
+  'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-zinc-50 dark:bg-[#262626] px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10'
 const labelCls = 'block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1'
 
 interface FormState {
@@ -173,7 +173,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
   // ─── Estado: registrando un empleado nuevo desde el asistente ──────────────
   if (modoAlta) {
     return (
-      <div className="animate-modal-in rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
+      <div className="animate-modal-in rounded-2xl border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
         <div className="mb-5 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
             Registrar empleado nuevo
@@ -195,7 +195,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
           wide
         />
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#1d2035] pt-5">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] pt-5">
           <span className="text-xs text-zinc-400 dark:text-zinc-500">
             {creadosEnSesion > 0
               ? `${creadosEnSesion} empleado${creadosEnSesion === 1 ? '' : 's'} agregado${creadosEnSesion === 1 ? '' : 's'} en esta sesión`
@@ -206,7 +206,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setModoAlta(false)}
-              className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+              className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
             >
               Terminar de agregar
             </button>
@@ -235,7 +235,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
   const anos = getAnosServicio(empleadoActual.fechaIngreso)
 
   return (
-    <div key={empleadoActual.id} className="animate-modal-in rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
+    <div key={empleadoActual.id} className="animate-modal-in rounded-2xl border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-7 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
       {/* Progreso */}
       <div className="mb-5 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
@@ -256,7 +256,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
           </button>
         </div>
       </div>
-      <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-[#1a1d2e]">
+      <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-[#262626]">
         <div
           className="h-full rounded-full bg-gradient-to-r from-[#1B2980] to-[#2f3fa8] transition-all duration-300"
           style={{ width: `${(revisados / totalInicial) * 100}%` }}
@@ -319,7 +319,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-start gap-2 rounded-xl bg-zinc-50 dark:bg-[#1a1d2e] px-3.5 py-2.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+      <div className="mt-4 flex items-start gap-2 rounded-lg bg-zinc-50 dark:bg-[#262626] px-3.5 py-2.5 text-[11px] text-zinc-500 dark:text-zinc-400">
         <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-zinc-400 dark:text-zinc-500" />
         <span>
           El salario histórico se usa solo para Cesantía/Preaviso mientras este empleado no acumule
@@ -328,7 +328,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
       </div>
 
       {/* Identidad y contacto — deja en blanco lo que ya esté correcto en el sistema */}
-      <div className="mt-4 border-t border-zinc-100 dark:border-[#1d2035] pt-4">
+      <div className="mt-4 border-t border-zinc-100 dark:border-[#2a2a2a] pt-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
           Identidad y Contacto
         </p>
@@ -422,7 +422,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
                 type="checkbox"
                 checked={form.regimenIntermitente}
                 onChange={e => set('regimenIntermitente', e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 dark:border-[#252840] text-[#1B2980] focus:ring-[#1B2980]/20"
+                className="h-4 w-4 rounded border-zinc-300 dark:border-[#2e2e2e] text-[#1B2980] focus:ring-[#1B2980]/20"
               />
               Régimen de trabajo intermitente
             </label>
@@ -430,7 +430,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
         </div>
       </div>
 
-      <div className="mt-4 border-t border-zinc-100 dark:border-[#1d2035] pt-4">
+      <div className="mt-4 border-t border-zinc-100 dark:border-[#2a2a2a] pt-4">
         <label className={labelCls}>Saldo ISR a Favor migrado (RD$)</label>
         <input
           type="number"
@@ -449,7 +449,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
       </div>
 
       {/* Acciones */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#1d2035] pt-5">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-[#2a2a2a] pt-5">
         <button
           onClick={marcarNoAplica}
           className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
@@ -469,7 +469,7 @@ export function AsistenteGuiado({ onFinish }: Props) {
 
 function TodoAlDia({ onFinish, onAgregar }: { onFinish: () => void; onAgregar: () => void }) {
   return (
-    <div className="animate-modal-in flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] py-16 px-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
+    <div className="animate-modal-in flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] py-16 px-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-[#1B2980]/20 blur-xl dark:bg-indigo-500/20" />
         <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1B2980] to-[#2f3fa8] text-white shadow-lg shadow-[#1B2980]/30">
@@ -484,7 +484,7 @@ function TodoAlDia({ onFinish, onAgregar }: { onFinish: () => void; onAgregar: (
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={onFinish}
-          className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+          className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
         >
           Volver
         </button>
@@ -501,7 +501,7 @@ function TodoAlDia({ onFinish, onAgregar }: { onFinish: () => void; onAgregar: (
 
 function Completado({ cantidad, onFinish, onAgregar }: { cantidad: number; onFinish: () => void; onAgregar: () => void }) {
   return (
-    <div className="animate-modal-in flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/70 dark:border-[#252840] bg-white dark:bg-[#141722] py-16 px-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
+    <div className="animate-modal-in flex flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-200/70 dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] py-16 px-6 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_40px_-20px_rgba(27,41,128,0.25)] dark:shadow-[0_16px_40px_-20px_rgba(0,0,0,0.6)]">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-[#1B2980]/20 blur-xl dark:bg-indigo-500/20" />
         <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1B2980] to-[#2f3fa8] text-white shadow-lg shadow-[#1B2980]/30">
@@ -518,7 +518,7 @@ function Completado({ cantidad, onFinish, onAgregar }: { cantidad: number; onFin
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={onFinish}
-          className="rounded-xl border border-tabler-line dark:border-[#252840] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+          className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
         >
           Volver
         </button>

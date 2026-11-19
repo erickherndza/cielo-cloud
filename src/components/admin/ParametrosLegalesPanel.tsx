@@ -16,7 +16,7 @@ import { formatRD } from '@/lib/utils'
 interface Version { version: number; datos: unknown; motivo: string; email: string | null; creado_en: string }
 type Grupo = keyof typeof RANGOS_PARAMETROS
 
-const inputCls = 'w-24 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] dark:text-zinc-200 px-2 py-1.5 text-right text-sm tabular-nums focus:border-[#1B2980] focus:outline-none'
+const inputCls = 'w-24 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-2 py-1.5 text-right text-sm tabular-nums focus:border-[#1B2980] focus:outline-none'
 const fechaHora = (iso: string) => new Date(iso).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })
 
 // Etiquetas de cada campo, con el artículo del Código de Trabajo que lo respalda.
@@ -120,7 +120,7 @@ export function ParametrosLegalesPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300">
         Estos valores afectan a <strong>todas las empresas</strong>. Cámbialos solo con respaldo del abogado o del contador. Cada guardado crea una versión con su motivo y autor;
         las liquidaciones ya finalizadas conservan el cálculo con el que se hicieron. Las comisiones y los aumentos no tienen un parámetro legal fijo: se validan caso por caso.
       </div>
@@ -141,7 +141,7 @@ export function ParametrosLegalesPanel() {
           </p>
 
           {SECCIONES.map(s => (
-            <section key={s.grupo} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+            <section key={s.grupo} className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
               <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{s.titulo}</p>
               <p className="mb-3 text-xs text-zinc-500">{s.nota}</p>
               <div className="space-y-2">
@@ -162,13 +162,13 @@ export function ParametrosLegalesPanel() {
             </section>
           ))}
 
-          <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Qué genera cada tipo de terminación</p>
             <p className="mb-3 text-xs text-zinc-500">Renuncia, despido, mutuo acuerdo o vencimiento de contrato: marca qué prestaciones se calculan automáticamente. En Liquidación siempre se puede ajustar el monto con motivo.</p>
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-zinc-500"><th className="py-1 font-medium">Motivo</th>
                 {PRESTACIONES.map(([, etq]) => <th key={etq} className="py-1 text-center font-medium">{etq}</th>)}</tr></thead>
-              <tbody className="divide-y divide-tabler-line dark:divide-[#252840]">
+              <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
                 {(Object.keys(borrador.motivos) as MotivoParam[]).map(m => (
                   <tr key={m}>
                     <td className="py-2 text-zinc-700 dark:text-zinc-300">{MOTIVO_LIQUIDACION_LABELS[m]}</td>
@@ -182,22 +182,22 @@ export function ParametrosLegalesPanel() {
             </table>
           </section>
 
-          <section className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Guardar cambios</p>
             {cambios.length ? (
               <ul className="list-disc space-y-0.5 pl-5 text-xs text-zinc-600 dark:text-zinc-400">{cambios.map(c => <li key={c}>{c}</li>)}</ul>
             ) : <p className="text-xs text-zinc-400">Sin cambios respecto a la versión vigente.</p>}
             <textarea value={motivo} onChange={e => setMotivo(e.target.value)} maxLength={300} rows={2}
               placeholder="Motivo del cambio (obligatorio): quién lo validó y por qué"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none dark:border-[#252840] dark:bg-[#1a1d2e] dark:text-zinc-200" />
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none dark:border-[#2e2e2e] dark:bg-[#262626] dark:text-zinc-200" />
             <div className="flex flex-wrap gap-2">
               <button onClick={guardar} disabled={guardando || !cambios.length || fueraDeRango || motivo.trim().length < 5}
                 className="flex items-center gap-1.5 rounded-lg bg-[#1B2980] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
                 <Save className="h-4 w-4" /> Guardar nueva versión</button>
               <button onClick={() => setBorrador(clonar(vigente))} disabled={!cambios.length}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 disabled:opacity-40 dark:border-[#252840] dark:text-zinc-300">Descartar</button>
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 disabled:opacity-40 dark:border-[#2e2e2e] dark:text-zinc-300">Descartar</button>
               <button onClick={() => setBorrador(clonar(PARAMETROS_POR_DEFECTO))}
-                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 dark:border-[#252840] dark:text-zinc-300">
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 dark:border-[#2e2e2e] dark:text-zinc-300">
                 <RotateCcw className="h-4 w-4" /> Cargar valores de fábrica</button>
             </div>
             {fueraDeRango && <p className="text-xs text-rose-600 dark:text-rose-400">Hay valores vacíos o fuera del rango permitido.</p>}
@@ -205,7 +205,7 @@ export function ParametrosLegalesPanel() {
         </div>
 
         <aside className="h-fit space-y-5">
-          <section className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><Calculator className="h-4 w-4" /> Simulador (con el borrador)</p>
             <p className="text-xs text-zinc-500">Prueba el efecto antes de guardar. Usa cifras ficticias, nunca el salario de una persona real.</p>
             <label className="block text-xs text-zinc-600 dark:text-zinc-400">Salario mensual (RD$)
@@ -214,12 +214,12 @@ export function ParametrosLegalesPanel() {
               <input type="number" min="0" step="0.1" value={sim.anos} onChange={e => setSim({ ...sim, anos: e.target.value })} className={`${inputCls} mt-1 w-full`} /></label>
             <label className="block text-xs text-zinc-600 dark:text-zinc-400">Motivo
               <select value={sim.motivo} onChange={e => setSim({ ...sim, motivo: e.target.value as MotivoParam })}
-                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-[#252840] dark:bg-[#1a1d2e] dark:text-zinc-200">
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-[#2e2e2e] dark:bg-[#262626] dark:text-zinc-200">
                 {Object.entries(MOTIVO_LIQUIDACION_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
             <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
               <input type="checkbox" checked={sim.intermitente} onChange={e => setSim({ ...sim, intermitente: e.target.checked })} className="accent-[#1B2980]" /> Régimen intermitente</label>
             {simulacion ? (
-              <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#252840]">
+              <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs dark:border-[#2e2e2e]">
                 {simulacion.lineas.map(l => (
                   <p key={l.nombre} className="flex justify-between gap-2 text-zinc-600 dark:text-zinc-400">
                     <span>{l.nombre} {l.genera ? <span className="text-zinc-400">({l.d.dias} d)</span> : <span className="text-zinc-400">(no aplica)</span>}</span>
@@ -231,11 +231,11 @@ export function ParametrosLegalesPanel() {
             ) : <p className="text-xs text-zinc-400">Completa salario y años con valores válidos.</p>}
           </section>
 
-          <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-[#252840] dark:bg-[#141722]">
+          <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
             <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"><History className="h-4 w-4" /> Versiones</p>
             <div className="space-y-3 text-xs">
               {historial.map(h => (
-                <div key={h.version} className="border-b border-zinc-100 pb-2 last:border-0 dark:border-[#252840]">
+                <div key={h.version} className="border-b border-zinc-100 pb-2 last:border-0 dark:border-[#2e2e2e]">
                   <p className="flex justify-between text-zinc-700 dark:text-zinc-300">
                     <span className="font-semibold">Versión {h.version}{h.version === versionVigente && ' · vigente'}</span>
                     <button onClick={() => setBorrador(mezclarConDefecto(h.datos))} className="text-[#1B2980] underline dark:text-indigo-300">cargar</button></p>

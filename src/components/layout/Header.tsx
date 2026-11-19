@@ -52,9 +52,9 @@ function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-56 rounded-lg border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] shadow-lg shadow-zinc-200/60 dark:shadow-none overflow-hidden">
+        <div className="absolute right-0 top-10 z-50 w-56 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-lg shadow-zinc-200/60 dark:shadow-none overflow-hidden">
           {/* User info */}
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-[#1d2035]">
+          <div className="px-4 py-3 border-b border-zinc-100 dark:border-[#2a2a2a]">
             <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
               {user?.displayName ?? 'Mi cuenta'}
             </p>
@@ -68,7 +68,7 @@ function UserMenu() {
             <Link
               href="/configuracion"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               <Settings className="h-3.5 w-3.5 shrink-0" />
               Configuración
@@ -92,11 +92,11 @@ function BuscarTrigger() {
   return (
     <button
       onClick={open}
-      className="hidden md:flex items-center gap-2 rounded-md border border-tabler-line dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-2.5 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-[#33395a] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+      className="hidden md:flex items-center gap-2 rounded-md border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] px-2.5 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-[#3a3a3a] hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
     >
       <Search className="h-3.5 w-3.5" />
       <span className="w-24 text-left">Buscar…</span>
-      <kbd className="rounded border border-zinc-200 dark:border-[#33395a] bg-white dark:bg-[#141722] px-1.5 py-0.5 text-[10px] font-semibold">
+      <kbd className="rounded border border-zinc-200 dark:border-[#3a3a3a] bg-white dark:bg-[#1f1f1f] px-1.5 py-0.5 text-[10px] font-semibold">
         ⌘K
       </kbd>
     </button>
@@ -107,19 +107,19 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
   const { open: openMenu } = useMobileMenu()
   return (
     <>
-    <header className="flex h-14 shrink-0 items-center border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4">
+    <header className="flex h-14 shrink-0 items-center border-b border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4">
       {/* Left */}
       <div className="flex flex-1 items-center gap-3 min-w-0">
-        <button onClick={openMenu} aria-label="Abrir menú" className="md:hidden -ml-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] text-zinc-500 dark:text-zinc-400 transition-colors">
+        <button onClick={openMenu} aria-label="Abrir menú" className="md:hidden -ml-1 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-zinc-50 dark:hover:bg-[#262626] text-zinc-500 dark:text-zinc-400 transition-colors">
           <Menu className="h-5 w-5" />
         </button>
-        <div className="min-w-0 truncate">
-          <span className="max-md:block text-base md:text-lg font-semibold text-tabler-ink dark:text-zinc-100 truncate">{title}</span>
+        <div className="flex min-w-0 items-baseline">
+          <span className="shrink-0 whitespace-nowrap text-base md:text-lg font-semibold text-tabler-ink dark:text-zinc-100">{title}</span>
           {subtitle && (
-            <span className="ml-2 text-sm text-tabler-mute dark:text-zinc-400 hidden sm:inline">{subtitle}</span>
+            <span className="ml-2 min-w-0 truncate text-sm text-tabler-mute dark:text-zinc-400 hidden sm:inline">{subtitle}</span>
           )}
         </div>
-        {actions && <div className="ml-3 shrink-0 hidden md:block">{actions}</div>}
+        {actions && <div className="ml-3 shrink-0 hidden xl:block">{actions}</div>}
       </div>
 
       {/* Right */}
@@ -127,7 +127,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
         <BuscarTrigger />
         <Link
           href="/configuracion"
-          className="hidden sm:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#1a1d2e] transition-colors"
+          className="hidden sm:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
         >
           <HelpCircle className="h-4 w-4" />
           Ayuda
@@ -138,7 +138,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
       </div>
     </header>
     {actions && (
-      <div className="md:hidden shrink-0 [&>div]:flex-wrap [&>div]:gap-2 border-b border-tabler-line dark:border-[#252840] bg-white dark:bg-[#141722] px-4 py-2">
+      <div className="xl:hidden shrink-0 [&>div]:flex-wrap [&>div]:gap-2 border-b border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-4 py-2">
         {actions}
       </div>
     )}
