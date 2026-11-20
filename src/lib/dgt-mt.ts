@@ -147,6 +147,7 @@ export function construirDGT(args: {
       if (!e || !enMes(l.fechaTerminacion, mes, anio)) continue
       const f = base(e, 'NS', 'Salida')
       f.fechaSalida = fechaDDMMAAAA(l.fechaTerminacion)
+      f.fechaIngreso = ''   // la macro oficial exige fecha de ingreso VACÍA en una salida
       filas.push(f)
     }
     for (const a of aumentos) {

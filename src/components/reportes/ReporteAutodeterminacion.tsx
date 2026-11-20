@@ -39,24 +39,11 @@ export function ReporteAutodeterminacion() {
     descargarTxt(lineasAutodeterminacion(empresa.rnc, mes, anio, res.filas), nombreArchivoAM(empresa.rnc, mes, anio))
   }
 
-  // Mismo orden de columnas que la "Plantilla de Archivo AutoDeterminación" v5.5 de la TSS.
+  // Llena la plantilla OFICIAL de la TSS (con su formato, logos y macro "Generar Archivo").
   async function descargarExcel() {
-    const { exportarExcel } = await import('@/lib/excel-export')
-    const per = `${String(mes).padStart(2, '0')}${anio}`
-    const ingresoTxt = (t: string) => (t === '0009' ? 'Entrada de trabajador' : t === '0010' ? 'Salida de trabajador' : 'Normal')
-    await exportarExcel({
-      nombreArchivo: `AM_${(empresa.rnc ?? '').replace(/\D/g, '')}_${per}`,
-      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
-      hojas: [{
-        nombre: 'Autodeterminación',
-        titulo: 'Plantilla de Archivo Autodeterminación (AM) — TSS',
-        subtitulo: `RNC ${empresa.rnc} · Período ${per} (MMAAAA)`,
-        encabezados: ['Clave Nómina', 'Tipo Doc.', 'Número Documento', 'Nombres', '1er. Apellido', '2do. Apellido', 'Sexo', 'Fecha Nacimiento (DDMMAAAA)', 'Salario Cotizable SDSS', 'Aporte Voluntario', 'Salario ISR', 'Tipo Ingreso', 'Otras Remuneraciones', 'RNC/Céd. Agente Retención', 'Remuneración Otros Agentes', 'Saldo a favor del período', 'Regalía Pascual (Saldo 13)', 'Preaviso, Cesantía, Viáticos e Indemnizaciones por Accidentes Laborales', 'Retención Pensión Alimenticia', 'Salario Cotizable INFOTEP'],
-        filas: res.filas.map(f => [f.clave, f.tipoDoc, f.documento, f.nombres, f.apellido1, f.apellido2, f.sexo, f.fechaNac, f.salarioSS, f.aporteVoluntario, f.salarioISR, ingresoTxt(f.tipoIngreso), f.otrasRemuneraciones, '', 0, 0, f.exentoRegalia, f.exentoIndemnizaciones, 0, 0]),
-        totales: ['TOTAL', '', '', '', '', '', '', '', res.totales.salarioSS, null, null, '', res.totales.otras, '', null, null, null, null, null, null],
-        anchos: [10, 8, 18, 22, 18, 18, 7, 16, 16, 14, 14, 22, 16, 18, 16, 16, 16, 24, 16, 16],
-      }],
-    })
+    const { plantillaAutodeterminacion, descargarBlob } = await import('@/lib/plantillas-oficiales')
+    const blob = await plantillaAutodeterminacion({ rnc: empresa.rnc, mes, anio, filas: res.filas })
+    descargarBlob(blob, nombreArchivoAM(empresa.rnc, mes, anio).replace(/\.txt$/, '.xlsm'))
   }
 
   return (
@@ -103,7 +90,7 @@ export function ReporteAutodeterminacion() {
               <FileDown className="h-4 w-4" /> Descargar archivo TSS (.txt)
             </button>
             <button onClick={descargarExcel} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              <FileSpreadsheet className="h-4 w-4" /> Descargar Excel (plantilla TSS)
+              <FileSpreadsheet className="h-4 w-4" /> Descargar plantilla oficial TSS (Excel)
             </button>
             <span className="text-xs text-zinc-400">{nombreArchivoAM(empresa.rnc, mes, anio)}</span>
           </div>
