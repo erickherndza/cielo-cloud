@@ -758,6 +758,9 @@ export interface RegistroLiquidacion {
   // fechaTerminacion (fecha efectiva de salida). El Art. 76 exige que el
   // trabajador avise con la misma anticipación mínima que el empleador
   // (7/14/28 días según antigüedad).
+  // true cuando el empleador SÍ concedió el preaviso (el trabajador lo laboró): no se paga en dinero.
+  // Sin marcar (o registros anteriores) = no se otorgó y se paga cuando el motivo lo genera.
+  preavisoOtorgado?: boolean
   fechaNotificacionRenuncia?: string
 
   // ─── Días trabajados pendientes de pago (salida a mitad de período) ──────

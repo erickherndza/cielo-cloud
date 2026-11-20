@@ -425,6 +425,7 @@ export default function LiquidacionPage() {
     hoyLocalISO()
   )
   const [fechaNotificacionRenuncia, setFechaNotificacionRenuncia] = useState<string>('')
+  const [preavisoOtorgado, setPreavisoOtorgado] = useState(false)
   const [prestamosADescontar, setPrestamosADescontar] = useState<string[]>([])
   const [overrides, setOverrides] = useState<Partial<Record<ConceptoLiquidacion, { monto: number; motivo: string }>>>({})
   const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('')
@@ -506,7 +507,11 @@ export default function LiquidacionPage() {
     const cesantiaDetalle = aplicaCesantia
       ? calcularCesantiaDetalle(salarioOrdinario, anosServicio, divisorDiario)
       : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `No genera cesantía automáticamente para "${MOTIVO_LABELS[motivo]}" (Art. 75/80)` }
-    const preavisoDetalle = aplicaPreaviso
+    // El preaviso es condicional: solo se paga si el empleador NO lo concedió. Si lo otorgó (el trabajador
+    // lo laboró), no hay pago en dinero — la cesantía, en cambio, es fija según la antigüedad.
+    const preavisoDetalle = aplicaPreaviso && preavisoOtorgado
+      ? { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: 'Preaviso otorgado por el empleador (el trabajador lo laboró): no se paga en dinero (Art. 76)' }
+      : aplicaPreaviso
       ? calcularPreavisoDetalle(salarioOrdinario, anosServicio, divisorDiario)
       : { dias: 0, tarifaDiaria: salarioOrdinario / divisorDiario, total: 0, tramo: `No genera preaviso automáticamente para "${MOTIVO_LABELS[motivo]}" (Art. 75/76)` }
     const asistenciaDetalle = aplicaAsistencia
@@ -852,6 +857,7 @@ export default function LiquidacionPage() {
       ...(referenciaPago.trim() ? { referenciaPago: referenciaPago.trim() } : {}),
       desgloseCalculo,
       ...(motivo === 'renuncia' && fechaNotificacionRenuncia ? { fechaNotificacionRenuncia } : {}),
+      ...(preavisoOtorgado && motivoGenera(motivo, 'preaviso') ? { preavisoOtorgado: true } : {}),
       ...(resultado.vacacionesBruto > 0 ? {
         vacacionesBruto: resultado.vacacionesBruto,
         afpVacaciones: resultado.afpVacaciones,
@@ -891,6 +897,7 @@ export default function LiquidacionPage() {
     setEmpleadoId('')
     setMotivo('')
     setFechaNotificacionRenuncia('')
+    setPreavisoOtorgado(false)
     setPrestamosADescontar([])
     setUltimaLiquidacion(null)
     setPaso(1)
@@ -1025,6 +1032,19 @@ export default function LiquidacionPage() {
                     <input type="date" value={fechaTerminacion} onChange={e => setFechaTerminacion(e.target.value)} className={INPUT_CLASS} />
                   </div>
                 </div>
+
+                {motivo && motivoGenera(motivo, 'preaviso') && (
+                  <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-xs text-amber-900 dark:text-amber-200">
+                    <input type="checkbox" className="mt-0.5" checked={preavisoOtorgado} onChange={e => setPreavisoOtorgado(e.target.checked)} />
+                    <span>
+                      <span className="font-semibold">El empleador concedió el preaviso</span>
+                      <span className="block text-[11px] opacity-80">
+                        Márcalo si se avisó con la anticipación legal y el trabajador cumplió ese período. Si no se marca, el preaviso se paga
+                        en dinero. La cesantía se calcula igual en ambos casos (es fija según la antigüedad).
+                      </span>
+                    </span>
+                  </label>
+                )}
 
                 {motivo === 'renuncia' && (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-zinc-100 dark:border-[#2a2a2a] pt-4">
@@ -1175,7 +1195,8 @@ export default function LiquidacionPage() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/20 px-4 py-2.5 text-xs text-sky-800 dark:text-sky-300">
               <Info className="h-3.5 w-3.5 shrink-0" />
               <span className="font-semibold">Criterio aplicado:</span>
-              <span>Cesantía y preaviso por toda la antigüedad ({formatAnosServicio(resultado.anosServicio)})</span>
+              <span>Cesantía fija por antigüedad ({formatAnosServicio(resultado.anosServicio)})</span>
+              {motivoGenera(motivo as Motivo, 'preaviso') && <span>· Preaviso: {preavisoOtorgado ? 'otorgado (no se paga)' : 'no otorgado (se paga)'}</span>}
               <span>· Vacaciones: solo el año en curso (desde el {formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))})</span>
               <span>· Regalía: solo {parseFechaLocal(fechaTerminacion).getFullYear()}</span>
             </div>
