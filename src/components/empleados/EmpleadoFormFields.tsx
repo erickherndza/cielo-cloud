@@ -9,6 +9,8 @@ import {
 } from '@/lib/empleado-form'
 import type { Pais, EmpForm } from '@/lib/empleado-form'
 import { EmpleadoAvatar } from './EmpleadoAvatar'
+import { useCatalogosMT } from '@/lib/catalogos-mt'
+import { NACIONALIDAD_MT_POR_ISO } from '@/lib/dgt-mt'
 import { fullName, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import type { Empleado, TipoContrato, TipoDocumento, Banco } from '@/types'
 
@@ -304,6 +306,107 @@ interface EmpleadoFormFieldsProps {
 // ── Cuerpo del formulario de empleado — sin foto de encabezado/chrome de ventana,
 // reutilizable tanto en el modal de Empleados como en flujos de alta embebidos
 // (p. ej. el Asistente Guiado de Carga Inicial).
+// ── Datos para TSS (autodeterminación) y Ministerio de Trabajo (DGT) ─────────
+// Opcionales: el sistema funciona sin ellos, pero los archivos oficiales los piden.
+function DatosMinisterio({ form, set }: { form: EmpForm; set: <K extends keyof EmpForm>(k: K, v: EmpForm[K]) => void }) {
+  const [abierto, setAbierto] = useState(false)
+  const cat = useCatalogosMT()
+  const [busqueda, setBusqueda] = useState('')
+  const [listaAbierta, setListaAbierta] = useState(false)
+  const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const sugerencias = (() => {
+    const q = norm(busqueda.trim())
+    if (!cat || q.length < 2) return []
+    const palabras = q.split(/\s+/)
+    return cat.ocup.filter(([t]) => { const n = norm(t); return palabras.every(w => n.includes(w)) }).slice(0, 8)
+  })()
+  const sugerida = NACIONALIDAD_MT_POR_ISO[form.nacionalidad] ?? ''
+  const completos = [form.sexo, form.ocupacionMT, form.nacionalidadMT || sugerida].filter(Boolean).length
+  return (
+    <section>
+      <button type="button" onClick={() => setAbierto(v => !v)} className="mb-3 flex w-full items-center justify-between text-left">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Datos para TSS y Ministerio de Trabajo</h3>
+        <span className="text-[11px] text-zinc-400">{completos}/3 clave · {abierto ? 'Ocultar' : 'Completar'}</span>
+      </button>
+      {abierto && (
+        <div className="space-y-3">
+          <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Opcionales. Los piden la autodeterminación de la TSS y los formularios DGT-3/DGT-4; sin ellos la app funciona igual.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Sexo</label>
+              <select className={inputCls} value={form.sexo} onChange={e => set('sexo', e.target.value as EmpForm['sexo'])}>
+                <option value="">— Seleccionar —</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Nacionalidad (catálogo del Ministerio)</label>
+              <select className={inputCls} value={form.nacionalidadMT || sugerida} onChange={e => set('nacionalidadMT', e.target.value)}>
+                <option value="">— Seleccionar —</option>
+                {(cat?.nac ?? []).map(([t, c]) => <option key={c} value={c}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="relative">
+            <label className={labelCls}>Ocupación (catálogo del Ministerio)</label>
+            <input
+              className={inputCls}
+              value={listaAbierta ? busqueda : (form.ocupacionMTDescripcion || busqueda)}
+              placeholder={cat ? 'Escribe para buscar: contador, cajero, chofer…' : 'Cargando catálogo…'}
+              onFocus={() => { setListaAbierta(true); setBusqueda('') }}
+              onChange={e => { setBusqueda(e.target.value); setListaAbierta(true) }}
+              onBlur={() => setTimeout(() => setListaAbierta(false), 150)}
+            />
+            {form.ocupacionMT && <p className="mt-1 text-[10px] text-zinc-400">Código {form.ocupacionMT} · {form.ocupacionMTDescripcion}</p>}
+            {listaAbierta && sugerencias.length > 0 && (
+              <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-lg">
+                {sugerencias.map(([t, c]) => (
+                  <li key={c}>
+                    <button type="button" className="w-full px-3 py-2 text-left text-xs text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-[#262626]"
+                      onMouseDown={e => { e.preventDefault(); set('ocupacionMT', c); set('ocupacionMTDescripcion', t); setBusqueda(''); setListaAbierta(false) }}>
+                      {t} <span className="text-zinc-400">· {c}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>ID de turno</label>
+              <input className={inputCls} inputMode="numeric" value={form.turnoId} onChange={e => set('turnoId', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Usa el de la empresa si lo dejas vacío" />
+            </div>
+            <div>
+              <label className={labelCls}>ID de establecimiento (RNL)</label>
+              <input className={inputCls} inputMode="numeric" value={form.establecimientoRNL} onChange={e => set('establecimientoRNL', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Usa el de la empresa si lo dejas vacío" />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Nivel educativo</label>
+            <select className={inputCls} value={form.nivelEducativoMT} onChange={e => set('nivelEducativoMT', e.target.value)}>
+              <option value="">— Seleccionar —</option>
+              {(cat?.edu ?? []).map(([t, c]) => <option key={c} value={c}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Discapacidad (puedes marcar varias)</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {(cat?.disc ?? []).map(([t, c]) => (
+                <label key={c} className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+                  <input type="checkbox" checked={form.discapacidadesMT.includes(c)}
+                    onChange={e => set('discapacidadesMT', e.target.checked ? [...form.discapacidadesMT, c] : form.discapacidadesMT.filter(x => x !== c))} />
+                  {t}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function EmpleadoFormFields({
   form, set, errors, departamentos, supervisores, wide = false,
 }: EmpleadoFormFieldsProps) {
@@ -750,6 +853,9 @@ export function EmpleadoFormFields({
           después se recalcula con datos reales del sistema.
         </p>
       </section>
+
+      {/* Datos para TSS y Ministerio de Trabajo */}
+      <DatosMinisterio form={form} set={set} />
 
       {/* Datos Bancarios */}
       <section>

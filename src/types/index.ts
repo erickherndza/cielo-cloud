@@ -97,6 +97,17 @@ export interface Empleado {
   tipoDocumento?: TipoDocumento  // default 'cedula' for backward compat
   nacionalidad?: string        // ISO 3166-1 alpha-2 (e.g. 'DO', 'US')
   fechaNacimiento?: string     // ISO date string
+  // ─── Datos para TSS (autodeterminación) y Ministerio de Trabajo (DGT) ───────
+  // Todos opcionales: el sistema funciona sin ellos, pero los archivos oficiales
+  // los piden (ver src/lib/tss-autodeterminacion.ts y src/lib/dgt-mt.ts).
+  sexo?: 'M' | 'F'
+  nacionalidadMT?: string      // código numérico del catálogo del Ministerio (ej. '1' = dominicana); se sugiere desde `nacionalidad`
+  ocupacionMT?: string         // código del catálogo de ocupaciones del Ministerio de Trabajo (ej. '5980')
+  ocupacionMTDescripcion?: string  // texto del catálogo (ej. 'CONTABLES / CONTADOR')
+  turnoId?: string             // ID de turno de horario (DGT-3/4/5/11)
+  establecimientoRNL?: string  // últimos dígitos del RNL del establecimiento (DGT)
+  nivelEducativoMT?: string    // código del catálogo de niveles educativos del Ministerio
+  discapacidadesMT?: string[]  // códigos del catálogo de discapacidades (vacío o ['4714'] = ninguna)
   supervisorId?: string        // employee ID of direct supervisor
   fotoPerfil?: string          // full data URL (data:image/...;base64,...) for <img src>
   avatarColor?: string         // hex color for initials avatar background
@@ -453,6 +464,10 @@ export interface Empresa {
   // calendario), el caso más común y el comportamiento ya existente antes
   // de este campo.
   cierreFiscal?: CierreFiscal
+  // Valores por defecto para los formularios DGT del Ministerio de Trabajo
+  // cuando el empleado no tiene los suyos (ver src/lib/dgt-mt.ts).
+  dgtEstablecimientoRNL?: string  // últimos dígitos del RNL del establecimiento
+  dgtTurnoId?: string             // ID del turno de horario
   // Ejercicios fiscales (año de cierre) en que la empresa declaró que NO corresponde pagar Bonificación
   // (sin utilidades o exención Art. 226). Apaga la alerta de vencimiento de ese año.
   bonificacionExentaAnios?: number[]

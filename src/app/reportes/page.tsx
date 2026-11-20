@@ -7,7 +7,7 @@ import {
   Download, FileSpreadsheet, ChevronRight, Loader2,
   TrendingUp, Wallet, Building2, Receipt, AlertCircle,
   Calendar, Briefcase, Info, Search, Landmark, Clock, Target, Timer,
-  CheckCircle2, XCircle, ShieldAlert, History, UserX, FileClock,
+  CheckCircle2, XCircle, ShieldAlert, History, UserX, FileClock, FileCheck2,
 } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
@@ -27,6 +27,8 @@ import {
   formatAnosServicio, contratoLabel, contratoBadgeClass, BTN_PRIMARY, parseFechaLocal,
 } from '@/lib/utils'
 import { exportarExcel } from '@/lib/excel-export'
+import { ReporteAutodeterminacion } from '@/components/reportes/ReporteAutodeterminacion'
+import { ReporteDGT } from '@/components/reportes/ReporteDGT'
 import type { AjusteLinea, PeriodoNomina, Empresa, RegistroLiquidacion, CategoriaRiesgoSRL, Licencia, TipoLicencia, Empleado, ResultadoNomina } from '@/types'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -39,13 +41,14 @@ const MESES = [
 ]
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ReportId = 'gerencial' | 'nomina' | 'empleados' | 'prestamos' | 'tss' | 'departamento' | 'bancaria' | 'horas_extras' | 'proyeccion' | 'preaviso' | 'antiguedad' | 'sin_ingresos' | 'licencias'
+type ReportId = 'gerencial' | 'nomina' | 'empleados' | 'prestamos' | 'tss' | 'departamento' | 'bancaria' | 'horas_extras' | 'proyeccion' | 'preaviso' | 'antiguedad' | 'sin_ingresos' | 'licencias' | 'autodeterminacion' | 'dgt'
 
 interface SidebarItem {
   id: ReportId
   label: string
   icon: React.ComponentType<{ className?: string }>
   desc: string
+  grupo?: string   // encabezado que se muestra antes de este ítem
 }
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -62,6 +65,8 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: 'antiguedad',   label: 'Antigüedad de Plantilla', icon: History,   desc: 'Distribución por rango de años y por posición' },
   { id: 'sin_ingresos', label: 'Empleados Sin Ingresos',  icon: UserX,      desc: 'Integridad pre-cierre — activos sin nómina registrada' },
   { id: 'licencias',    label: 'Salario vs. Licencias',   icon: FileClock, desc: 'Impacto salarial de licencias registradas, por tipo y mes' },
+  { id: 'autodeterminacion', label: 'Autodeterminación mensual', icon: FileCheck2, desc: 'Archivo para la TSS (SUIRPLUS): salarios, aportes y exentos', grupo: 'Reportes regulatorios' },
+  { id: 'dgt',          label: 'Ministerio de Trabajo',   icon: Briefcase, desc: 'Formularios DGT-3, DGT-4 y demás (SIRLA)' },
 ]
 
 // ─── PDF Helper ───────────────────────────────────────────────────────────────
@@ -4025,6 +4030,8 @@ export default function ReportesPage() {
       case 'antiguedad':   return <ReporteAntiguedad      {...props} />
       case 'sin_ingresos': return <ReporteSinIngresos     {...props} periodoInicial={periodoInicial} />
       case 'licencias':    return <ReporteLicencias       {...props} />
+      case 'autodeterminacion': return <ReporteAutodeterminacion />
+      case 'dgt':          return <ReporteDGT />
     }
   }, [activeReport, periodoInicial, empresa, empleados, periodos, prestamos, liquidaciones, licencias])
 
@@ -4064,8 +4071,9 @@ export default function ReportesPage() {
                 const Icon = item.icon
                 const active = activeReport === item.id
                 return (
+                  <div key={item.id}>
+                  {item.grupo && <p className="mb-2 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">{item.grupo}</p>}
                   <button
-                    key={item.id}
                     onClick={() => setActiveReport(item.id)}
                     className={`w-full flex items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                       active
@@ -4079,6 +4087,7 @@ export default function ReportesPage() {
                       <p className={`text-[10px] leading-tight mt-0.5 tracking-wide ${active ? 'text-indigo-200' : 'text-zinc-400 dark:text-zinc-500'}`}>{item.desc}</p>
                     </div>
                   </button>
+                  </div>
                 )
               })}
             </nav>

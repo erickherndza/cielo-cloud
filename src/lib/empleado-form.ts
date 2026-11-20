@@ -236,6 +236,15 @@ export interface EmpForm {
   aporteVoluntarioAFPEmpresaPct: string
   grossingUpPct: string
   ingresoOtroEmpleadorMensual: string
+  // Datos para TSS y Ministerio de Trabajo
+  sexo: '' | 'M' | 'F'
+  nacionalidadMT: string
+  ocupacionMT: string
+  ocupacionMTDescripcion: string
+  turnoId: string
+  establecimientoRNL: string
+  nivelEducativoMT: string
+  discapacidadesMT: string[]
 }
 
 export const EMPTY_EMP_FORM: EmpForm = {
@@ -252,6 +261,8 @@ export const EMPTY_EMP_FORM: EmpForm = {
   aporteVoluntarioAFPEmpleadoPct: '', aporteVoluntarioAFPEmpresaPct: '',
   grossingUpPct: '',
   ingresoOtroEmpleadorMensual: '',
+  sexo: '', nacionalidadMT: '', ocupacionMT: '', ocupacionMTDescripcion: '',
+  turnoId: '', establecimientoRNL: '', nivelEducativoMT: '', discapacidadesMT: [],
 }
 
 export function toEmpForm(e: Empleado): EmpForm {
@@ -280,6 +291,10 @@ export function toEmpForm(e: Empleado): EmpForm {
     aporteVoluntarioAFPEmpresaPct: e.aporteVoluntarioAFPEmpresaPct != null ? String(e.aporteVoluntarioAFPEmpresaPct) : '',
     grossingUpPct: e.grossingUpPct != null ? String(e.grossingUpPct) : '',
     ingresoOtroEmpleadorMensual: e.ingresoOtroEmpleadorMensual != null ? String(e.ingresoOtroEmpleadorMensual) : '',
+    sexo: e.sexo ?? '', nacionalidadMT: e.nacionalidadMT ?? '',
+    ocupacionMT: e.ocupacionMT ?? '', ocupacionMTDescripcion: e.ocupacionMTDescripcion ?? '',
+    turnoId: e.turnoId ?? '', establecimientoRNL: e.establecimientoRNL ?? '',
+    nivelEducativoMT: e.nivelEducativoMT ?? '', discapacidadesMT: e.discapacidadesMT ?? [],
   }
 }
 
@@ -319,6 +334,14 @@ export function formToEmpleado(form: EmpForm, sectorEmpresa?: SectorEmpresa): Om
     aporteVoluntarioAFPEmpresaPct:  form.aporteVoluntarioAFPEmpresaPct  ? Number(form.aporteVoluntarioAFPEmpresaPct)  : undefined,
     grossingUpPct:                  form.grossingUpPct                 ? Number(form.grossingUpPct)                  : undefined,
     ingresoOtroEmpleadorMensual:    form.ingresoOtroEmpleadorMensual   ? Number(form.ingresoOtroEmpleadorMensual)    : undefined,
+    sexo:                  form.sexo || undefined,
+    nacionalidadMT:        form.nacionalidadMT || undefined,
+    ocupacionMT:           form.ocupacionMT || undefined,
+    ocupacionMTDescripcion: form.ocupacionMTDescripcion || undefined,
+    turnoId:               form.turnoId.trim() || undefined,
+    establecimientoRNL:    form.establecimientoRNL.trim() || undefined,
+    nivelEducativoMT:      form.nivelEducativoMT || undefined,
+    discapacidadesMT:      form.discapacidadesMT.length ? form.discapacidadesMT : undefined,
   }
 }
 
