@@ -163,7 +163,7 @@ export function construirAutodeterminacion(args: {
     if (!m || m.mes !== mes || m.anio !== anio) continue
     const ids = idsProcesados(p, empleados)
     if (ids.length === 0) continue
-    periodosUsados.push(p.tipo === 'regalia' ? `Regalía Pascual ${p.anio}` : `Bonificación utilidades ${p.anio}`)
+    periodosUsados.push(p.tipo === 'regalia' ? `Regalía Pascual ${p.anio}${p.complemento ? ' (complemento)' : ''}` : `Bonificación utilidades ${p.anio}`)
     for (const id of ids) {
       if (!porId.has(id)) continue
       const x = get(id)
