@@ -51,17 +51,20 @@ const PLANTILLA: Fila[] = [
   ['Gladys', 'Montero Pérez', 'F', '2022-08-08', 22000, 'Conserje', 'Servicios', ...o('conserje'), 'fijo'],
   ['Kelvin', 'Acosta Reyes', 'M', '2022-08-22', 35000, 'Técnico de Sistemas', 'Tecnología', ...o('aux'), 'fijo'],
   ['Lissette', 'Adames Jiménez', 'F', '2022-11-07', 40000, 'Ejecutiva de Cuentas', 'Ventas', ...o('cajero'), 'fijo'],
-  ['Hanoi', 'Sención Medina', 'M', '2023-02-13', 28000, 'Mensajero', 'Logística', ...o('mens'), 'fijo'],
-  ['Karina', 'Batista Olivo', 'F', '2023-06-12', 47000, 'Analista Legal', 'Legal', ...o('analista'), 'fijo'],
+  ['Hanoi', 'Sención Medina', 'M', '2026-10-05', 28000, 'Mensajero', 'Logística', ...o('mens'), 'fijo'],
+  ['Karina', 'Batista Olivo', 'F', '2026-10-07', 47000, 'Analista Legal', 'Legal', ...o('analista'), 'fijo'],
   ['Jean', 'Baptiste Louis', 'M', '2023-09-25', 24000, 'Auxiliar de Almacén', 'Almacén', ...o('super'), 'estacional'],
-  ['Maribel', 'Carrasco Peña', 'F', '2024-01-08', 32000, 'Cajera', 'Ventas', ...o('cajero'), 'fijo'],
+  ['Maribel', 'Carrasco Peña', 'F', '2026-10-12', 32000, 'Cajera', 'Ventas', ...o('cajero'), 'fijo'],
   ['Ángel', 'Soto Gómez', 'M', '2024-05-20', 23000, 'Auxiliar de Almacén', 'Almacén', ...o('super'), 'estacional'],
   ['Elena', 'Vásquez Rondón', 'F', '2024-10-14', 21000, 'Auxiliar Administrativa', 'Administración', ...o('aux'), 'ocasional'],
   ['Samuel', 'Paulino Brito', 'M', '2025-03-17', 25000, 'Repartidor', 'Logística', ...o('mens'), 'ocasional'],
 ]
 const SALIDAS: Record<number, { fecha: string; motivo: RegistroLiquidacion['motivo'] }> = {
   7: { fecha: '2024-08-09', motivo: 'renuncia' },
-  12: { fecha: '2025-11-14', motivo: 'despido_sin_causa' },
+  // Octubre 2026 concentra 3 ingresos (Hanoi, Karina, Maribel) y 3 salidas, para ver los formularios con varias filas
+  5: { fecha: '2026-10-13', motivo: 'mutuo_acuerdo' },
+  12: { fecha: '2026-10-09', motivo: 'despido_sin_causa' },
+  14: { fecha: '2026-10-20', motivo: 'renuncia' },
 }
 // Aumentos aplicados: (índice, fecha efectiva, %)
 const AUMENTOS: [number, string, number][] = [
@@ -214,7 +217,7 @@ export function cargarDatosCarga50Meses(uid?: string | null): ResumenCarga {
   }
   periodos.sort((a, b) => b.anio - a.anio || b.mes - a.mes || (b.quincena ?? 0) - (a.quincena ?? 0))
 
-  // ── Liquidaciones de las 2 salidas ────────────────────────────────────────
+  // ── Liquidaciones de las 4 salidas ────────────────────────────────────────
   const liquidaciones: RegistroLiquidacion[] = Object.entries(SALIDAS).map(([idx, s], n) => {
     const e = empleados[Number(idx)]
     const anos = (parseFechaLocal(s.fecha).getTime() - parseFechaLocal(e.fechaIngreso).getTime()) / (365.25 * 24 * 3600 * 1000)
