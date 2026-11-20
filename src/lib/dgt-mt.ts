@@ -15,7 +15,7 @@ import {
   periodoMMAAAA, limpiarDocumento, textoLatin1,
 } from '@/lib/ancho-fijo'
 
-export type TipoDGT = 'DGT3' | 'DGT4'
+export type TipoDGT = 'DGT2' | 'DGT3' | 'DGT4' | 'DGT5' | 'DGT11' | 'DGT12'
 export type TipoNovedad = 'NI' | 'NS' | 'NC'
 
 export interface CatalogosMT {
@@ -65,6 +65,13 @@ export interface FilaDGT {
   discapacidades: string
   errores: string[]
   avisos: string[]
+  // Solo según el formulario
+  dias?: number              // DGT-5: días trabajados
+  salarioDia?: number        // DGT-5: salario por día
+  localidad?: string         // DGT-12
+  valorHora?: number         // DGT-2
+  causa?: string             // DGT-2: letras A–E separadas por coma
+  horasDia?: Record<string, { h: number; pct: number }>  // DGT-2
 }
 
 export interface ResultadoDGT {
@@ -96,8 +103,10 @@ export function construirDGT(args: {
   disfrutes: DisfruteVacaciones[]
   mes: number
   anio: number
+  extras?: ExtrasDGT
 }): ResultadoDGT {
   const { tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio } = args
+  if (tipo !== 'DGT3' && tipo !== 'DGT4') return construirDGTOtros({ ...args, tipo })
   const porId = new Map(empleados.map(e => [e.id, e]))
   const filas: FilaDGT[] = []
 
@@ -150,6 +159,15 @@ export function construirDGT(args: {
       f.fechaIngreso = ''   // la macro oficial exige fecha de ingreso VACÍA en una salida
       filas.push(f)
     }
+    // Salidas marcadas en Empleados que todavía no se liquidan: también son novedad de salida.
+    const yaConSalida = new Set(filas.filter(f => f.tipoNov === 'NS').map(f => f.empleado.id))
+    for (const e of empleados) {
+      if (!e.salidaPendiente || yaConSalida.has(e.id) || !enMes(e.fechaSalidaPendiente, mes, anio)) continue
+      const f = base(e, 'NS', 'Salida')
+      f.fechaSalida = fechaDDMMAAAA(e.fechaSalidaPendiente)
+      f.fechaIngreso = ''
+      filas.push(f)
+    }
     for (const a of aumentos) {
       const e = porId.get(a.empleadoId)
       const fecha = a.fechaEfectiva ?? a.fechaAplicacion
@@ -182,7 +200,8 @@ const cod = (v: string, n: number) => padN(v || '', n)
 /** Fecha DDMMAAAA obligatoria de 8; vacía → ceros. */
 const f8 = (v: string) => padN(v || '', 8)
 
-export function lineasDGT(rnc: string, tipo: TipoDGT, mes: number, anio: number, filas: FilaDGT[]): string[] {
+export function lineasDGT(rnc: string, tipo: TipoDGT, mes: number, anio: number, filas: FilaDGT[], extras?: ExtrasDGT): string[] {
+  if (tipo !== 'DGT3' && tipo !== 'DGT4') return lineasDGTOtros(rnc, tipo, mes, anio, filas, extras)
   const lineas: string[] = [`E${tipo === 'DGT3' ? 'T3' : 'T4'}${clave11(rnc)}${periodoMMAAAA(mes, anio)}`]
   for (const f of filas) {
     lineas.push(
@@ -216,4 +235,155 @@ export function lineasDGT(rnc: string, tipo: TipoDGT, mes: number, anio: number,
 
 export function nombreArchivoDGT(rnc: string, tipo: TipoDGT, mes: number, anio: number): string {
   return `${(rnc ?? '').replace(/\D/g, '')}_${periodoMMAAAA(mes, anio)}_${tipo}.txt`
+}
+
+
+// ─── DGT-2, DGT-5, DGT-11 y DGT-12 ───────────────────────────────────────────
+export interface ExtrasDGT {
+  fechaInicioTemporada?: string          // DGT-11 (ISO)
+  duracionMeses?: number                 // DGT-11
+  diasTrabajados?: Record<string, number>  // DGT-5, por empleado
+  salarioPorDia?: Record<string, number>   // DGT-5, por empleado
+}
+
+const HORAS_MES = (44 * 52) / 12   // mismo divisor que el motor de nómina (tarifa hora)
+
+export function construirDGTOtros(args: {
+  tipo: TipoDGT
+  empresa: Empresa
+  empleados: Empleado[]
+  liquidaciones: RegistroLiquidacion[]
+  mes: number
+  anio: number
+  extras?: ExtrasDGT
+}): ResultadoDGT {
+  const { tipo, empresa, empleados, liquidaciones, mes, anio, extras } = args
+  const filas: FilaDGT[] = []
+  const fin = new Date(anio, mes, 0)
+  const per = periodoMMAAAA(mes, anio)
+  const erroresGlobales: string[] = []
+  const rnc = (empresa.rnc ?? '').replace(/\D/g, '')
+  if (rnc.length !== 9 && rnc.length !== 11) erroresGlobales.push('El RNC de la empresa no está completo (9 u 11 dígitos).')
+
+  function persona(emp: Empleado, tipoNov: TipoNovedad, etiqueta: string): FilaDGT {
+    const esCedula = (emp.tipoDocumento ?? 'cedula') === 'cedula'
+    const [ap1, ap2] = separarApellidos(emp.apellido)
+    const errores: string[] = []
+    const documento = limpiarDocumento(emp.cedula)
+    if (!documento) errores.push('Sin número de documento')
+    else if (esCedula && !/^\d{11}$/.test(documento)) errores.push('La cédula debe tener 11 dígitos')
+    const turno = emp.turnoId || empresa.dgtTurnoId || ''
+    const establecimiento = emp.establecimientoRNL || empresa.dgtEstablecimientoRNL || ''
+    return {
+      empleado: emp, tipoNov, etiqueta,
+      tipoDoc: esCedula ? 'C' : (emp.tipoDocumento === 'pasaporte' ? 'P' : 'M'),
+      documento, nombres: textoLatin1(emp.nombre), apellido1: textoLatin1(ap1), apellido2: textoLatin1(ap2),
+      sexo: emp.sexo ?? '', fechaNac: fechaDDMMAAAA(emp.fechaNacimiento), salario: emp.salarioBase,
+      fechaIngreso: fechaDDMMAAAA(emp.fechaIngreso), fechaSalida: '',
+      ocupacion: emp.ocupacionMT ?? '', ocupacionDesc: textoLatin1(emp.ocupacionMTDescripcion ?? emp.cargo),
+      inicioVac: '', finVac: '', turno, establecimiento, nacionalidad: nacionalidadMTDe(emp),
+      fechaCambio: '', nivelEdu: emp.nivelEducativoMT ?? '',
+      discapacidades: (emp.discapacidadesMT ?? []).filter(Boolean).join(','),
+      errores, avisos: [],
+    }
+  }
+  const completos = (f: FilaDGT) => {
+    if (!f.ocupacion) f.errores.push('Falta la ocupación (catálogo del Ministerio)')
+    if (!f.turno) f.errores.push('Falta el ID de turno (en el empleado o por defecto)')
+    if (!f.establecimiento) f.errores.push('Falta el ID de establecimiento / RNL (en el empleado o por defecto)')
+    if (!f.sexo) f.errores.push('Falta el sexo')
+    if (!f.fechaNac) f.errores.push('Falta la fecha de nacimiento')
+    if (!f.nacionalidad) f.errores.push('Falta la nacionalidad del catálogo del Ministerio')
+  }
+
+  if (tipo === 'DGT11') {
+    if (!extras?.fechaInicioTemporada) erroresGlobales.push('Indica la fecha de inicio de la temporada.')
+    if (!extras?.duracionMeses || extras.duracionMeses < 1 || extras.duracionMeses > 99) erroresGlobales.push('Indica la duración de la temporada en meses (1 a 99).')
+    for (const e of empleados) {
+      if (e.tipoContrato !== 'estacional' || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
+      const f = persona(e, 'NI', 'Temporada'); completos(f); filas.push(f)
+    }
+  } else if (tipo === 'DGT5') {
+    for (const e of empleados) {
+      if (e.tipoContrato !== 'ocasional' || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
+      const f = persona(e, 'NI', 'Móvil / ocasional'); completos(f)
+      f.dias = extras?.diasTrabajados?.[e.id]
+      f.salarioDia = extras?.salarioPorDia?.[e.id] ?? Math.round((e.salarioBase / 23.83) * 100) / 100
+      if (!f.dias || f.dias < 1 || f.dias > 31) f.errores.push('Indica los días trabajados (1 a 31)')
+      if (!f.salarioDia || f.salarioDia <= 0) f.errores.push('Indica el salario por día')
+      filas.push(f)
+    }
+  } else if (tipo === 'DGT12') {
+    const vistos = new Set<string>()
+    const agregar = (e: Empleado | undefined, fechaIso: string | undefined) => {
+      if (!e || vistos.has(e.id) || !fechaIso) return
+      const d = parseFechaLocal(fechaIso)
+      if (isNaN(d.getTime()) || d.getMonth() + 1 !== mes || d.getFullYear() !== anio) return
+      vistos.add(e.id)
+      const f = persona(e, 'NS', 'Salida')
+      f.fechaSalida = fechaDDMMAAAA(fechaIso)
+      f.localidad = f.establecimiento
+      if (!f.localidad) f.errores.push('Falta el ID de establecimiento / localidad (en el empleado o por defecto)')
+      filas.push(f)
+    }
+    const porId = new Map(empleados.map(e => [e.id, e]))
+    for (const l of liquidaciones) agregar(porId.get(l.empleadoId), l.fechaTerminacion)
+    for (const e of empleados) if (e.salidaPendiente) agregar(e, e.fechaSalidaPendiente)
+  } else if (tipo === 'DGT2') {
+    const datos = empresa.horasExtrasDGT2?.[per] ?? {}
+    for (const e of empleados) {
+      const d = datos[e.id]
+      if (!d || Object.keys(d.dias ?? {}).length === 0) continue
+      const f = persona(e, 'NC', 'Horas extras')
+      f.valorHora = Math.round((e.salarioBase / HORAS_MES) * 100) / 100
+      f.horasDia = d.dias
+      f.causa = (d.causa ?? '').toUpperCase()
+      if (!f.establecimiento) f.errores.push('Falta el ID de establecimiento / RNL (en el empleado o por defecto)')
+      if (!/^[A-E]$/.test(f.causa)) f.errores.push('Falta la causa de prolongación (A a E)')
+      for (const [dia, v] of Object.entries(d.dias)) {
+        if (Number(dia) < 1 || Number(dia) > 31) f.errores.push(`Día ${dia} no válido`)
+        if (!(v.h > 0) || v.h >= 100) f.errores.push(`Día ${dia}: horas no válidas`)
+        if (!(v.pct > 0) || v.pct >= 1000) f.errores.push(`Día ${dia}: porcentaje no válido`)
+      }
+      filas.push(f)
+    }
+    if (filas.length === 0) erroresGlobales.push('Captura las horas extras día por día de al menos un empleado.')
+  }
+  filas.sort((a, b) => `${a.apellido1} ${a.nombres}`.localeCompare(`${b.apellido1} ${b.nombres}`, 'es'))
+  return { tipo, mes, anio, filas, erroresGlobales }
+}
+
+/** Formato N2 de la macro DGT-2: entero con ceros a la izquierda + 2 decimales (ancho total n). */
+function n2(v: number, ancho: number): string {
+  const dig = ancho - 3
+  const [ent, dec] = (Number.isFinite(v) && v > 0 ? v : 0).toFixed(2).split('.')
+  return ent.slice(-dig).padStart(dig, '0') + '.' + dec
+}
+
+export function lineasDGTOtros(rnc: string, tipo: TipoDGT, mes: number, anio: number, filas: FilaDGT[], extras?: ExtrasDGT): string[] {
+  const per = periodoMMAAAA(mes, anio)
+  const R = clave11(rnc)
+  const pie = `S${padN(filas.length + 2, 6)}`
+  const out: string[] = []
+  if (tipo === 'DGT11') {
+    const fi = fechaDDMMAAAA(extras?.fechaInicioTemporada)
+    const dur = String(extras?.duracionMeses ?? '').padStart(2, '0')
+    out.push(`EG1${R}${per}${fi}${dur}`)
+    for (const f of filas) out.push('D' + padTexto('NI', 3) + f.tipoDoc + padTexto(f.documento, 25) + monto16(f.salario) + f8(f.fechaIngreso) + cod(f.ocupacion, 6) + padTexto(f.ocupacionDesc, 150) + cod(f.turno, 6) + cod(f.establecimiento, 6) + cod(f.nivelEdu, 5) + padTextoDerecha(f.discapacidades, 50))
+  } else if (tipo === 'DGT5') {
+    out.push(`ET5${R}${per}`)
+    for (const f of filas) out.push('D' + padTexto('NI', 3) + f.tipoDoc + padTexto(f.documento, 25) + monto16(f.salario) + f8(f.fechaIngreso) + cod(f.ocupacion, 6) + padTexto(f.ocupacionDesc, 150) + cod(f.turno, 6) + cod(f.establecimiento, 6) + padN(String(f.dias ?? 0), 2) + padN((f.salarioDia ?? 0).toFixed(2), 8) + cod(f.nivelEdu, 5) + padTextoDerecha(f.discapacidades, 50))
+  } else if (tipo === 'DGT12') {
+    out.push(`EG2${R}${per}`)
+    for (const f of filas) out.push('D' + f.tipoDoc + padTexto(f.documento, 25) + cod(f.localidad || '000001', 6) + f8(f.fechaSalida))
+  } else if (tipo === 'DGT2') {
+    out.push(`ET2${R}${per}`)
+    for (const f of filas) {
+      let dias = ''
+      for (let d = 1; d <= 31; d++) { const v = f.horasDia?.[String(d)]; dias += n2(v?.h ?? 0, 5) + n2(v?.pct ?? 0, 6) }
+      out.push('D' + padTexto('NC', 3) + f.tipoDoc + padTexto(f.documento, 25) + cod(f.establecimiento, 6) + padN((f.valorHora ?? 0).toFixed(2), 8) + dias + padTexto(f.causa ?? '', 20))
+    }
+  }
+  out.push(pie)
+  return out
 }

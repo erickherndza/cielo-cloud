@@ -468,6 +468,9 @@ export interface Empresa {
   // cuando el empleado no tiene los suyos (ver src/lib/dgt-mt.ts).
   dgtEstablecimientoRNL?: string  // últimos dígitos del RNL del establecimiento
   dgtTurnoId?: string             // ID del turno de horario
+  // Horas extras DÍA POR DÍA para el DGT-2 (la nómina solo guarda el total del período).
+  // Clave: 'MMAAAA' → empleadoId → { causa de prolongación 'A'..'E', días 1..31 → horas y % de recargo }.
+  horasExtrasDGT2?: Record<string, Record<string, { causa: string; dias: Record<string, { h: number; pct: number }> }>>
   // Ejercicios fiscales (año de cierre) en que la empresa declaró que NO corresponde pagar Bonificación
   // (sin utilidades o exención Art. 226). Apaga la alerta de vencimiento de ese año.
   bonificacionExentaAnios?: number[]
