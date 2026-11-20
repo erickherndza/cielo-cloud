@@ -1484,7 +1484,7 @@ export default function NominaPage() {
               {esEnProcesoReg && pendientesReg.length > 0 && (
                 <button
                   onClick={async () => {
-                    if (!await confirmar({ titulo: 'Procesar Regalía Pascual', confirmarLabel: 'Procesar', mensaje: `¿Procesar el pago de Regalía Pascual de ${pendientesReg.length} empleado(s)? El acumulado de cada uno vuelve a cero para el resto del año.` })) return
+                    if (!await confirmar({ titulo: 'Procesar Regalía Pascual', confirmarLabel: 'Procesar', mensaje: `¿Procesar el pago de Regalía Pascual de ${pendientesReg.length} empleado(s)? El acumulado de cada uno vuelve a cero; si completan más meses del año, aparecerá la diferencia para pagarla como complemento.` })) return
                     handleProcesarRegalia(pendientesReg.map(f => f.empId))
                   }}
                   className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors"

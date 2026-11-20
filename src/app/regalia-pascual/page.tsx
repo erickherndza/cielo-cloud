@@ -78,9 +78,17 @@ export default function RegaliaPage() {
     setConfirmandoAnio(null)
   }
 
-  const periodoRegaliaAnioActual = periodos.find(p => p.tipo === 'regalia' && p.anio === anioActual)
-  const periodoRegaliaExistente = periodoRegaliaAnioActual && periodoRegaliaAnioActual.estado !== 'cerrada' ? periodoRegaliaAnioActual : undefined
-  const periodoRegaliaPagado = periodoRegaliaAnioActual && periodoRegaliaAnioActual.estado === 'cerrada' ? periodoRegaliaAnioActual : undefined
+  // Puede haber más de un período del mismo año: el pago principal y un «complemento» (la
+  // diferencia que aparece cuando se cumplen más meses después de pagar, ej. pagar en
+  // noviembre y completar el mes 12 en diciembre). El monto siempre sale del acumulado neto
+  // de lo ya pagado, así que un complemento nunca paga dos veces.
+  const periodosRegaliaAnio = periodos.filter(p => p.tipo === 'regalia' && p.anio === anioActual)
+  const periodoRegaliaExistente = periodosRegaliaAnio.find(p => p.estado !== 'cerrada')
+  const periodoRegaliaCerrado = periodosRegaliaAnio.find(p => p.estado === 'cerrada')
+  const hayRemanente = filas.some(f => f.acumulado > 0.004)
+  const periodoRegaliaAnioActual = periodoRegaliaExistente
+  // «Ya pagada» solo mientras no quede diferencia pendiente
+  const periodoRegaliaPagado = periodoRegaliaCerrado && !hayRemanente ? periodoRegaliaCerrado : undefined
 
   // Historial de ciclos ya liquidados y pagados — así queda visible que años
   // anteriores se pagaron y sobre cuál año se está acumulando ahora mismo.
@@ -166,7 +174,7 @@ export default function RegaliaPage() {
     // Defensa adicional además del gate de la UI: nunca crear un segundo
     // período de Regalía Pascual para un año que ya tiene uno, sin importar
     // su estado.
-    if (periodoRegaliaAnioActual) return
+    if (periodoRegaliaExistente) return
     const montosRegalia: Record<string, number> = {}
     const motivosAjusteRegalia: Record<string, string> = {}
     for (const f of filas) {
@@ -183,6 +191,7 @@ export default function RegaliaPage() {
       tipo: 'regalia',
       mes: 12,
       anio: anioActual,
+      ...(periodoRegaliaCerrado ? { complemento: true } : {}),
       estado: 'en_proceso',
       totalEmpleados,
       totales: { bruto: totalMonto, descuentos: 0, neto: totalMonto, aportes: 0, isr: 0, costoTotal: totalMonto },
@@ -402,7 +411,7 @@ export default function RegaliaPage() {
                 className={cn(BTN_PRIMARY, 'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none')}
               >
                 <Send className="h-4 w-4" />
-                Solicitar Liquidación de Regalía
+                {periodoRegaliaCerrado ? 'Solicitar complemento de regalía' : 'Solicitar Liquidación de Regalía'}
               </button>
             )}
           </div>
@@ -439,6 +448,13 @@ export default function RegaliaPage() {
             <Link href="/nomina" className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 hover:underline">
               Ir a Nómina <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+          </div>
+        )}
+
+        {periodoRegaliaCerrado && hayRemanente && !periodoRegaliaExistente && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/30 px-5 py-3.5 text-sm text-amber-800 dark:text-amber-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            La Regalía Pascual {anioActual} ya tiene un pago cerrado, pero quedó una diferencia por los meses cumplidos después. Puedes solicitarla como complemento antes del 20 de diciembre.
           </div>
         )}
 

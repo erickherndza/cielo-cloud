@@ -382,6 +382,9 @@ export interface PeriodoNomina {
   // sistema estampa Empleado.regaliaPagadaEsteAnio/regaliaPagadaAnio con el
   // monto pagado, "reiniciando" su acumulado a cero.
   montosRegalia?: Record<string, number>
+  // true cuando se paga la DIFERENCIA de un año que ya tenía un pago cerrado (ej. se pagó en
+  // noviembre con 11 meses y en diciembre se completa el mes 12).
+  complemento?: boolean
   // Motivo capturado SOLO cuando el usuario editó manualmente el monto
   // sugerido antes de solicitar la liquidación (ajuste manual, ver Regalía
   // Pascual) — para dejar rastro de por qué difiere del cálculo automático.

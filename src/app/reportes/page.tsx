@@ -105,7 +105,7 @@ function pdfHeader(
 }
 
 function periodoLabel(p: PeriodoNomina): string {
-  if (p.tipo === 'regalia') return `Regalía Pascual ${p.anio}`
+  if (p.tipo === 'regalia') return `Regalía Pascual ${p.anio}${p.complemento ? ' (complemento)' : ''}`
   if (p.tipo === 'bonificacion') return `Bonificación Utilidades ${p.anio}`
   const mes = MESES[p.mes - 1]
   if (p.tipo === 'quincenal') return `${p.quincena}ª Quincena ${mes} ${p.anio}`
