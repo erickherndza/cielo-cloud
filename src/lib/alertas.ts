@@ -11,7 +11,7 @@ import { usePrestamos } from './prestamos-context'
 import { useLiquidaciones } from './liquidaciones-context'
 import { useBandasSalariales, normalizarPosicion } from './bandas-salariales-context'
 import { useRetribuciones } from './retribuciones-context'
-import { getSalarioMinimoAplicable, getBonificacionesPendientes, getRetribucionesPendientes, getRegaliaPendientes } from './dominican-labor'
+import { getSalarioMinimoAplicable, getBonificacionesPendientes, getRetribucionesPendientes, getRegaliaPendientes, getMesesServicio, mesesSuspendidosEnAnio, regaliaPagadaVigente } from './dominican-labor'
 import { fullName, formatRD, parseFechaLocal } from './utils'
 
 const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -131,6 +131,41 @@ export function useAlertas(): AlertaItem[] {
         href: alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual?accion=pendiente',
         linkLabel: alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : `Resolver Regalía ${alertaRegalia.anio}`,
       })
+    }
+
+    // ── Regalía Pascual — complemento (diferencia después de un pago cerrado) ──
+    // Si se pagó antes de diciembre (ej. en noviembre con 11 meses), al cumplirse el mes 12 reaparece
+    // una diferencia que también vence el 20 de diciembre. El pago principal ya no genera alerta
+    // (getRegaliaPendientes lo da por pagado), así que esta la cubre.
+    {
+      const hoy = new Date()
+      const anioAct = hoy.getFullYear()
+      const delAnio = periodos.filter(p => p.tipo === 'regalia' && p.anio === anioAct)
+      const diasLimite = Math.ceil((new Date(anioAct, 11, 20).getTime() - hoy.getTime()) / (1000 * 3600 * 24))
+      if (delAnio.some(p => p.estado === 'cerrada') && !delAnio.some(p => p.estado !== 'cerrada')
+          && !(empresa.regaliaResueltaAnios ?? []).includes(anioAct) && diasLimite <= 30) {
+        const mesAct = hoy.getMonth() + 1
+        let total = 0, personas = 0
+        for (const e of empleadosActivos) {
+          if (e.suspendido || e.salidaPendiente) continue   // mismos que usa la pantalla de Regalía (empleadosEnNomina)
+          const meses = Math.max(0, Math.min(Math.min(getMesesServicio(e.fechaIngreso), mesAct), 12) - mesesSuspendidosEnAnio(e, anioAct))
+          const dif = Math.round(Math.max(0, (e.salarioBase / 12) * meses - regaliaPagadaVigente(e, anioAct)) * 100) / 100
+          if (dif > 0.004) { total += dif; personas++ }
+        }
+        if (personas > 0) {
+          items.push({
+            id: 'regalia-complemento',
+            severidad: diasLimite < 0 ? 'danger' : 'warning',
+            icon: Gift,
+            titulo: diasLimite < 0
+              ? `Complemento de Regalía ${anioAct} vencido hace ${Math.abs(diasLimite)} día(s)`
+              : `Complemento de Regalía ${anioAct}: ${personas} empleado(s) con diferencia`,
+            descripcion: `Ya hay un pago cerrado, pero quedan ${formatRD(total)} por los meses cumplidos después — límite 20 de diciembre (Art. 219)`,
+            href: '/regalia-pascual?accion=solicitar',
+            linkLabel: 'Solicitar complemento',
+          })
+        }
+      }
     }
 
     // ── Retribuciones Complementarias — vencimiento IR-17 ────────────────
