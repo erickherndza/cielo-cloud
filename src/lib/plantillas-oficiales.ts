@@ -62,8 +62,9 @@ async function abrir(nombre: string) {
 }
 
 async function cerrar(zip: import('jszip'), hoja: string): Promise<Blob> {
-  zip.file('xl/worksheets/sheet1.xml', hoja)
-  return zip.generateAsync({ type: 'blob', mimeType: MIME_XLSM, compression: 'DEFLATE' })
+  // createFolders:false — Excel rechaza paquetes con entradas de carpeta que la plantilla original no trae
+  zip.file('xl/worksheets/sheet1.xml', hoja, { createFolders: false })
+  return zip.generateAsync({ type: 'blob', mimeType: MIME_XLSM, compression: 'DEFLATE', platform: 'DOS' })
 }
 
 /** Plantilla de Archivo AutoDeterminación v5.5 (TSS). Datos desde la fila 14. */
