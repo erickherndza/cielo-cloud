@@ -236,6 +236,8 @@ export interface EmpForm {
   aporteVoluntarioAFPEmpresaPct: string
   grossingUpPct: string
   ingresoOtroEmpleadorMensual: string
+  vacacionesAlDiaHasta: string
+  regaliaAniosPendientes: number[]
   // Datos para TSS y Ministerio de Trabajo
   sexo: '' | 'M' | 'F'
   nacionalidadMT: string
@@ -261,6 +263,7 @@ export const EMPTY_EMP_FORM: EmpForm = {
   aporteVoluntarioAFPEmpleadoPct: '', aporteVoluntarioAFPEmpresaPct: '',
   grossingUpPct: '',
   ingresoOtroEmpleadorMensual: '',
+  vacacionesAlDiaHasta: '', regaliaAniosPendientes: [],
   sexo: '', nacionalidadMT: '', ocupacionMT: '', ocupacionMTDescripcion: '',
   turnoId: '', establecimientoRNL: '', nivelEducativoMT: '', discapacidadesMT: [],
 }
@@ -291,6 +294,7 @@ export function toEmpForm(e: Empleado): EmpForm {
     aporteVoluntarioAFPEmpresaPct: e.aporteVoluntarioAFPEmpresaPct != null ? String(e.aporteVoluntarioAFPEmpresaPct) : '',
     grossingUpPct: e.grossingUpPct != null ? String(e.grossingUpPct) : '',
     ingresoOtroEmpleadorMensual: e.ingresoOtroEmpleadorMensual != null ? String(e.ingresoOtroEmpleadorMensual) : '',
+    vacacionesAlDiaHasta: e.vacacionesAlDiaHasta ?? '', regaliaAniosPendientes: e.regaliaAniosPendientes ?? [],
     sexo: e.sexo ?? '', nacionalidadMT: e.nacionalidadMT ?? '',
     ocupacionMT: e.ocupacionMT ?? '', ocupacionMTDescripcion: e.ocupacionMTDescripcion ?? '',
     turnoId: e.turnoId ?? '', establecimientoRNL: e.establecimientoRNL ?? '',
@@ -334,6 +338,8 @@ export function formToEmpleado(form: EmpForm, sectorEmpresa?: SectorEmpresa): Om
     aporteVoluntarioAFPEmpresaPct:  form.aporteVoluntarioAFPEmpresaPct  ? Number(form.aporteVoluntarioAFPEmpresaPct)  : undefined,
     grossingUpPct:                  form.grossingUpPct                 ? Number(form.grossingUpPct)                  : undefined,
     ingresoOtroEmpleadorMensual:    form.ingresoOtroEmpleadorMensual   ? Number(form.ingresoOtroEmpleadorMensual)    : undefined,
+    vacacionesAlDiaHasta:  form.vacacionesAlDiaHasta || undefined,
+    regaliaAniosPendientes: form.regaliaAniosPendientes.length ? form.regaliaAniosPendientes : undefined,
     sexo:                  form.sexo || undefined,
     nacionalidadMT:        form.nacionalidadMT || undefined,
     ocupacionMT:           form.ocupacionMT || undefined,

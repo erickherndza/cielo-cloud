@@ -155,6 +155,11 @@ export interface Empleado {
   partidasAnterioresPendientes?: boolean  // true = la empresa declaró que debe bonificación/regalía de años
                                         // anteriores a su alta en Cielo Cloud; sin esto, las alertas de
                                         // vencimiento solo cuentan desde el alta (no inventan deudas viejas)
+  // Condiciones declaradas para empleados con años de servicio previos a Cielo Cloud (lo normal en una
+  // empresa que ya operaba: cada año se les pagó vacaciones y regalía). Se usan en Liquidación/Vacaciones
+  // y quedan a la vista en el cálculo. Sin declarar: años anteriores asumidos saldados desde el alta.
+  vacacionesAlDiaHasta?: string       // ISO: vacaciones pagadas/disfrutadas hasta esta fecha; se cuenta desde aquí
+  regaliaAniosPendientes?: number[]   // años anteriores cuya regalía la empresa aún debe (ej. [2024, 2025])
   saldosInicialesRevisado?: boolean    // true una vez que el Asistente de Carga Inicial confirmó este
                                         // empleado (con datos o marcado "no aplica, empleado nuevo")
 

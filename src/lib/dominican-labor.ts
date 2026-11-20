@@ -159,14 +159,28 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
 // Bonificación, ver inicioSeguimiento): un empleado dado de alta hoy con ingreso en 2022 no debe
 // "deber" 4 años de vacaciones que el sistema nunca vio — lo anterior se asume disfrutado o saldado,
 // y el saldo pendiente real se declara en `saldoVacacionesInicial` (Carga Inicial). La tasa (14 vs 18
-// días) sigue dependiendo de la antigüedad real. Con `partidasAnterioresPendientes` (o sin
+// días) sigue dependiendo de la antigüedad real. Si se declara `vacacionesAlDiaHasta`, se cuenta desde esa fecha.
+// Con `partidasAnterioresPendientes` (o sin
 // `registradoEn`, registros previos a ese campo) se cuenta desde el ingreso, como antes.
+export type OrigenConteoVacaciones = 'declarado' | 'ingreso' | 'alta'
+export function inicioConteoVacaciones(
+  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'vacacionesAlDiaHasta'>,
+): { fecha: Date; origen: OrigenConteoVacaciones } {
+  const ingreso = parseFechaLocal(e.fechaIngreso)
+  if (e.vacacionesAlDiaHasta) {
+    const d = parseFechaLocal(e.vacacionesAlDiaHasta)
+    if (!isNaN(d.getTime())) return { fecha: d > ingreso ? d : ingreso, origen: 'declarado' }
+  }
+  const seg = inicioSeguimiento(e)
+  return { fecha: seg, origen: seg.getTime() === ingreso.getTime() ? 'ingreso' : 'alta' }
+}
+
 export function diasVacacionesDesdeSeguimiento(
-  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'saldoVacacionesInicial'>,
+  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'saldoVacacionesInicial' | 'vacacionesAlDiaHasta'>,
   anosServicioEfectivos: number,
 ): number {
   const msAnio = 365.25 * 24 * 3600 * 1000
-  const antes = Math.max(0, (inicioSeguimiento(e).getTime() - parseFechaLocal(e.fechaIngreso).getTime()) / msAnio)
+  const antes = Math.max(0, (inicioConteoVacaciones(e).fecha.getTime() - parseFechaLocal(e.fechaIngreso).getTime()) / msAnio)
   const previos = Math.min(antes, Math.max(0, anosServicioEfectivos))
   const dias = calcularDiasVacacionesAcumulados(anosServicioEfectivos) - calcularDiasVacacionesAcumulados(previos)
   return Math.max(0, dias) + Math.max(0, e.saldoVacacionesInicial ?? 0)
