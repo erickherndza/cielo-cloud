@@ -10,7 +10,8 @@
 //    pendientes de ingreso, ingresos personalizados con "afecta TSS" y, si hubo
 //    liquidación, días trabajados y vacaciones no gozadas (son salario).
 //  - Salario_ISR solo se reporta si difiere del Salario_SS.
-//  - Otras remuneraciones (ISR) = Bonificación por utilidades pagada en el mes.
+//  - Otras remuneraciones (ISR) = Bonificación por utilidades pagada en el mes y los
+//    ingresos personalizados que pagan ISR pero NO cotizan a TSS.
 //  - Ingresos exentos: 01 Regalía Pascual, 02 cesantía/preaviso/asistencia
 //    económica. 03 (pensión alimenticia) no existe en el sistema.
 //  - Se reporta el salario real (sin aplicar topes): la TSS aplica sus topes.
@@ -129,17 +130,20 @@ export function construirAutodeterminacion(args: {
       if (!emp) continue
       const ajustes: AjusteLinea[] = p.ajustesPorEmpleado?.[id] ?? []
       const r = p.resultadosPorEmpleado?.[id] ?? calcularConPeriodo(emp, ajustes, p)
-      let customTSS = 0, customISR = 0
+      let customTSS = 0, customAmbos = 0, customSoloISR = 0
       for (const a of ajustes) {
         if (a.concepto === 'personalizado' && a.tipo === 'ingreso') {
           if (a.afectaTSS) customTSS += a.valor
-          if (a.afectaISR) customISR += a.valor
+          if (a.afectaTSS && a.afectaISR) customAmbos += a.valor
+          // Paga ISR pero NO cotiza a TSS → «otras remuneraciones» (instructivo TSS), no salario
+          if (a.afectaISR && !a.afectaTSS) customSoloISR += a.valor
         }
       }
       const legado = baseLegado(r)
       const x = get(id)
       x.ss += legado + customTSS
-      x.isr += legado + customISR
+      x.isr += legado + customAmbos
+      x.otras += customSoloISR
       x.vol += (r.aporteVoluntarioAFPEmpleado || 0) + (r.aporteVoluntarioAFPEmpresa || 0)
       x.fuentes.push(p.tipo === 'quincenal' ? `${p.quincena}ª quincena` : 'Nómina mensual')
     }
