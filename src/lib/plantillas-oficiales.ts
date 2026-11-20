@@ -94,30 +94,28 @@ const HOJA_DGT: Record<TipoDGT, { n: number; idx: number }> = {
   DGT3: { n: 1, idx: 0 }, DGT4: { n: 1, idx: 0 }, DGT2: { n: 2, idx: 1 }, DGT5: { n: 3, idx: 2 }, DGT11: { n: 4, idx: 3 }, DGT12: { n: 5, idx: 4 },
 }
 
-/** Plantilla General del Ministerio de Trabajo, hoja del formulario elegido. Datos desde la fila 14. */
-export async function plantillaDGT(args: { rnc: string; mes: number; anio: number; tipo: TipoDGT; filas: FilaDGT[]; cat: CatalogosMT | null; extras?: ExtrasDGT }): Promise<Blob> {
-  const { tipo } = args
-  const cfg = HOJA_DGT[tipo]
-  const path = `xl/worksheets/sheet${cfg.n}.xml`
-  const { zip, hoja: h0 } = await abrir('dgt.xlsm', path)
-  let hoja = h0
+type ArgsHoja = { rnc: string; mes: number; anio: number; cat: CatalogosMT | null; extras?: ExtrasDGT }
+
+/** Llena UNA hoja de la Plantilla General del Ministerio (RNC, período, tipo y filas desde la 14). */
+function llenarHojaDGT(hoja0: string, tipo: TipoDGT, filas: FilaDGT[], a: ArgsHoja): string {
+  let hoja = hoja0
   const etq = (lista: [string, string][] | undefined, c: string) => { if (!c) return ''; const x = lista?.find(([, k]) => k === c); return x ? `${x[0]}-${x[1]}` : c }
-  const H = cfg.n === 1 ? 'D' : 'E'   // la macro lee RNC/período/tipo en D (DGT-3/4) o en E (resto)
-  hoja = escribirFila(hoja, 7, { [H]: args.rnc.replace(/\D/g, '') })
-  hoja = escribirFila(hoja, 8, { [H]: `${String(args.mes).padStart(2, '0')}${args.anio}` })
+  const H = HOJA_DGT[tipo].n === 1 ? 'D' : 'E'   // la macro lee RNC/período/tipo en D (DGT-3/4) o en E (resto)
+  hoja = escribirFila(hoja, 7, { [H]: a.rnc.replace(/\D/g, '') })
+  hoja = escribirFila(hoja, 8, { [H]: `${String(a.mes).padStart(2, '0')}${a.anio}` })
   hoja = escribirFila(hoja, 9, { [H]: tipo })
-  const f10: Record<string, Valor> = { F: String(args.filas.length) }
-  if (tipo === 'DGT11') hoja = escribirFila(hoja, 11, { E: String(args.extras?.duracionMeses ?? '').padStart(2, '0') })
-  if (tipo === 'DGT11') f10.E = (args.extras?.fechaInicioTemporada ?? '').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, '$3$2$1')
+  const f10: Record<string, Valor> = { F: String(filas.length) }
+  if (tipo === 'DGT11') hoja = escribirFila(hoja, 11, { E: String(a.extras?.duracionMeses ?? '').padStart(2, '0') })
+  if (tipo === 'DGT11') f10.E = (a.extras?.fechaInicioTemporada ?? '').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, '$3$2$1')
   hoja = escribirFila(hoja, 10, f10)
   const nov = (t: string) => (t === 'NI' ? 'Ingreso' : t === 'NS' ? 'Salida' : 'Cambio')
-  const nivel = (f: FilaDGT) => etq(args.cat?.edu, f.nivelEdu)
-  const disc = (f: FilaDGT) => f.discapacidades.split(',').filter(Boolean).map(c => etq(args.cat?.disc, c)).join(',')
-  const ocup = (f: FilaDGT) => (f.ocupacion ? etq(args.cat?.ocup, f.ocupacion) || `${f.ocupacionDesc}-${f.ocupacion}` : '')
-  args.filas.forEach((f, i) => {
+  const nivel = (f: FilaDGT) => etq(a.cat?.edu, f.nivelEdu)
+  const disc = (f: FilaDGT) => f.discapacidades.split(',').filter(Boolean).map(c => etq(a.cat?.disc, c)).join(',')
+  const ocup = (f: FilaDGT) => (f.ocupacion ? etq(a.cat?.ocup, f.ocupacion) || `${f.ocupacionDesc}-${f.ocupacion}` : '')
+  filas.forEach((f, i) => {
     const comun: Record<string, Valor> = {
       B: nov(f.tipoNov), C: String(i + 1), D: f.tipoDoc, E: f.documento, F: f.nombres, G: f.apellido1, H: f.apellido2, I: f.sexo,
-      J: etq(args.cat?.nac, f.nacionalidad), K: f.fechaNac,
+      J: etq(a.cat?.nac, f.nacionalidad), K: f.fechaNac,
     }
     let fila: Record<string, Valor>
     if (tipo === 'DGT2') {
@@ -140,6 +138,16 @@ export async function plantillaDGT(args: { rnc: string; mes: number; anio: numbe
     }
     hoja = escribirFila(hoja, 14 + i, fila)
   })
+  return hoja
+}
+
+/** Plantilla General del Ministerio de Trabajo, hoja del formulario elegido. Datos desde la fila 14. */
+export async function plantillaDGT(args: ArgsHoja & { tipo: TipoDGT; filas: FilaDGT[] }): Promise<Blob> {
+  const { tipo } = args
+  const cfg = HOJA_DGT[tipo]
+  const path = `xl/worksheets/sheet${cfg.n}.xml`
+  const { zip, hoja: h0 } = await abrir('dgt.xlsm', path)
+  let hoja = llenarHojaDGT(h0, tipo, args.filas, args)
   // Que el libro abra en la hoja del formulario elegido
   if (cfg.idx > 0) {
     const wbPath = 'xl/workbook.xml'
@@ -151,6 +159,53 @@ export async function plantillaDGT(args: { rnc: string; mes: number; anio: numbe
     hoja = hoja.replace(/<sheetView /, '<sheetView tabSelected="1" ')
   }
   return cerrar(zip, hoja, path)
+}
+
+const COLS_DGT4 = ['Tipo Nov.', 'Número', 'Tipo Doc.', 'Número Doc.', 'Nombres', '1er. Apellido', '2do. Apellido', 'Sexo', 'Nacionalidad', 'Fecha Nacimiento', 'Salario', 'Fecha Ingreso', 'Fecha Salida', 'Ocupación', 'Desc. Ocupación', 'Inicio Vacaciones', 'Fin Vacaciones', 'ID Turno', 'ID Establecimiento', 'Fecha Cambio', 'Nivel educativo', 'Discapacidad']
+
+/**
+ * UN solo libro con TODAS las hojas DGT llenas (la Plantilla General completa): DGT-3 en «Plantilla DGT3-DGT4»,
+ * DGT-2, DGT-5, DGT-11 y DGT-12 en sus hojas. La hoja DGT3-DGT4 de la plantilla solo admite un tipo a la vez
+ * (lo decide la celda «Tipo Planilla»), por eso el DGT-4 va en una hoja adicional «DGT-4 (datos)» con las mismas columnas.
+ */
+export async function plantillaDGTCompleta(args: ArgsHoja & { formularios: Record<TipoDGT, FilaDGT[]> }): Promise<Blob> {
+  const JSZip = (await import('jszip')).default
+  const r = await fetch(`${BASE()}/plantillas/dgt.xlsm`)
+  if (!r.ok) throw new Error('No se pudo cargar la plantilla oficial')
+  const zip = await JSZip.loadAsync(await r.arrayBuffer())
+  const hojas: [TipoDGT, number][] = [['DGT3', 1], ['DGT2', 2], ['DGT5', 3], ['DGT11', 4], ['DGT12', 5]]
+  for (const [tipo, n] of hojas) {
+    const path = `xl/worksheets/sheet${n}.xml`
+    const xml = await zip.file(path)!.async('string')
+    zip.file(path, llenarHojaDGT(xml, tipo, args.formularios[tipo] ?? [], args), { createFolders: false })
+  }
+  // Hoja adicional con el DGT-4
+  const filas4 = args.formularios.DGT4 ?? []
+  const etq = (lista: [string, string][] | undefined, c: string) => { if (!c) return ''; const x = lista?.find(([, k]) => k === c); return x ? `${x[0]}-${x[1]}` : c }
+  const nov = (t: string) => (t === 'NI' ? 'Ingreso' : t === 'NS' ? 'Salida' : 'Cambio')
+  const celdas = (fila: number, vals: Valor[], estilo?: string) =>
+    `<row r="${fila}">${vals.map((v, i) => celdaXml(`${colLetra(i + 1)}${fila}`, estilo ?? null, v)).join('')}</row>`
+  let datos = celdas(1, [`DGT-4 — Salidas, cambios de salario y vacaciones · RNC ${args.rnc.replace(/\D/g, '')} · Período ${String(args.mes).padStart(2, '0')}${args.anio} · Tipo planilla DGT4`])
+  datos += celdas(3, COLS_DGT4, '67')
+  filas4.forEach((f, i) => {
+    datos += celdas(4 + i, [
+      nov(f.tipoNov), String(i + 1), f.tipoDoc, f.documento, f.nombres, f.apellido1, f.apellido2, f.sexo, etq(args.cat?.nac, f.nacionalidad), f.fechaNac,
+      money(f.salario), f.fechaIngreso, f.fechaSalida, f.ocupacion ? etq(args.cat?.ocup, f.ocupacion) || `${f.ocupacionDesc}-${f.ocupacion}` : '', f.ocupacionDesc,
+      f.inicioVac, f.finVac, f.turno, f.establecimiento, f.fechaCambio, etq(args.cat?.edu, f.nivelEdu),
+      f.discapacidades.split(',').filter(Boolean).map(c => etq(args.cat?.disc, c)).join(','),
+    ])
+  })
+  const anchos = [10, 8, 8, 18, 22, 18, 18, 7, 20, 14, 14, 14, 14, 40, 34, 14, 14, 9, 14, 14, 40, 28]
+  const cols = `<cols>${anchos.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols}<sheetData>${datos}</sheetData></worksheet>`
+  zip.file('xl/worksheets/sheet7.xml', sheetXml, { createFolders: false })
+  const wbPath = 'xl/workbook.xml'
+  zip.file(wbPath, (await zip.file(wbPath)!.async('string')).replace('</sheets>', '<sheet name="DGT-4 (datos)" sheetId="90" r:id="rId90"/></sheets>'), { createFolders: false })
+  const relPath = 'xl/_rels/workbook.xml.rels'
+  zip.file(relPath, (await zip.file(relPath)!.async('string')).replace('</Relationships>', '<Relationship Id="rId90" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet7.xml"/></Relationships>'), { createFolders: false })
+  const ctPath = '[Content_Types].xml'
+  zip.file(ctPath, (await zip.file(ctPath)!.async('string')).replace('</Types>', '<Override PartName="/xl/worksheets/sheet7.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'), { createFolders: false })
+  return zip.generateAsync({ type: 'blob', mimeType: MIME_XLSM, compression: 'DEFLATE', platform: 'DOS' })
 }
 
 export function descargarBlob(blob: Blob, nombre: string) {

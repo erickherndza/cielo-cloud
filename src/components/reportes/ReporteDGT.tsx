@@ -61,6 +61,13 @@ export function ReporteDGT() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, fechaTemporada, duracion, dias, salDia, incluir],
   )
+  // Todos los formularios del mes, para el libro completo (un solo Excel con todas las hojas)
+  const todos = useMemo(() => {
+    const o = {} as Record<TipoDGT, ReturnType<typeof construirDGT>>
+    for (const f of FORMULARIOS) o[f.id] = construirDGT({ tipo: f.id, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, extras: { ...extras, incluirIds: incluir[f.id] ?? [] } })
+    return o
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, fechaTemporada, duracion, dias, salDia, incluir])
   const gate = verificarNominaPagada(periodos, empresa, mes, anio)
   const nombre = (f: { empleado: { nombre: string; apellido: string } }) => `${f.empleado.nombre} ${f.empleado.apellido}`
   const errores = [...res.erroresGlobales, ...res.filas.flatMap(f => f.errores.map(e => `${nombre(f)} (${f.etiqueta}): ${e}`))]
@@ -72,6 +79,14 @@ export function ReporteDGT() {
     const cat = await cargarCatalogosMT().catch(() => null)
     const blob = await plantillaDGT({ rnc: empresa.rnc, mes, anio, tipo, filas: res.filas, cat, extras })
     descargarBlob(blob, nombreArchivoDGT(empresa.rnc, tipo, mes, anio).replace(/\.txt$/, '.xlsm'))
+  }
+
+  async function descargarLibroCompleto() {
+    const { plantillaDGTCompleta, descargarBlob } = await import('@/lib/plantillas-oficiales')
+    const cat = await cargarCatalogosMT().catch(() => null)
+    const formularios = Object.fromEntries(FORMULARIOS.map(f => [f.id, todos[f.id].filas])) as Record<TipoDGT, typeof res.filas>
+    const blob = await plantillaDGTCompleta({ rnc: empresa.rnc, mes, anio, cat, extras, formularios })
+    descargarBlob(blob, `${(empresa.rnc ?? '').replace(/\D/g, '')}_${per}_DGT_COMPLETO.xlsm`)
   }
 
   // ── DGT-2: captura de horas extras por día ──
@@ -133,6 +148,20 @@ export function ReporteDGT() {
           </button>
         ))}
       </div>
+      {gate.ok && (
+        <div className="t-card flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Libro completo: todos los DGT en un solo Excel</p>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+              {FORMULARIOS.map(f => `${f.nombre}: ${todos[f.id].filas.length}`).join(' · ')} registro(s) en {MESES_ES[mes - 1]} {anio}.
+              {FORMULARIOS.some(f => todos[f.id].filas.some(x => x.errores.length > 0) || todos[f.id].erroresGlobales.length > 0) && ' Hay datos por completar en algún formulario (revísalos en su pestaña); el libro se descarga igual, como borrador.'}
+            </p>
+          </div>
+          <button onClick={descargarLibroCompleto} className={`${BTN_PRIMARY} inline-flex items-center gap-2`}>
+            <FileSpreadsheet className="h-4 w-4" /> Descargar libro completo (Excel)
+          </button>
+        </div>
+      )}
       <p className="text-sm text-zinc-500 dark:text-zinc-400"><strong className="text-zinc-700 dark:text-zinc-200">{info.nombre}</strong> — {info.desc}</p>
 
       {!gate.ok ? (
