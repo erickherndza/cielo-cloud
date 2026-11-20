@@ -244,6 +244,7 @@ export interface ExtrasDGT {
   duracionMeses?: number                 // DGT-11
   diasTrabajados?: Record<string, number>  // DGT-5, por empleado
   salarioPorDia?: Record<string, number>   // DGT-5, por empleado
+  incluirIds?: string[]                    // DGT-5 / DGT-11: empleados elegidos a mano además de los del contrato
 }
 
 const HORAS_MES = (44 * 52) / 12   // mismo divisor que el motor de nómina (tarifa hora)
@@ -300,12 +301,12 @@ export function construirDGTOtros(args: {
     if (!extras?.fechaInicioTemporada) erroresGlobales.push('Indica la fecha de inicio de la temporada.')
     if (!extras?.duracionMeses || extras.duracionMeses < 1 || extras.duracionMeses > 99) erroresGlobales.push('Indica la duración de la temporada en meses (1 a 99).')
     for (const e of empleados) {
-      if (e.tipoContrato !== 'estacional' || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
+      if ((e.tipoContrato !== 'estacional' && !extras?.incluirIds?.includes(e.id)) || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
       const f = persona(e, 'NI', 'Temporada'); completos(f); filas.push(f)
     }
   } else if (tipo === 'DGT5') {
     for (const e of empleados) {
-      if (e.tipoContrato !== 'ocasional' || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
+      if ((e.tipoContrato !== 'ocasional' && !extras?.incluirIds?.includes(e.id)) || !e.activo || parseFechaLocal(e.fechaIngreso) > fin) continue
       const f = persona(e, 'NI', 'Móvil / ocasional'); completos(f)
       f.dias = extras?.diasTrabajados?.[e.id]
       f.salarioDia = extras?.salarioPorDia?.[e.id] ?? Math.round((e.salarioBase / 23.83) * 100) / 100

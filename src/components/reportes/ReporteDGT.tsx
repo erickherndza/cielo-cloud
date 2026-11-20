@@ -47,7 +47,9 @@ export function ReporteDGT() {
   const [duracion, setDuracion] = useState('')
   const [dias, setDias] = useState<Record<string, string>>({})
   const [salDia, setSalDia] = useState<Record<string, string>>({})
+  const [incluir, setIncluir] = useState<Record<string, string[]>>({})
   const extras: ExtrasDGT = {
+    incluirIds: incluir[tipo] ?? [],
     fechaInicioTemporada: fechaTemporada || undefined,
     duracionMeses: duracion ? Number(duracion) : undefined,
     diasTrabajados: Object.fromEntries(Object.entries(dias).filter(([, v]) => v).map(([k, v]) => [k, Number(v)])),
@@ -57,7 +59,7 @@ export function ReporteDGT() {
   const res = useMemo(
     () => construirDGT({ tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, extras }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, fechaTemporada, duracion, dias, salDia],
+    [tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio, fechaTemporada, duracion, dias, salDia, incluir],
   )
   const gate = verificarNominaPagada(periodos, empresa, mes, anio)
   const nombre = (f: { empleado: { nombre: string; apellido: string } }) => `${f.empleado.nombre} ${f.empleado.apellido}`
@@ -91,6 +93,16 @@ export function ReporteDGT() {
     setHorasSel('')
   }
   const activos = empleados.filter(e => e.activo)
+  // Horas extras que la nómina ya trae en este mes (solo el total; el Ministerio las pide por día)
+  const heNomina = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const p of periodos) {
+      if ((p.tipo !== 'mensual' && p.tipo !== 'quincenal') || p.mes !== mes || p.anio !== anio) continue
+      for (const [id, ajs] of Object.entries(p.ajustesPorEmpleado ?? {}))
+        for (const a of ajs) if (a.concepto === 'horas_extras_35' || a.concepto === 'horas_extras_100') m.set(id, (m.get(id) ?? 0) + a.valor)
+    }
+    return Array.from(m.entries())
+  }, [periodos, mes, anio])
 
   return (
     <div className="space-y-5">
@@ -141,6 +153,24 @@ export function ReporteDGT() {
             </label>
           </div>
 
+          {(tipo === 'DGT5' || tipo === 'DGT11') && (
+            <div className="t-card p-4">
+              <p className="t-subheader mb-1">Empleados a incluir</p>
+              <p className="mb-3 text-xs text-zinc-500">Se incluyen automáticamente los de contrato «{tipo === 'DGT5' ? 'Móvil / Ocasional' : 'Estacional / Temporada'}». Marca aquí a otros empleados que también quieras reportar.</p>
+              <div className="flex flex-wrap gap-2">
+                {empleados.filter(e => e.activo && e.tipoContrato !== (tipo === 'DGT5' ? 'ocasional' : 'estacional')).map(e => {
+                  const on = (incluir[tipo] ?? []).includes(e.id)
+                  return (
+                    <button key={e.id} onClick={() => setIncluir({ ...incluir, [tipo]: on ? (incluir[tipo] ?? []).filter(x => x !== e.id) : [...(incluir[tipo] ?? []), e.id] })}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${on ? 'border-[#1B2980] bg-[#1B2980] text-white' : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626]'}`}>
+                      {e.nombre} {e.apellido}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {tipo === 'DGT11' && (
             <div className="t-card grid gap-3 p-4 sm:grid-cols-2">
               <p className="t-subheader sm:col-span-2">Datos de la temporada</p>
@@ -172,6 +202,19 @@ export function ReporteDGT() {
             <div className="t-card space-y-4 p-4">
               <p className="t-subheader">Horas extras día por día — {MESES_ES[mes - 1]} {anio}</p>
               <p className="text-xs text-zinc-500">La nómina guarda solo el total de horas del período; el Ministerio las pide por día. Captúralas aquí (una fila por día, un porcentaje por día).</p>
+              {heNomina.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                  Con horas extras en la nómina de este mes:
+                  {heNomina.map(([id, h]) => {
+                    const e = empleados.find(x => x.id === id)
+                    return e ? (
+                      <button key={id} onClick={() => setEmpSel(id)} className="rounded-full border border-tabler-line dark:border-[#2e2e2e] px-2.5 py-1 font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626]">
+                        {e.nombre} {e.apellido} · {h} h en total
+                      </button>
+                    ) : null
+                  })}
+                </div>
+              )}
               <div className="flex flex-wrap items-end gap-2">
                 <label className="text-xs text-zinc-500">Empleado
                   <select value={empSel} onChange={e => setEmpSel(e.target.value)} className={`mt-1 block w-56 ${inp}`}>
