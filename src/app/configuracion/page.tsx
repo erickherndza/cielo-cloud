@@ -432,6 +432,7 @@ export default function ConfiguracionPage() {
   const [showToast, setShowToast] = useState(false)
   const [confirmDemo, setConfirmDemo] = useState(false)
   const [confirmCarga, setConfirmCarga] = useState(false)
+  const [confirmReinicio, setConfirmReinicio] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [logoError, setLogoError] = useState('')
   const [nuevaFechaFeriado, setNuevaFechaFeriado] = useState('')
@@ -466,6 +467,14 @@ export default function ConfiguracionPage() {
     agregarFeriado(anioActual, nuevaFechaFeriado, nuevoNombreFeriado.trim())
     setNuevaFechaFeriado('')
     setNuevoNombreFeriado('')
+  }
+
+  async function handleReiniciarNomina() {
+    setCargando(true)
+    const { reiniciarNomina } = await import('@/lib/reinicio-nomina')
+    reiniciarNomina(user?.uid)
+    await flushStorage()
+    window.location.reload()
   }
 
   async function handleCargarCarga() {
@@ -1517,6 +1526,14 @@ export default function ConfiguracionPage() {
                               <FlaskConical className="h-4 w-4" />
                               Carga de prueba: 25 empleados · 50 meses
                             </button>}
+                            {puedeCargaPrueba && <button
+                              type="button"
+                              onClick={() => setConfirmReinicio(true)}
+                              className="flex items-center gap-2 rounded-lg border border-rose-300 dark:border-rose-700/50 bg-white dark:bg-[#1f1f1f] px-4 py-2 text-sm font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                            >
+                              <AlertTriangle className="h-4 w-4" />
+                              Reiniciar nómina y liquidaciones
+                            </button>}
                             <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                               Reemplaza todos los datos actuales. La página se recargará automáticamente.
                             </p>
@@ -1583,6 +1600,34 @@ export default function ConfiguracionPage() {
           )}
         </div>
       </div>
+
+      {/* Confirmar reinicio de nómina */}
+      {confirmReinicio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
+          <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 shadow-2xl animate-modal-in">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">¿Reiniciar nómina y liquidaciones?</p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Borra todos los períodos de nómina, liquidaciones, aumentos, vacaciones, préstamos, licencias y saldos de ISR de
+                  esta empresa, y reactiva a los empleados. Conserva el perfil, la configuración y los empleados. No se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button onClick={() => setConfirmReinicio(false)} disabled={cargando}
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={handleReiniciarNomina} disabled={cargando}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors disabled:opacity-60">
+                {cargando ? 'Reiniciando…' : 'Sí, reiniciar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmar carga de volumen */}
       {confirmCarga && (
