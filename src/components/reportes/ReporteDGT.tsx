@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { FileDown, Lock } from 'lucide-react'
+import { FileDown, FileSpreadsheet, Lock } from 'lucide-react'
 import { useEmpleados } from '@/lib/empleados-context'
 import { usePeriodos } from '@/lib/periodos-context'
 import { useEmpresa } from '@/lib/empresa-context'
@@ -14,6 +14,7 @@ import { BTN_PRIMARY, formatRD } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { FileText } from 'lucide-react'
+import { cargarCatalogosMT } from '@/lib/catalogos-mt'
 import { SelectorMes, PanelValidacion, NotaInfo, descargarTxt, periodoInicialSugerido, MESES_ES, verificarNominaPagada, BloqueoNominaNoPagada } from './comunes'
 
 const FORMULARIOS: { id: string; nombre: string; desc: string; listo: boolean; motivo?: string }[] = [
@@ -43,6 +44,28 @@ export function ReporteDGT() {
     [tipo, empresa, empleados, liquidaciones, aumentos, disfrutes, mes, anio],
   )
   const gate = verificarNominaPagada(periodos, empresa, mes, anio)
+  // Mismo orden de columnas que las hojas "Plantilla DGT3-DGT4" de la Plantilla General del Ministerio.
+  async function descargarExcel() {
+    const { exportarExcel } = await import('@/lib/excel-export')
+    const per = `${String(mes).padStart(2, '0')}${anio}`
+    const cat = await cargarCatalogosMT().catch(() => null)
+    const etq = (lista: [string, string][] | undefined, c: string) => { const x = lista?.find(([, k]) => k === c); return x ? `${x[0]}-${x[1]}` : c }
+    const nov = (t: string) => (t === 'NI' ? 'Ingreso' : t === 'NS' ? 'Salida' : 'Cambio')
+    await exportarExcel({
+      nombreArchivo: `${(empresa.rnc ?? '').replace(/\D/g, '')}_${per}_${tipo}`,
+      empresa: empresa.nombre, logo: empresa.logo, rnc: empresa.rnc,
+      hojas: [{
+        nombre: `Plantilla ${tipo.replace('DGT', 'DGT-')}`,
+        titulo: `Plantilla de Archivos ${tipo.replace('DGT', 'DGT-')} — Ministerio de Trabajo`,
+        subtitulo: `RNC ${empresa.rnc} · Período ${per} (MMAAAA) · Tipo planilla ${tipo}`,
+        encabezados: ['Tipo Nov.', 'Número', 'Tipo Doc.', 'Número Doc.', 'Nombres', '1er. Apellido', '2do. Apellido', 'Sexo', 'Nacionalidad', 'Fecha Nacimiento', 'Salario', 'Fecha Ingreso', 'Fecha Salida', 'Ocupación', 'Desc. Ocupación', 'Inicio Vacaciones', 'Fin Vacaciones', 'ID Turno', 'ID Establecimiento', 'Fecha Cambio', 'Nivel educativo', 'Discapacidad'],
+        filas: res.filas.map((f, i) => [nov(f.tipoNov), i + 1, f.tipoDoc, f.documento, f.nombres, f.apellido1, f.apellido2, f.sexo, etq(cat?.nac, f.nacionalidad), f.fechaNac, f.salario, f.fechaIngreso, f.fechaSalida, f.ocupacion ? `${f.ocupacionDesc}-${f.ocupacion}` : '', f.ocupacionDesc, f.inicioVac, f.finVac, f.turno, f.establecimiento, f.fechaCambio, etq(cat?.edu, f.nivelEdu), f.discapacidades.split(',').filter(Boolean).map(c => etq(cat?.disc, c)).join(', ')]),
+        anchos: [10, 8, 8, 18, 22, 18, 18, 7, 20, 14, 14, 14, 14, 34, 30, 14, 14, 9, 14, 14, 36, 28],
+        columnasEnteras: [1],
+      }],
+    })
+  }
+
   const nombre = (f: { empleado: { nombre: string; apellido: string } }) => `${f.empleado.nombre} ${f.empleado.apellido}`
   const errores = [...res.erroresGlobales, ...res.filas.flatMap(f => f.errores.map(e => `${nombre(f)} (${f.etiqueta}): ${e}`))]
   const avisos = res.filas.flatMap(f => f.avisos.map(e => `${nombre(f)}: ${e}`))
@@ -122,6 +145,9 @@ export function ReporteDGT() {
                   className={`${BTN_PRIMARY} inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50`}
                 >
                   <FileDown className="h-4 w-4" /> Descargar {info.nombre} (.txt)
+                </button>
+                <button onClick={descargarExcel} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  <FileSpreadsheet className="h-4 w-4" /> Descargar Excel (plantilla {info.nombre})
                 </button>
                 <span className="text-xs text-zinc-400">{nombreArchivoDGT(empresa.rnc, tipo, mes, anio)}</span>
               </div>
