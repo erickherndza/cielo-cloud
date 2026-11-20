@@ -274,7 +274,9 @@ function DetalleNomina({
               ))}
               {nomina.isrMensual === 0 && (
                 <p className="text-[11px] text-zinc-400 dark:text-zinc-500 italic">
-                  ISR: anticipo de quincena (se liquida en 2ª quincena)
+                  {periodoLabel.includes('1ª')
+                    ? 'ISR: anticipo de quincena (se liquida en 2ª quincena)'
+                    : 'Sin retención de ISR: el ingreso gravable del mes no supera el mínimo exento'}
                 </p>
               )}
               {nomina.saldoISRAplicado > 0 && (

@@ -197,6 +197,18 @@ export function calcularISRAnual(ingresoGravableAnual: number): number {
 }
 
 // ─── Cálculo de nómina mensual ────────────────────────────────────────────────
+// ─── ISR mensual a partir de la base gravable del mes ────────────────────────
+// Retención consolidada de ISR (ingreso de otro empleador): interpretación propia de Cielo Cloud
+// (la norma no detalla el mecanismo exacto de coordinación entre dos empleadores): se consolida la
+// base temporalmente solo para ubicar el tramo ISR correcto, pero este empleador SOLO retiene la
+// porción proporcional a su propia base — nunca el ISR del ingreso ajeno. Con
+// ingresoOtroEmpleadorMensual = 0/undefined la proporción es 1.
+export function isrMensualDesdeBase(empleado: Pick<Empleado, 'ingresoOtroEmpleadorMensual'>, baseGravableMensual: number): number {
+  const baseAnual = baseGravableMensual * 12
+  const consolidada = baseAnual + (empleado.ingresoOtroEmpleadorMensual ?? 0) * 12
+  return consolidada > 0 ? (calcularISRAnual(consolidada) * (baseAnual / consolidada)) / 12 : 0
+}
+
 export function calcularNomina(
   empleado: Empleado,
   params: ParametrosNomina = {}
@@ -287,23 +299,8 @@ export function calcularNomina(
   // 2022). Un ingreso personalizado exento de ISR nunca entra aquí, aunque sí
   // forme parte de totalBruto.
   const baseGravableMensual  = totalBrutoLegado + ingresosPersonalizadosGravablesISR - afpEmpleado - sfsEmpleado
-  const baseGravableAnual    = baseGravableMensual * 12
-
-  // ─── Retención consolidada de ISR (ingreso de otro empleador) ─────────────
-  // Interpretación propia de Cielo Cloud (la norma no detalla el mecanismo
-  // exacto de coordinación entre dos empleadores): se consolida la base
-  // temporalmente solo para ubicar el tramo ISR correcto (el que aplicaría
-  // si todo el ingreso viniera de un solo empleador), pero este empleador
-  // SOLO retiene la porción proporcional a su propia base gravable — nunca
-  // el ISR del ingreso ajeno, que le corresponde retener al otro empleador.
-  // Con ingresoOtroEmpleadorMensual = 0/undefined, esto es idéntico al
-  // cálculo anterior (proporción = 1).
-  const ingresoOtroEmpleadorAnual   = (empleado.ingresoOtroEmpleadorMensual ?? 0) * 12
-  const baseGravableConsolidadaAnual = baseGravableAnual + ingresoOtroEmpleadorAnual
-  const isrConsolidadoAnual          = calcularISRAnual(baseGravableConsolidadaAnual)
-  const isrMensual = baseGravableConsolidadaAnual > 0
-    ? (isrConsolidadoAnual * (baseGravableAnual / baseGravableConsolidadaAnual)) / 12
-    : 0
+  // Retención consolidada de ISR (ingreso de otro empleador): ver isrMensualDesdeBase()
+  const isrMensual = isrMensualDesdeBase(empleado, baseGravableMensual)
 
   // ─── Aporte voluntario a AFP (adicional al 2.87%/7.10% obligatorio) ───────
   const aporteVoluntarioAFPEmpleado = baseCotizableAFP * ((empleado.aporteVoluntarioAFPEmpleadoPct ?? 0) / 100)
@@ -370,6 +367,7 @@ export function calcularNomina(
     regaliaPascual,
     vacacionesMensualesDias,
     vacacionesMensualesValor,
+    baseGravableISR: baseGravableMensual,
     anosServicio,
   }
 }
@@ -386,7 +384,12 @@ export function calcularNominaQuincenal(
   const bruto    = m.totalBruto / 2
   const afpEmp   = m.afpEmpleado / 2
   const sfsEmp   = m.sfsEmpleado / 2
-  const isr      = quincena === 2 ? m.isrMensual : 0
+  // ISR de la 2ª quincena = ISR del MES calculado sobre lo realmente devengado (1ª + 2ª). Si no hay
+  // dato de la 1ª (primer período, o llamadas sin contexto) se asume igual a la 2ª, como siempre.
+  const baseQ    = (m.baseGravableISR ?? 0) / 2
+  const isr      = quincena === 2
+    ? (params.gravableQuincena1 !== undefined ? isrMensualDesdeBase(empleado, params.gravableQuincena1 + baseQ) : m.isrMensual)
+    : 0
   const sfsDep   = m.sfsDependientes   // already the per-quincena amount (pre-split at period creation)
   const otros    = m.otrosDescuentos / 2
   const aporteVolEmp = m.aporteVoluntarioAFPEmpleado / 2
@@ -411,6 +414,7 @@ export function calcularNominaQuincenal(
     afpEmpleado:              afpEmp,
     sfsEmpleado:              sfsEmp,
     isrMensual:               isr,
+    baseGravableISR:          baseQ,
     sfsDependientes:          sfsDep,
     otrosDescuentos:          otros,
     aporteVoluntarioAFPEmpleado: aporteVolEmp,

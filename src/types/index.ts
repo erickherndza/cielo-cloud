@@ -271,11 +271,16 @@ export interface ResultadoNomina {
   vacacionesMensualesDias: number
   vacacionesMensualesValor: number
 
+  // Base gravable de ISR realmente devengada en ESTE período (ya sin AFP/SFS). Permite que la 2ª
+  // quincena calcule el ISR sobre lo devengado en el mes completo (1ª + 2ª), no sobre el doble de la 2ª.
+  baseGravableISR?: number
+
   // Desvinculación (informativo)
   anosServicio: number
 }
 
 export interface ParametrosNomina {
+  gravableQuincena1?: number   // solo 2ª quincena: base gravable real de la 1ª del mismo mes (undefined = se asume igual a la 2ª)
   diasTrabajados?: number
   diasLaborablesMes?: number
   horasExtras35?: number

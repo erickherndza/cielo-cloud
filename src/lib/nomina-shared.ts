@@ -294,8 +294,10 @@ export function calcularConAjustes(
   vacacionesGoce?: number,
   vacacionesVendidas?: number,
   diasIngresoPendientes?: number,
+  gravableQuincena1?: number,
 ): ResultadoNomina {
   const params: ParametrosNomina = {
+    ...(gravableQuincena1 !== undefined ? { gravableQuincena1 } : {}),
     ...ajustesToParams(ajustes, tipo),
     ...(diasOverride ? { diasTrabajados: diasOverride.diasTrabajados, diasLaborablesMes: diasOverride.diasLaborablesMes } : {}),
     ...(vacacionesGoce ? { vacacionesGoce } : {}),
@@ -628,6 +630,28 @@ export function salarioEfectivoEnPeriodo(
   return vigente
 }
 
+// Base gravable de ISR realmente devengada por el empleado en la 1ª quincena del mismo mes. La 2ª
+// quincena calcula el ISR del mes sobre (1ª + 2ª) — así un empleado que ingresa en la 2ª quincena no
+// paga el ISR de quien ganó el doble. `undefined` si la 1ª quincena no existe (se asume igual a la 2ª).
+function gravableQuincena1De(
+  empleado: Empleado, periodo: { mes: number; anio: number; tipo: TipoPeriodo; quincena?: 1 | 2 },
+  disfrutes: DisfruteVacaciones[], licencias: Licencia[], aumentos: RegistroAumento[], periodos: PeriodoNomina[],
+): number | undefined {
+  if (periodo.tipo !== 'quincenal' || (periodo.quincena ?? 1) !== 2) return undefined
+  const q1 = periodos.find(p => p.tipo === 'quincenal' && p.quincena === 1 && p.mes === periodo.mes && p.anio === periodo.anio)
+  if (!q1) return undefined
+  const aprox = (r: ResultadoNomina) => r.baseGravableISR ?? Math.max(0, r.totalBruto - r.afpEmpleado - r.sfsEmpleado)   // snapshots viejos
+  const snap = q1.resultadosPorEmpleado?.[empleado.id]
+  if (snap) return aprox(snap)
+  const { inicio, fin } = rangoPeriodo(q1.mes, q1.anio, 'quincenal', 1)
+  const ing = parseFechaLocal(empleado.fechaIngreso)
+  const enQ1 = q1.estado === 'en_proceso' || !q1.empleadosProcesados?.length
+    ? ing < fin && !(empleado.salidaPendiente && empleado.fechaSalidaPendiente && parseFechaLocal(empleado.fechaSalidaPendiente) < inicio)
+    : q1.empleadosProcesados.includes(empleado.id)
+  if (!enQ1) return 0
+  return aprox(calcularParaPeriodo(empleado, q1.ajustesPorEmpleado?.[empleado.id] ?? [], q1, disfrutes, licencias, aumentos, []))
+}
+
 // Envoltorio de conveniencia: calcula la nómina de un empleado para un
 // período específico, aplicando automáticamente el prorrateo por suspensión,
 // salida pendiente, licencia sin sueldo, ingreso a mitad de período, o el
@@ -653,6 +677,7 @@ export function calcularParaPeriodo(
   // demás mecanismos, porque son un pago adicional sobre este período, no
   // un prorrateo de él.
   const pendientes = diasIngresoPendientes(empleadoCalculo, periodos, periodo.mes, periodo.anio, periodo.tipo, quincena)
+  const grav1 = gravableQuincena1De(empleadoCalculo, periodo, disfrutes, licencias, aumentos, periodos)
 
   const dias = diasSuspensionEnPeriodo(empleadoCalculo, periodo.mes, periodo.anio, periodo.tipo, quincena)
     ?? diasSalidaEnPeriodo(empleadoCalculo, periodo.mes, periodo.anio, periodo.tipo, quincena)
@@ -667,7 +692,7 @@ export function calcularParaPeriodo(
   // salario ponderado por reajuste, en cambio, SÍ compone con cualquiera de
   // los otros mecanismos (se aplica primero, como base, antes de cualquier
   // prorrateo de días encima).
-  if (dias) return calcularConAjustes(empleadoCalculo, ajustes, periodo.tipo, quincena, dias, undefined, undefined, pendientes?.monto)
+  if (dias) return calcularConAjustes(empleadoCalculo, ajustes, periodo.tipo, quincena, dias, undefined, undefined, pendientes?.monto, grav1)
   const vac = diasVacacionEnPeriodo(empleadoCalculo, disfrutes, periodo.mes, periodo.anio, periodo.tipo, quincena)
   return calcularConAjustes(
     empleadoCalculo, ajustes, periodo.tipo, quincena,
@@ -675,5 +700,6 @@ export function calcularParaPeriodo(
     vac?.vacacionesGoce,
     vac?.vacacionesVendidas,
     pendientes?.monto,
+    grav1,
   )
 }
