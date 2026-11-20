@@ -15,6 +15,8 @@ import {
 import { useEmpresa } from '@/lib/empresa-context'
 import { useEmpleados } from '@/lib/empleados-context'
 import { useAuth } from '@/lib/auth-context'
+import { useRemoteStore } from '@/lib/remote-store'
+import { REMOTE_ENABLED } from '@/lib/storage'
 import { useFeriados } from '@/lib/feriados-context'
 import { useConceptosPersonalizados } from '@/lib/conceptos-personalizados-context'
 import { Toast } from '@/components/ui/Toast'
@@ -419,6 +421,9 @@ export default function ConfiguracionPage() {
   const { empresa, guardar } = useEmpresa()
   const { empleadosActivos } = useEmpleados()
   const { user } = useAuth()
+  const { acceso } = useRemoteStore()
+  // La carga de volumen borra los datos de la empresa: solo en desarrollo local o para el super admin
+  const puedeCargaPrueba = !REMOTE_ENABLED || !!acceso?.esSuperadmin
   const { getFeriados, agregarFeriado, eliminarFeriado } = useFeriados()
   const { conceptosActivos: conceptosPersonalizados, crear: crearConcepto, actualizar: actualizarConcepto, eliminar: eliminarConcepto } = useConceptosPersonalizados()
   const [vista, setVista]       = useState<Vista>('resumen')
@@ -426,6 +431,8 @@ export default function ConfiguracionPage() {
   const [form, setForm]         = useState<Empresa>(empresa)
   const [showToast, setShowToast] = useState(false)
   const [confirmDemo, setConfirmDemo] = useState(false)
+  const [confirmCarga, setConfirmCarga] = useState(false)
+  const [cargando, setCargando] = useState(false)
   const [logoError, setLogoError] = useState('')
   const [nuevaFechaFeriado, setNuevaFechaFeriado] = useState('')
   const [nuevoNombreFeriado, setNuevoNombreFeriado] = useState('')
@@ -459,6 +466,14 @@ export default function ConfiguracionPage() {
     agregarFeriado(anioActual, nuevaFechaFeriado, nuevoNombreFeriado.trim())
     setNuevaFechaFeriado('')
     setNuevoNombreFeriado('')
+  }
+
+  async function handleCargarCarga() {
+    setCargando(true)
+    const { cargarDatosCarga50Meses } = await import('@/lib/seed-carga')   // carga bajo demanda (usa el motor de nómina completo)
+    cargarDatosCarga50Meses(user?.uid)
+    await flushStorage()
+    window.location.reload()
   }
 
   async function handleCargarDemo() {
@@ -1494,6 +1509,14 @@ export default function ConfiguracionPage() {
                               <FlaskConical className="h-4 w-4" />
                               Cargar Datos Demo
                             </button>
+                            {puedeCargaPrueba && <button
+                              type="button"
+                              onClick={() => setConfirmCarga(true)}
+                              className="flex items-center gap-2 rounded-lg border border-violet-300 dark:border-violet-700/50 bg-white dark:bg-[#1f1f1f] px-4 py-2 text-sm font-semibold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/40 transition-colors"
+                            >
+                              <FlaskConical className="h-4 w-4" />
+                              Carga de prueba: 25 empleados · 50 meses
+                            </button>}
                             <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                               Reemplaza todos los datos actuales. La página se recargará automáticamente.
                             </p>
@@ -1560,6 +1583,41 @@ export default function ConfiguracionPage() {
           )}
         </div>
       </div>
+
+      {/* Confirmar carga de volumen */}
+      {confirmCarga && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-backdrop-in">
+          <div className="mx-4 w-full max-w-sm rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] p-6 shadow-2xl animate-modal-in">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">¿Cargar la prueba de volumen?</p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Crea 25 empleados ficticios y 100 pagos quincenales (50 meses, sep-2022 a oct-2026) ya procesados y pagados,
+                  con aumentos, vacaciones, 2 salidas y las regalías de cada diciembre. Reemplaza los empleados, períodos,
+                  aumentos, vacaciones y liquidaciones actuales. Solo para pruebas; no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmCarga(false)}
+                disabled={cargando}
+                className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCargarCarga}
+                disabled={cargando}
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-60"
+              >
+                {cargando ? 'Calculando 100 quincenas…' : 'Sí, cargar prueba'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm demo dialog */}
       {confirmDemo && (
