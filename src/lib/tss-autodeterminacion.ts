@@ -6,11 +6,11 @@
 // Reglas de negocio de Cielo Cloud (interpretación propia, a validar con la TSS
 // en el primer envío real):
 //  - Salario_SS = todo lo cotizable a TSS del mes: salario (prorrateado), horas
-//    extras, recargo nocturno, comisiones, bonos, vacaciones (goce/venta), días
+//    extras, recargo nocturno, comisiones, otros ingresos, vacaciones (goce/venta), días
 //    pendientes de ingreso, ingresos personalizados con "afecta TSS" y, si hubo
 //    liquidación, días trabajados y vacaciones no gozadas (son salario).
 //  - Salario_ISR solo se reporta si difiere del Salario_SS.
-//  - Otras remuneraciones (ISR) = Bonificación por utilidades pagada en el mes y los
+//  - Otras remuneraciones (ISR) = Bonos, bonificación por utilidades (Art. 223) pagada en el mes y los
 //    ingresos personalizados que pagan ISR pero NO cotizan a TSS.
 //  - Ingresos exentos: 01 Regalía Pascual, 02 cesantía/preaviso/asistencia
 //    económica. 03 (pensión alimenticia) no existe en el sistema.
@@ -130,7 +130,7 @@ export function construirAutodeterminacion(args: {
       if (!emp) continue
       const ajustes: AjusteLinea[] = p.ajustesPorEmpleado?.[id] ?? []
       const r = p.resultadosPorEmpleado?.[id] ?? calcularConPeriodo(emp, ajustes, p)
-      let customTSS = 0, customAmbos = 0, customSoloISR = 0
+      let customTSS = 0, customAmbos = 0, customSoloISR = 0, bonoSum = 0, otroSum = 0
       for (const a of ajustes) {
         if (a.concepto === 'personalizado' && a.tipo === 'ingreso') {
           if (a.afectaTSS) customTSS += a.valor
@@ -139,11 +139,18 @@ export function construirAutodeterminacion(args: {
           if (a.afectaISR && !a.afectaTSS) customSoloISR += a.valor
         }
       }
-      const legado = baseLegado(r)
+      for (const a of ajustes) {
+        if (a.concepto === 'bono') bonoSum += a.valor
+        if (a.concepto === 'otro_ingreso') otroSum += a.valor
+      }
+      // Bono = otras remuneraciones (no cotiza TSS). Un snapshot viejo (calculado cuando el
+      // bono sí cotizaba) lo trae dentro de r.bonificaciones: se saca del salario cotizable.
+      const bonosEnLegado = bonoSum > 0 && Math.abs(r.bonificaciones - (otroSum + bonoSum)) < 0.01 ? bonoSum : 0
+      const legado = baseLegado(r) - bonosEnLegado
       const x = get(id)
       x.ss += legado + customTSS
       x.isr += legado + customAmbos
-      x.otras += customSoloISR
+      x.otras += customSoloISR + bonoSum
       x.vol += (r.aporteVoluntarioAFPEmpleado || 0) + (r.aporteVoluntarioAFPEmpresa || 0)
       x.fuentes.push(p.tipo === 'quincenal' ? `${p.quincena}ª quincena` : 'Nómina mensual')
     }

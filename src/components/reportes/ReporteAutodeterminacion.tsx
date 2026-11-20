@@ -133,7 +133,7 @@ export function ReporteAutodeterminacion() {
 
       <NotaInfo>
         <p><strong>Cómo se envía:</strong> en SUIRPLUS (tss.gob.do) → «Gestión de Archivos», dentro del plazo: desde el día siguiente al tercer día hábil del mes hasta el tercer día hábil del mes siguiente. Cada envío sustituye al anterior. Si el mes ya cerró y hay que corregir, la TSS usa la autodeterminación retroactiva (AR).</p>
-        <p className="mt-1.5"><strong>Criterios aplicados por Cielo Cloud</strong> (confírmalos con tu contador en el primer envío): se reporta el salario real sin topes; el aporte voluntario suma el del empleado y el de la empresa; la bonificación por utilidades va en «otras remuneraciones»; la regalía y la cesantía/preaviso van como ingresos exentos. No se informan: agente de retención único, remuneraciones de otros empleadores, saldo a favor ni salario INFOTEP distinto (quedan en ceros).</p>
+        <p className="mt-1.5"><strong>Criterios aplicados por Cielo Cloud</strong> (confírmalos con tu contador en el primer envío): se reporta el salario real sin topes; el aporte voluntario suma el del empleado y el de la empresa; los bonos, la bonificación por utilidades y los ingresos que pagan ISR pero no TSS van en «otras remuneraciones»; la regalía y la cesantía/preaviso van como ingresos exentos. No se informan: agente de retención único, remuneraciones de otros empleadores, saldo a favor ni salario INFOTEP distinto (quedan en ceros).</p>
       </NotaInfo>
     </div>
   )

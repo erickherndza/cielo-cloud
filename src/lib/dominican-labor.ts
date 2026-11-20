@@ -751,7 +751,14 @@ export function ajustesToParams(ajustes: AjusteLinea[], tipo: TipoPeriodo): Para
     if (a.concepto === 'horas_extras_35')  horasExtras35   += a.valor
     if (a.concepto === 'horas_extras_100') horasExtras100  += a.valor
     if (a.concepto === 'recargo_nocturno') horasNocturnas  += a.valor
-    if (a.concepto === 'bono' || a.concepto === 'otro_ingreso') bonificaciones += a.valor
+    if (a.concepto === 'otro_ingreso') bonificaciones += a.valor
+    // Bono: paga ISR pero NO cotiza a TSS — en la autodeterminación va en «otras
+    // remuneraciones» (instructivo TSS). Mismo tratamiento que un ingreso
+    // personalizado con «afecta ISR» y sin «afecta TSS».
+    if (a.concepto === 'bono') {
+      ingresosPersonalizadosTotal += a.valor
+      ingresosPersonalizadosGravablesISR += a.valor
+    }
     if (a.concepto === 'comision')         comisiones      += a.valor
     if (a.concepto === 'dependiente_sfs')  sfsDependientes += a.valor
     if (a.concepto === 'prestamo') {
@@ -807,7 +814,7 @@ export const CONCEPTOS_LEY: ConceptoLeyInfo[] = [
   { concepto: 'horas_extras_100', nombre: 'H.E. 100%',           tipo: 'ingreso',   afectaISR: true,  afectaTSS: true,  nota: 'Art. 203 Código de Trabajo (feriados)' },
   { concepto: 'recargo_nocturno', nombre: 'Recargo Nocturno',    tipo: 'ingreso',   afectaISR: true,  afectaTSS: true,  nota: 'Práctica estándar TSS (15% sobre tarifa hora)' },
   { concepto: 'comision',         nombre: 'Comisión',            tipo: 'ingreso',   afectaISR: true,  afectaTSS: true,  nota: 'Salario ordinario' },
-  { concepto: 'bono',             nombre: 'Bono',                tipo: 'ingreso',   afectaISR: true,  afectaTSS: true,  nota: 'Salario ordinario' },
+  { concepto: 'bono',             nombre: 'Bono',                tipo: 'ingreso',   afectaISR: true,  afectaTSS: false, nota: 'Paga ISR, no cotiza TSS — va en «Otras remuneraciones» de la autodeterminación' },
   { concepto: 'otro_ingreso',     nombre: 'Otro Ingreso',        tipo: 'ingreso',   afectaISR: true,  afectaTSS: true,  nota: 'Salario ordinario' },
   { concepto: 'dependiente_sfs',  nombre: 'Dep. SFS Adicionales', tipo: 'deduccion', afectaISR: false, afectaTSS: false, nota: 'Resolución 624-02 CNSS — cuota fija, no modifica bases' },
   { concepto: 'prestamo',         nombre: 'Préstamo',            tipo: 'deduccion', afectaISR: false, afectaTSS: false, nota: 'Descuento post-impuesto, no reduce ISR ni TSS' },
