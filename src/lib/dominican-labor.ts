@@ -155,35 +155,26 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
   return Math.max(0, dias + saldoVacacionesInicial)
 }
 
-// Vacaciones acumuladas DESDE EL SEGUIMIENTO en Cielo Cloud (mismo criterio que Regalía y
-// Bonificación, ver inicioSeguimiento): un empleado dado de alta hoy con ingreso en 2022 no debe
-// "deber" 4 años de vacaciones que el sistema nunca vio — lo anterior se asume disfrutado o saldado,
-// y el saldo pendiente real se declara en `saldoVacacionesInicial` (Carga Inicial). La tasa (14 vs 18
-// días) sigue dependiendo de la antigüedad real. Si se declara `vacacionesAlDiaHasta`, se cuenta desde esa fecha.
-// Con `partidasAnterioresPendientes` (o sin
-// `registradoEn`, registros previos a ese campo) se cuenta desde el ingreso, como antes.
-export type OrigenConteoVacaciones = 'declarado' | 'ingreso' | 'alta'
-export function inicioConteoVacaciones(
-  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'vacacionesAlDiaHasta'>,
-): { fecha: Date; origen: OrigenConteoVacaciones } {
-  const ingreso = parseFechaLocal(e.fechaIngreso)
-  if (e.vacacionesAlDiaHasta) {
-    const d = parseFechaLocal(e.vacacionesAlDiaHasta)
-    if (!isNaN(d.getTime())) return { fecha: d > ingreso ? d : ingreso, origen: 'declarado' }
-  }
-  const seg = inicioSeguimiento(e)
-  return { fecha: seg, origen: seg.getTime() === ingreso.getTime() ? 'ingreso' : 'alta' }
-}
-
-export function diasVacacionesDesdeSeguimiento(
-  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'saldoVacacionesInicial' | 'vacacionesAlDiaHasta'>,
+// Vacaciones en LIQUIDACIÓN y en el módulo Vacaciones: solo el AÑO EN CURSO (el ciclo de servicio que
+// corre desde el último aniversario del ingreso). Los años anteriores se asumen ya pagados o disfrutados
+// (lo normal en una empresa que ya operaba: cada año se pagan vacaciones y regalía). La cesantía y el
+// preaviso, en cambio, sí usan toda la antigüedad. La tasa (14 vs 18 días) sigue dependiendo de la
+// antigüedad real. El saldo de vacaciones que el usuario declare en «Saldos iniciales» se suma aparte.
+export function diasVacacionesAnoEnCurso(
+  e: Pick<Empleado, 'saldoVacacionesInicial'>,
   anosServicioEfectivos: number,
 ): number {
-  const msAnio = 365.25 * 24 * 3600 * 1000
-  const antes = Math.max(0, (inicioConteoVacaciones(e).fecha.getTime() - parseFechaLocal(e.fechaIngreso).getTime()) / msAnio)
-  const previos = Math.min(antes, Math.max(0, anosServicioEfectivos))
-  const dias = calcularDiasVacacionesAcumulados(anosServicioEfectivos) - calcularDiasVacacionesAcumulados(previos)
-  return Math.max(0, dias) + Math.max(0, e.saldoVacacionesInicial ?? 0)
+  const a = Math.max(0, anosServicioEfectivos)
+  const completos = Math.floor(a)
+  return getDiasVacacionesAnuales(completos + 1) * (a - completos) + Math.max(0, e.saldoVacacionesInicial ?? 0)
+}
+
+/** Último aniversario del ingreso anterior o igual a `ref`: inicio del año de servicio en curso. */
+export function inicioCicloVacaciones(fechaIngreso: string, ref: Date): Date {
+  const ing = parseFechaLocal(fechaIngreso)
+  let d = new Date(ref.getFullYear(), ing.getMonth(), ing.getDate())
+  if (d > ref) d = new Date(ref.getFullYear() - 1, ing.getMonth(), ing.getDate())
+  return d < ing ? ing : d
 }
 
 // ─── Días laborables entre dos fechas (excluye domingos) ─────────────────────

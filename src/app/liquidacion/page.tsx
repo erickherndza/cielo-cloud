@@ -16,12 +16,11 @@ import {
   calcularCesantiaDetalle, calcularPreavisoDetalle, calcularAsistenciaEconomicaDetalle,
   calcularSalarioPromedioUltimos12Meses, getDivisorSalarioDiario, getDiasPreavisoRequeridos,
   calcularDiasTrabajadosPendientes, calcularNomina, MOTIVO_LIQUIDACION_LABELS, regaliaPagadaVigente,
-  diasVacacionesDesdeSeguimiento, inicioConteoVacaciones, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
+  diasVacacionesAnoEnCurso, inicioCicloVacaciones, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
   motivoGenera,
   getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
 import { formatRD, formatNum, formatDate, formatAnosServicio, formatCedula, fullName, BTN_PRIMARY, parseFechaLocal, hoyLocalISO } from '@/lib/utils'
-import Link from 'next/link'
 import type { Empleado, Empresa, MotivoLiquidacion, ConceptoLiquidacion, DesgloseConceptoLiquidacion, RegistroLiquidacion } from '@/types'
 import {
   Download, FileText, UserMinus, CalendarDays, Banknote, HandCoins,
@@ -527,7 +526,7 @@ export default function LiquidacionPage() {
     // (Disfrute de Vacaciones, /vacaciones) antes de calcular lo pendiente
     // por pagar — de lo contrario esos días se cobrarían DOS veces (una en
     // Nómina al gozarlos/venderlos, otra aquí al liquidar).
-    const diasVacAcum = Math.max(0, diasVacacionesDesdeSeguimiento(emp, anosServicioEfectivosVacaciones) - diasTomados(emp.id))
+    const diasVacAcum = Math.max(0, diasVacacionesAnoEnCurso(emp, anosServicioEfectivosVacaciones) - diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, fechaTerm)))
     const tarifaDiariaVac = emp.salarioBase / divisorDiario
     const vacacionesBruto = diasVacAcum * tarifaDiariaVac
     // Las vacaciones SÍ son salario ordinario continuado (Art. 178, Código de
@@ -545,20 +544,8 @@ export default function LiquidacionPage() {
     const vacaciones = vacacionesCalc.salarioNeto
 
     const regaliaBruta = (emp.salarioBase / 12) * mesesCalendario
-    // Regalías de AÑOS ANTERIORES que la empresa declaró pendientes (empleados con años de servicio
-    // previos a Cielo Cloud): cada año a razón de salario ÷ 12 × meses trabajados ese año (12 si ya
-    // estaba todo el año). Sin declarar, los años anteriores se asumen pagados y no se incluyen.
-    const regaliasAnteriores = (emp.regaliaAniosPendientes ?? [])
-      .filter(a => a < fechaTerm.getFullYear() && a >= fechaHire.getFullYear())
-      .sort((a, b) => a - b)
-      .map(a => {
-        const meses = a === fechaHire.getFullYear()
-          ? Math.min(12, Math.max(0, Math.ceil((new Date(a, 11, 31).getTime() - fechaHire.getTime()) / (30.44 * 24 * 3600 * 1000))))
-          : 12
-        return { anio: a, meses, monto: Math.round((emp.salarioBase / 12) * meses * 100) / 100 }
-      })
-    const regaliaAnterioresTotal = regaliasAnteriores.reduce((s, r) => s + r.monto, 0)
-    const regalia = Math.max(0, regaliaBruta - regaliaPagadaVigente(emp, fechaTerm.getFullYear())) + regaliaAnterioresTotal
+    // Regalía: SOLO el año en curso (años anteriores asumidos pagados).
+    const regalia = Math.max(0, regaliaBruta - regaliaPagadaVigente(emp, fechaTerm.getFullYear()))
 
     const diasPendData = emp.pagoDiasTrabajadosPendiente === 'liquidacion'
       ? calcularDiasTrabajadosPendientes(emp, periodos, fechaTerm)
@@ -594,7 +581,7 @@ export default function LiquidacionPage() {
       cesantia, cesantiaDetalle, preaviso, preavisoDetalle, asistenciaEconomica, asistenciaDetalle,
       vacaciones, vacacionesBruto, afpVacaciones, sfsVacaciones, isrVacaciones,
       diasVacAcum, diasVacAnuales, tarifaDiariaVac,
-      regalia, regaliaBruta, regaliasAnteriores, regaliaAnterioresTotal,
+      regalia, regaliaBruta,
       totalPrestamos, saldoISR: saldoISRPendiente,
       diasPreavisoRequeridos, diasAnticipacionReal, cumplioPreaviso, diferenciaDiasPreaviso,
       diasTrabajadosPendientes, salarioDiasTrabajadosBruto, afpDiasTrabajados,
@@ -662,13 +649,8 @@ export default function LiquidacionPage() {
         Icon: CalendarDays,
         montoAuto: resultado.vacaciones,
         detalle: [
-          (() => {
-            const c = inicioConteoVacaciones(emp)
-            return c.origen === 'declarado' ? `Condición declarada: vacaciones pagadas o disfrutadas hasta el ${formatDate(emp.vacacionesAlDiaHasta!)}; se cuentan desde esa fecha.`
-              : c.origen === 'alta' ? `Años anteriores al ${formatDate(c.fecha.toISOString().slice(0, 10))} (alta en Cielo Cloud) asumidos pagados; se cuentan desde el alta.`
-              : 'Se cuentan desde el ingreso del empleado (no hay fecha de alta posterior ni vacaciones al día declaradas).'
-          })(),
-          `Antigüedad ${formatAnosServicio(resultado.anosServicio)} (Art. 177, compuesto por cada año completo a su tasa vigente + fracción del año en curso)${resultado.aniosSuspendidos > 0 ? ` − ${(resultado.aniosSuspendidos * 12).toFixed(2)} mes(es) de suspensión (no generan vacaciones)` : ''}${(emp.saldoVacacionesInicial ?? 0) > 0 ? ` + ${emp.saldoVacacionesInicial} días de saldo inicial` : ''}${diasTomados(emp.id) > 0 ? ` − ${diasTomados(emp.id)} días ya disfrutados/vendidos` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
+          `Solo el año en curso (desde el ${formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))}, último aniversario); los años anteriores se asumen pagados o disfrutados.`,
+          `Antigüedad ${formatAnosServicio(resultado.anosServicio)} (Art. 177, tasa vigente × fracción transcurrida del año en curso)${resultado.aniosSuspendidos > 0 ? ` − ${(resultado.aniosSuspendidos * 12).toFixed(2)} mes(es) de suspensión (no generan vacaciones)` : ''}${(emp.saldoVacacionesInicial ?? 0) > 0 ? ` + ${emp.saldoVacacionesInicial} días de saldo inicial` : ''}${diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion))) > 0 ? ` − ${diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)))} días ya disfrutados/vendidos este año` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
           `${resultado.diasVacAcum.toFixed(2)} días × ${formatRD(resultado.tarifaDiariaVac, 2)}/día = ${formatRD(resultado.vacacionesBruto, 2)} bruto`,
           `Bruto ${formatRD(resultado.vacacionesBruto, 2)} − AFP ${formatRD(resultado.afpVacaciones, 2)} − SFS ${formatRD(resultado.sfsVacaciones, 2)} − ISR ${formatRD(resultado.isrVacaciones, 2)}`,
         ],
@@ -687,8 +669,7 @@ export default function LiquidacionPage() {
           ...(regaliaPagadaVigente(emp, parseFechaLocal(fechaTerminacion).getFullYear()) > 0
             ? [`Menos ${formatRD(regaliaPagadaVigente(emp, parseFechaLocal(fechaTerminacion).getFullYear()), 2)} ya pagados este año (migración o liquidación previa de Regalía Pascual)`]
             : []),
-          ...resultado.regaliasAnteriores.map(r => `Año ${r.anio} pendiente (declarado): salario base ÷ 12 × ${r.meses} mes(es) = ${formatRD(r.monto, 2)}`),
-          ...(resultado.regaliasAnteriores.length === 0 ? ['Regalías de años anteriores: pagadas (no se incluyen).'] : []),
+          'Solo el año en curso; las regalías de años anteriores se asumen pagadas.',
         ],
       },
       diasTrabajados: {
@@ -1191,24 +1172,13 @@ export default function LiquidacionPage() {
                 <ArrowLeft className="h-3.5 w-3.5" /> Atrás
               </button>
             </div>
-            {(() => {
-              const c = inicioConteoVacaciones(emp)
-              const vac = c.origen === 'declarado' ? `Vacaciones al día hasta el ${formatDate(emp.vacacionesAlDiaHasta!)} (declarado)`
-                : c.origen === 'alta' ? `Vacaciones: años anteriores al alta (${formatDate(c.fecha.toISOString().slice(0, 10))}) asumidos pagados`
-                : 'Vacaciones contadas desde el ingreso'
-              const reg = resultado.regaliasAnteriores.length > 0
-                ? `Regalías anteriores pendientes: ${resultado.regaliasAnteriores.map(r => r.anio).join(', ')}`
-                : 'Regalías de años anteriores: pagadas'
-              return (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/20 px-4 py-2.5 text-xs text-sky-800 dark:text-sky-300">
-                  <Info className="h-3.5 w-3.5 shrink-0" />
-                  <span className="font-semibold">Condiciones declaradas del empleado:</span>
-                  <span>{vac}</span>
-                  <span>· {reg}</span>
-                  <Link href={`/empleados?ver=${emp.id}`} className="ml-auto font-semibold underline">Ajustar en la ficha</Link>
-                </div>
-              )
-            })()}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/20 px-4 py-2.5 text-xs text-sky-800 dark:text-sky-300">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              <span className="font-semibold">Criterio aplicado:</span>
+              <span>Cesantía y preaviso por toda la antigüedad ({formatAnosServicio(resultado.anosServicio)})</span>
+              <span>· Vacaciones: solo el año en curso (desde el {formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))})</span>
+              <span>· Regalía: solo {parseFechaLocal(fechaTerminacion).getFullYear()}</span>
+            </div>
 
             {resultado.salarioOrdinario > emp.salarioBase + 0.01 && (
               <div className="rounded-lg border border-indigo-200 dark:border-indigo-800/40 bg-[#eef0fb] dark:bg-indigo-950/30 px-5 py-3.5 flex items-start gap-3">

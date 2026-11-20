@@ -13,7 +13,7 @@ import {
   getDivisorSalarioDiario,
   calcularNomina,
   contarDiasLaborables,
-  diasVacacionesDesdeSeguimiento,
+  diasVacacionesAnoEnCurso, inicioCicloVacaciones,
   aniosSuspendidosTotal,
   getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
@@ -53,8 +53,8 @@ export default function VacacionesPage() {
     // uno) + la fracción del año en curso — no solo el ciclo actual, que
     // descartaría años completos nunca disfrutados. + saldo inicial:
     // empleados con historial previo a Cielo Cloud (migración).
-    const diasAcumulados  = diasVacacionesDesdeSeguimiento(e, anosServicioEfectivosVacaciones)
-    const tomados         = diasTomados(e.id)
+    const diasAcumulados  = diasVacacionesAnoEnCurso(e, anosServicioEfectivosVacaciones)
+    const tomados         = diasTomados(e.id, inicioCicloVacaciones(e.fechaIngreso, new Date()))
     const diasDisponibles = Math.max(0, diasAcumulados - tomados)
     const valorDiario     = e.salarioBase / getDivisorSalarioDiario(e)
     const valorAcumulado  = diasAcumulados * valorDiario

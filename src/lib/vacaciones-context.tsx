@@ -20,7 +20,7 @@ interface VacacionesCtx {
   eliminarDisfrute: (id: string) => void
   // Suma de días laborables ya tomados/vendidos (todos los registros) — lo
   // que se resta del acumulado para saber cuánto le queda disponible.
-  diasTomados: (empleadoId: string) => number
+  diasTomados: (empleadoId: string, desde?: Date) => number
   // true si `fecha` (hoy por defecto) cae dentro de algún tramo de tipo
   // 'disfrute' — una 'venta' NUNCA cuenta aquí, el empleado sigue trabajando.
   estaDeVacaciones: (empleadoId: string, fecha?: Date) => boolean
@@ -101,9 +101,10 @@ export function VacacionesProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  function diasTomados(empleadoId: string): number {
+  // `desde`: solo los tramos que empiezan en o después de esa fecha (p. ej. el año de servicio en curso)
+  function diasTomados(empleadoId: string, desde?: Date): number {
     return disfrutes
-      .filter(d => d.empleadoId === empleadoId)
+      .filter(d => d.empleadoId === empleadoId && (!desde || parseFechaLocal(d.fechaInicio) >= desde))
       .reduce((s, d) => s + d.diasLaborables, 0)
   }
 

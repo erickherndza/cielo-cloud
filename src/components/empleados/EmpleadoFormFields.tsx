@@ -836,53 +836,15 @@ export function EmpleadoFormFields({
               placeholder="Opcional" />
           </div>
         </div>
-        <div className="mt-3 rounded-lg border border-tabler-line dark:border-[#2e2e2e] p-3">
-          <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Historial de vacaciones y regalía de años anteriores</p>
-          <p className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">
-            Para empleados con años de servicio antes de Cielo Cloud. Si no declaras nada, el sistema asume que los años anteriores
-            ya se pagaron y cuenta desde que registras al empleado. Esto se muestra en la liquidación.
-          </p>
-          <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className={labelCls}>Vacaciones pagadas o disfrutadas hasta</label>
-              <input type="date" className={inputCls} value={form.vacacionesAlDiaHasta}
-                onChange={e => set('vacacionesAlDiaHasta', e.target.value)} />
-              <p className="mt-1 text-[10px] text-zinc-400">Ej. su último aniversario. Las vacaciones se cuentan desde esa fecha.</p>
-            </div>
-            <div>
-              <label className={labelCls}>Regalías de años anteriores que aún se deben</label>
-              {(() => {
-                const ini = form.fechaIngreso ? Number(form.fechaIngreso.slice(0, 4)) : NaN
-                const fin = new Date().getFullYear() - 1
-                const anios = Number.isFinite(ini) && ini <= fin ? Array.from({ length: fin - ini + 1 }, (_, i) => ini + i) : []
-                return anios.length === 0
-                  ? <p className="text-[10px] text-zinc-400">Sin años anteriores a la fecha de ingreso.</p>
-                  : <div className="flex flex-wrap gap-1.5">
-                      {anios.map(a => {
-                        const on = form.regaliaAniosPendientes.includes(a)
-                        return (
-                          <button key={a} type="button"
-                            onClick={() => set('regaliaAniosPendientes', on ? form.regaliaAniosPendientes.filter(x => x !== a) : [...form.regaliaAniosPendientes, a].sort())}
-                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${on ? 'border-amber-400 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : 'border-tabler-line dark:border-[#2e2e2e] text-zinc-500 dark:text-zinc-400'}`}>
-                            {a}
-                          </button>
-                        )
-                      })}
-                    </div>
-              })()}
-              <p className="mt-1 text-[10px] text-zinc-400">Sin marcar = pagadas. Las marcadas se suman a la liquidación.</p>
-            </div>
-          </div>
-        </div>
         <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-zinc-600 dark:text-zinc-300">
           <input type="checkbox" className="mt-0.5" checked={form.partidasAnterioresPendientes}
             onChange={e => set('partidasAnterioresPendientes', e.target.checked)} />
           <span>
-            <span className="font-medium">La empresa debe bonificación, regalía o vacaciones de años anteriores</span>
+            <span className="font-medium">La empresa debe bonificación o regalía de años anteriores</span>
             <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">
-              Si no lo marcas, las alertas y el cálculo de vacaciones cuentan solo desde hoy: el sistema no da por
-              pendientes los años anteriores a la fecha en que registras al empleado (las vacaciones ya
-              pendientes se declaran en «Saldo de vacaciones inicial»).
+              Si no lo marcas, las alertas de vencimiento cuentan solo desde hoy: el sistema no da por
+              pendientes los años anteriores a la fecha en que registras al empleado. La liquidación siempre
+              toma solo el año en curso para vacaciones y regalía.
             </span>
           </span>
         </label>
