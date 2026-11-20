@@ -155,6 +155,23 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
   return Math.max(0, dias + saldoVacacionesInicial)
 }
 
+// Vacaciones acumuladas DESDE EL SEGUIMIENTO en Cielo Cloud (mismo criterio que Regalía y
+// Bonificación, ver inicioSeguimiento): un empleado dado de alta hoy con ingreso en 2022 no debe
+// "deber" 4 años de vacaciones que el sistema nunca vio — lo anterior se asume disfrutado o saldado,
+// y el saldo pendiente real se declara en `saldoVacacionesInicial` (Carga Inicial). La tasa (14 vs 18
+// días) sigue dependiendo de la antigüedad real. Con `partidasAnterioresPendientes` (o sin
+// `registradoEn`, registros previos a ese campo) se cuenta desde el ingreso, como antes.
+export function diasVacacionesDesdeSeguimiento(
+  e: Pick<Empleado, 'fechaIngreso' | 'registradoEn' | 'partidasAnterioresPendientes' | 'saldoVacacionesInicial'>,
+  anosServicioEfectivos: number,
+): number {
+  const msAnio = 365.25 * 24 * 3600 * 1000
+  const antes = Math.max(0, (inicioSeguimiento(e).getTime() - parseFechaLocal(e.fechaIngreso).getTime()) / msAnio)
+  const previos = Math.min(antes, Math.max(0, anosServicioEfectivos))
+  const dias = calcularDiasVacacionesAcumulados(anosServicioEfectivos) - calcularDiasVacacionesAcumulados(previos)
+  return Math.max(0, dias) + Math.max(0, e.saldoVacacionesInicial ?? 0)
+}
+
 // ─── Días laborables entre dos fechas (excluye domingos) ─────────────────────
 // Usado por el Disfrute de Vacaciones: tanto para restar del acumulado
 // disponible como para valorar el goce pagado en Nómina — consistente con

@@ -16,7 +16,7 @@ import {
   calcularCesantiaDetalle, calcularPreavisoDetalle, calcularAsistenciaEconomicaDetalle,
   calcularSalarioPromedioUltimos12Meses, getDivisorSalarioDiario, getDiasPreavisoRequeridos,
   calcularDiasTrabajadosPendientes, calcularNomina, MOTIVO_LIQUIDACION_LABELS, regaliaPagadaVigente,
-  calcularDiasVacacionesAcumulados, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
+  diasVacacionesDesdeSeguimiento, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
   motivoGenera,
   getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
@@ -526,7 +526,7 @@ export default function LiquidacionPage() {
     // (Disfrute de Vacaciones, /vacaciones) antes de calcular lo pendiente
     // por pagar — de lo contrario esos días se cobrarían DOS veces (una en
     // Nómina al gozarlos/venderlos, otra aquí al liquidar).
-    const diasVacAcum = Math.max(0, calcularDiasVacacionesAcumulados(anosServicioEfectivosVacaciones, emp.saldoVacacionesInicial ?? 0) - diasTomados(emp.id))
+    const diasVacAcum = Math.max(0, diasVacacionesDesdeSeguimiento(emp, anosServicioEfectivosVacaciones) - diasTomados(emp.id))
     const tarifaDiariaVac = emp.salarioBase / divisorDiario
     const vacacionesBruto = diasVacAcum * tarifaDiariaVac
     // Las vacaciones SÍ son salario ordinario continuado (Art. 178, Código de

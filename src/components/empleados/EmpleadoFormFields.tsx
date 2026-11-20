@@ -840,10 +840,11 @@ export function EmpleadoFormFields({
           <input type="checkbox" className="mt-0.5" checked={form.partidasAnterioresPendientes}
             onChange={e => set('partidasAnterioresPendientes', e.target.checked)} />
           <span>
-            <span className="font-medium">La empresa debe bonificación o regalía de años anteriores</span>
+            <span className="font-medium">La empresa debe bonificación, regalía o vacaciones de años anteriores</span>
             <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">
-              Si no lo marcas, las alertas de vencimiento cuentan solo desde hoy: el sistema no da por
-              pendientes los años anteriores a la fecha en que registras al empleado.
+              Si no lo marcas, las alertas y el cálculo de vacaciones cuentan solo desde hoy: el sistema no da por
+              pendientes los años anteriores a la fecha en que registras al empleado (las vacaciones ya
+              pendientes se declaran en «Saldo de vacaciones inicial»).
             </span>
           </span>
         </label>
