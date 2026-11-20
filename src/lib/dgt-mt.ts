@@ -341,7 +341,14 @@ export function construirDGTOtros(args: {
       f.causa = (d.causa ?? '').toUpperCase()
       if (!f.establecimiento) f.errores.push('Falta el ID de establecimiento / RNL (en el empleado o por defecto)')
       if (!/^[A-E]$/.test(f.causa)) f.errores.push('Falta la causa de prolongación (A a E)')
+      // Los días deben caer dentro del tiempo realmente trabajado (después del ingreso y hasta la salida)
+      const liq = liquidaciones.find(l => l.empleadoId === e.id)?.fechaTerminacion ?? e.fechaSalidaPendiente
       for (const [dia, v] of Object.entries(d.dias)) {
+        const fd = new Date(anio, mes - 1, Number(dia))
+        if (Number(dia) >= 1 && Number(dia) <= 31) {
+          if (fd < parseFechaLocal(e.fechaIngreso)) f.errores.push(`Día ${dia}: es anterior a su fecha de ingreso`)
+          if (liq && fd > parseFechaLocal(liq)) f.errores.push(`Día ${dia}: es posterior a su salida`)
+        }
         if (Number(dia) < 1 || Number(dia) > 31) f.errores.push(`Día ${dia} no válido`)
         if (!(v.h > 0) || v.h >= 100) f.errores.push(`Día ${dia}: horas no válidas`)
         if (!(v.pct > 0) || v.pct >= 1000) f.errores.push(`Día ${dia}: porcentaje no válido`)

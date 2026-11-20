@@ -92,7 +92,13 @@ export function ReporteDGT() {
     guardarDatos2({ ...datos2, [empSel]: { ...actual, dias: { ...actual.dias, [diaSel]: { h, pct: Number(pctSel) } } } })
     setHorasSel('')
   }
-  const activos = empleados.filter(e => e.activo)
+  // Quienes pudieron trabajar horas extras ese mes: activos y también los que salieron durante el mes o después
+  const trabajaronEnMes = empleados.filter(e => {
+    const ini = new Date(anio, mes - 1, 1), fin = new Date(anio, mes, 0)
+    if (new Date(e.fechaIngreso + 'T00:00:00') > fin) return false
+    const salida = liquidaciones.find(l => l.empleadoId === e.id)?.fechaTerminacion ?? e.fechaSalidaPendiente
+    return e.activo || !!(salida && new Date(salida + 'T00:00:00') >= ini)
+  })
   // Horas extras que la nómina ya trae en este mes (solo el total; el Ministerio las pide por día)
   const heNomina = useMemo(() => {
     const m = new Map<string, number>()
@@ -219,7 +225,7 @@ export function ReporteDGT() {
                 <label className="text-xs text-zinc-500">Empleado
                   <select value={empSel} onChange={e => setEmpSel(e.target.value)} className={`mt-1 block w-56 ${inp}`}>
                     <option value="">— Seleccionar —</option>
-                    {activos.map(e => <option key={e.id} value={e.id}>{e.nombre} {e.apellido}</option>)}
+                    {trabajaronEnMes.map(e => <option key={e.id} value={e.id}>{e.nombre} {e.apellido}{e.activo ? '' : ' (salió)'}</option>)}
                   </select>
                 </label>
                 <label className="text-xs text-zinc-500">Día
