@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { FileDown, FileSpreadsheet } from 'lucide-react'
 import { useEmpleados } from '@/lib/empleados-context'
 import { usePeriodos } from '@/lib/periodos-context'
@@ -107,7 +107,8 @@ export function ReporteAutodeterminacion() {
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-[#252840]">
                   {res.filas.map(f => (
-                    <tr key={f.empleado.id} className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
+                    <Fragment key={f.empleado.id}>
+                    <tr className="hover:bg-zinc-50 dark:hover:bg-[#1a1d2e]">
                       <td className="px-4 py-2.5">
                         <p className="font-medium text-[#1B2980] dark:text-indigo-300">{f.empleado.nombre} {f.empleado.apellido}</p>
                         <p className="text-xs text-zinc-400">{f.documento || '—'}</p>
@@ -123,6 +124,15 @@ export function ReporteAutodeterminacion() {
                       </td>
                       <td className="px-4 py-2.5 text-xs text-zinc-400">{f.detalleFuentes.join(' + ')}</td>
                     </tr>
+                    {f.componentesSS.length > 0 && (
+                      <tr className="bg-zinc-50/60 dark:bg-[#1a1d2e]/60">
+                        <td colSpan={8} className="px-4 pb-2.5 pt-0 text-[11px] text-zinc-500">
+                          <span className="font-semibold">Compone el salario SS (bruto):</span>{' '}
+                          {f.componentesSS.map(c => `${c.concepto} ${formatRD(c.monto)}`).join(' · ')}
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -132,6 +142,7 @@ export function ReporteAutodeterminacion() {
       )}
 
       <NotaInfo>
+        <p><strong>Salario SS en bruto:</strong> el salario cotizable se reporta antes de las deducciones del empleado (AFP, SFS e ISR). Por eso las vacaciones de una liquidación entran por su monto bruto, no por el neto que se le pagó al empleado. Debajo de cada empleado se detalla de qué se compone.</p>
         <p><strong>Cómo se envía:</strong> en SUIRPLUS (tss.gob.do) → «Gestión de Archivos», dentro del plazo: desde el día siguiente al tercer día hábil del mes hasta el tercer día hábil del mes siguiente. Cada envío sustituye al anterior. Si el mes ya cerró y hay que corregir, la TSS usa la autodeterminación retroactiva (AR).</p>
         <p className="mt-1.5"><strong>Criterios aplicados por Cielo Cloud</strong> (confírmalos con tu contador en el primer envío): se reporta el salario real sin topes; el aporte voluntario suma el del empleado y el de la empresa; los bonos, la bonificación por utilidades y los ingresos que pagan ISR pero no TSS van en «otras remuneraciones»; la regalía y la cesantía/preaviso van como ingresos exentos. No se informan: agente de retención único, remuneraciones de otros empleadores, saldo a favor ni salario INFOTEP distinto (quedan en ceros).</p>
       </NotaInfo>

@@ -44,6 +44,8 @@ export interface FilaAM {
   exentoIndemnizaciones: number
   tipoIngreso: TipoIngresoAM
   detalleFuentes: string[]
+  /** De qué se compone el salario cotizable (siempre en bruto, antes de AFP/SFS/ISR). */
+  componentesSS: { concepto: string; monto: number }[]
   errores: string[]
   avisos: string[]
 }
@@ -110,12 +112,15 @@ export function construirAutodeterminacion(args: {
   const porId = new Map(empleados.map(e => [e.id, e]))
   const acc = new Map<string, {
     ss: number; isr: number; vol: number; otras: number; reg: number; ind: number
-    fuentes: string[]; salida: boolean
+    fuentes: string[]; salida: boolean; comp: Map<string, number>
   }>()
   const get = (id: string) => {
     let a = acc.get(id)
-    if (!a) { a = { ss: 0, isr: 0, vol: 0, otras: 0, reg: 0, ind: 0, fuentes: [], salida: false }; acc.set(id, a) }
+    if (!a) { a = { ss: 0, isr: 0, vol: 0, otras: 0, reg: 0, ind: 0, fuentes: [], salida: false, comp: new Map() }; acc.set(id, a) }
     return a
+  }
+  const sumar = (x: { comp: Map<string, number> }, concepto: string, monto: number) => {
+    if (Math.abs(monto) > 0.004) x.comp.set(concepto, (x.comp.get(concepto) ?? 0) + monto)
   }
   const periodosUsados: string[] = []
 
@@ -149,6 +154,15 @@ export function construirAutodeterminacion(args: {
       const legado = baseLegado(r) - bonosEnLegado
       const x = get(id)
       x.ss += legado + customTSS
+      sumar(x, 'Sueldo', r.salarioBruto)
+      sumar(x, 'Horas extras', r.importeHE35 + r.importeHE100)
+      sumar(x, 'Recargo nocturno', r.importeNocturno)
+      sumar(x, 'Comisiones', r.comisiones)
+      sumar(x, 'Otros ingresos', r.bonificaciones - bonosEnLegado)
+      sumar(x, 'Vacaciones disfrutadas (goce)', r.vacacionesGoce)
+      sumar(x, 'Vacaciones vendidas', r.vacacionesVendidas)
+      sumar(x, 'Días pendientes de ingreso', r.diasIngresoPendientes)
+      sumar(x, 'Ingresos personalizados que cotizan', customTSS)
       x.isr += legado + customAmbos
       x.otras += customSoloISR + bonoSum
       x.vol += (r.aporteVoluntarioAFPEmpleado || 0) + (r.aporteVoluntarioAFPEmpresa || 0)
@@ -185,6 +199,8 @@ export function construirAutodeterminacion(args: {
     const salarial = (l.salarioDiasTrabajadosBruto ?? 0) + (l.vacacionesBruto ?? 0)
     x.ss += salarial
     x.isr += salarial
+    sumar(x, 'Días trabajados pendientes (liquidación, bruto)', l.salarioDiasTrabajadosBruto ?? 0)
+    sumar(x, 'Vacaciones no gozadas (liquidación, bruto)', l.vacacionesBruto ?? 0)
     x.ind += (l.cesantia || 0) + (l.preaviso || 0) + (l.asistenciaEconomica || 0)
     x.reg += l.regalia || 0
     x.salida = true
@@ -238,6 +254,7 @@ export function construirAutodeterminacion(args: {
       exentoIndemnizaciones: r2(x.ind),
       tipoIngreso,
       detalleFuentes: Array.from(new Set(x.fuentes)),
+      componentesSS: Array.from(x.comp.entries()).map(([concepto, monto]) => ({ concepto, monto: r2(monto) })),
       errores,
       avisos,
     })

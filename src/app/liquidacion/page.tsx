@@ -666,6 +666,7 @@ export default function LiquidacionPage() {
           `${resultado.vacPend.periodoAdquirido} + ${resultado.vacPend.proporcional}${resultado.diasVacPrevios > 0 ? ` + ${resultado.diasVacPrevios} de períodos anteriores sin disfrutar ni pagar (Art. 182/184)` : ''}${resultado.vacPend.saldoInicial > 0 ? ` + ${resultado.vacPend.saldoInicial} de saldo inicial` : ''}${resultado.diasVacTomados > 0 ? ` − ${resultado.diasVacTomados} ya disfrutados/vendidos` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
           `${resultado.diasVacAcum.toFixed(2)} días × ${formatRD(resultado.tarifaDiariaVac, 2)}/día = ${formatRD(resultado.vacacionesBruto, 2)} bruto`,
           `Bruto ${formatRD(resultado.vacacionesBruto, 2)} − AFP ${formatRD(resultado.afpVacaciones, 2)} − SFS ${formatRD(resultado.sfsVacaciones, 2)} − ISR ${formatRD(resultado.isrVacaciones, 2)}`,
+          `Para la autodeterminación de la TSS se reporta el bruto (${formatRD(resultado.vacacionesBruto, 2)}), no el neto que recibe el empleado.`,
         ],
       },
       regalia: {
