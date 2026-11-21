@@ -2,7 +2,7 @@
 
 import { useConfirm } from '@/lib/confirm-context'
 import { useState } from 'react'
-import { Search, Wallet, Mail, CheckCircle2, Undo2 } from 'lucide-react'
+import { Search, Wallet, Mail, CheckCircle2, Undo2, CalendarDays } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { Badge } from '@/components/ui/Badge'
 import { Toast } from '@/components/ui/Toast'
@@ -27,6 +27,9 @@ export default function GestionEnviosPage() {
   const [envioAuto, setEnvioAuto] = useState(false)
   const { empresa } = useEmpresa()
   const [toast, setToast] = useState<string | null>(null)
+  // Período para el que se está eligiendo la fecha de pago (diálogo con calendario)
+  const [pagoPeriodo, setPagoPeriodo] = useState<PeriodoNomina | null>(null)
+  const [fechaPagoSel, setFechaPagoSel] = useState(hoyLocalISO())
 
   const cerrados = periodos.filter(p => p.estado === 'cerrada')
   const anios = Array.from(new Set(cerrados.map(p => p.anio))).sort((a, b) => b - a)
@@ -39,12 +42,19 @@ export default function GestionEnviosPage() {
   const pendientesPago = cerrados.filter(p => !p.pagada).length
   const hayFiltros = busqueda.trim() !== '' || filtroAnio !== 'todos'
 
-  async function handleMarcarPagada(p: PeriodoNomina) {
-    const hoy = hoyLocalISO()
-    if (!await confirmar({ titulo: 'Marcar como pagada', mensaje: `¿Confirmar que "${labelPeriodo(p)}" ya fue pagado (transferencia ACH enviada) el ${formatDate(hoy)}?`, confirmarLabel: 'Sí, ya se pagó' })) return
-    marcarPagada(p.id, hoy)
+  // Abre el diálogo para elegir la fecha real del pago (el mes de esa fecha es el que se reporta en la
+  // autodeterminación de la TSS para Regalía y Bonificación, y la que aparece en el correo del comprobante).
+  function handleMarcarPagada(p: PeriodoNomina) {
+    setFechaPagoSel(hoyLocalISO())
+    setPagoPeriodo(p)
+  }
+
+  function confirmarPago() {
+    if (!pagoPeriodo || !fechaPagoSel || fechaPagoSel > hoyLocalISO()) return
+    marcarPagada(pagoPeriodo.id, fechaPagoSel)
     setEnvioAuto(empresa.enviarComprobantesAlPagar !== false)
-    setEnvioPeriodoId(p.id)
+    setEnvioPeriodoId(pagoPeriodo.id)
+    setPagoPeriodo(null)
   }
 
   // Deshacer un pago es el único requisito para poder reabrir después un
@@ -189,8 +199,38 @@ export default function GestionEnviosPage() {
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
+      {pagoPeriodo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 animate-backdrop-in" onClick={() => setPagoPeriodo(null)}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1f1f1f] p-6 shadow-xl animate-modal-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-[#1B2980] dark:text-indigo-300" />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Marcar como pagada</h3>
+                <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-300">
+                  Elige el día en que se pagó «{labelPeriodo(pagoPeriodo)}» (transferencia ACH enviada).
+                </p>
+                <label htmlFor="fecha-pago" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Fecha del pago</label>
+                <input
+                  id="fecha-pago" type="date" autoFocus value={fechaPagoSel} max={hoyLocalISO()}
+                  onChange={e => setFechaPagoSel(e.target.value)}
+                  className="mt-1.5 w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1a1a1a] px-3 py-2 text-sm text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/30"
+                />
+                {fechaPagoSel > hoyLocalISO() && <p className="mt-1.5 text-xs text-rose-600">La fecha de pago no puede ser futura.</p>}
+                <p className="mt-2 text-[11px] text-zinc-400">Esta fecha queda registrada en el período y se usa en el correo del comprobante.</p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setPagoPeriodo(null)} className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626]">Cancelar</button>
+              <button onClick={confirmarPago} disabled={!fechaPagoSel || fechaPagoSel > hoyLocalISO()} className={cn(BTN_PRIMARY, 'disabled:cursor-not-allowed disabled:opacity-50')}>
+                Sí, ya se pagó
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {periodoEnvio && (
-        <EnvioComprobantesModal
+      <EnvioComprobantesModal
           periodo={periodoEnvio}
           onClose={() => { setEnvioPeriodoId(null); setEnvioAuto(false) }}
           onToast={setToast}
