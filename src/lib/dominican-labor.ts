@@ -97,10 +97,10 @@ export const HORAS_SEMANA = 44                     // Art. 147: semana de 44h
 export const DIAS_VACACIONES_HASTA_5_ANOS = 14     // Art. 177: 14 días laborables
 export const DIAS_VACACIONES_MAS_5_ANOS = 18       // Art. 177: 18 días laborables
 
-/** Días laborables de vacaciones por año según la antigüedad («más de N años»). */
+/** Días laborables de vacaciones por año según la antigüedad: 14 los años 1 a 4 y 18 desde los 5 años cumplidos (Art. 177). */
 export function getDiasVacacionesAnuales(anosServicio: number): number {
   const v = getParametros().vacaciones
-  return anosServicio > v.umbralAnios ? v.diasMas5 : v.diasHasta5
+  return anosServicio >= v.umbralAnios ? v.diasMas5 : v.diasHasta5
 }
 
 // ─── Régimen de trabajo intermitente (Resolución 04-93, Ministerio de Trabajo) ─
@@ -145,9 +145,7 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
   const fraccionActual  = anosServicio - aniosCompletos
   let dias = 0
   for (let i = 1; i <= aniosCompletos; i++) {
-    // Los primeros 5 años (i = 1..5) acreditan a 14 días — el salto a 18 solo
-    // aplica al 6º año en adelante (i > 5), nunca al año 5 en sí (bug corregido:
-    // antes usaba `i >= 5`, acreditando de más el año 5 completo).
+    // Años 1 a 4 acreditan 14 días; desde el año 5 cumplido, 18 (Art. 177, criterio del contable).
     dias += getDiasVacacionesAnuales(i)
   }
   const tasaActual = getDiasVacacionesAnuales(aniosCompletos + 1)
@@ -155,18 +153,38 @@ export function calcularDiasVacacionesAcumulados(anosServicio: number, saldoVaca
   return Math.max(0, dias + saldoVacacionesInicial)
 }
 
-// Vacaciones en LIQUIDACIÓN y en el módulo Vacaciones: solo el AÑO EN CURSO (el ciclo de servicio que
-// corre desde el último aniversario del ingreso). Los años anteriores se asumen ya pagados o disfrutados
-// (lo normal en una empresa que ya operaba: cada año se pagan vacaciones y regalía). La cesantía y el
-// preaviso, en cambio, sí usan toda la antigüedad. La tasa (14 vs 18 días) sigue dependiendo de la
-// antigüedad real. El saldo de vacaciones que el usuario declare en «Saldos iniciales» se suma aparte.
-export function diasVacacionesAnoEnCurso(
+// Vacaciones pendientes en LIQUIDACIÓN y en el módulo Vacaciones (Arts. 177–184 del Código de Trabajo):
+//  · El derecho se adquiere COMPLETO en cada aniversario (Art. 178): 14 o 18 días según la antigüedad (Art. 177).
+//    Si el trabajador no lo disfrutó, se paga ese período entero (Art. 182 y 184).
+//  · La fracción transcurrida desde ese aniversario se paga por la escala de los Arts. 179–180: más de 5 meses
+//    = 6 días, más de 6 = 7, … más de 11 = 12. Menos de 5 meses no genera nada.
+//  · Los períodos de años anteriores se asumen ya disfrutados o pagados (cada empresa debe otorgarlos cada año,
+//    Arts. 177 y 188). La cesantía y el preaviso, en cambio, usan toda la antigüedad.
+//  · `saldoVacacionesInicial` (lo que el usuario declare en «Saldos iniciales») se suma aparte.
+export interface VacacionesPendientes {
+  /** Período adquirido en el último aniversario (0 si aún no cumple un año). */
+  periodoAdquirido: number
+  /** Años completos de servicio efectivos. */
+  aniosCompletos: number
+  /** Meses transcurridos desde el último aniversario (fraccionales). */
+  mesesFraccion: number
+  /** Días de la escala Art. 180 por esa fracción. */
+  proporcional: number
+  saldoInicial: number
+  total: number
+}
+
+export function vacacionesPendientes(
   e: Pick<Empleado, 'saldoVacacionesInicial'>,
   anosServicioEfectivos: number,
-): number {
+): VacacionesPendientes {
   const a = Math.max(0, anosServicioEfectivos)
-  const completos = Math.floor(a)
-  return getDiasVacacionesAnuales(completos + 1) * (a - completos) + Math.max(0, e.saldoVacacionesInicial ?? 0)
+  const aniosCompletos = Math.floor(a)
+  const periodoAdquirido = aniosCompletos >= 1 ? getDiasVacacionesAnuales(aniosCompletos) : 0
+  const mesesFraccion = (a - aniosCompletos) * 12
+  const proporcional = mesesFraccion > 5 ? Math.min(12, Math.ceil(mesesFraccion)) : 0
+  const saldoInicial = Math.max(0, e.saldoVacacionesInicial ?? 0)
+  return { periodoAdquirido, aniosCompletos, mesesFraccion, proporcional, saldoInicial, total: periodoAdquirido + proporcional + saldoInicial }
 }
 
 /** Último aniversario del ingreso anterior o igual a `ref`: inicio del año de servicio en curso. */
@@ -497,6 +515,24 @@ export interface DetalleTramoPrestacion {
   tramo: string   // descripción legible del tramo aplicado, ej. "5+ años — 23 días × 5 año(s) completo(s)"
 }
 
+// Art. 80, párrafo: «toda fracción de un año, mayor de tres meses, debe pagarse de conformidad con los
+// ordinales 1o. y 2o.»: 6 días si la fracción es de 3 a 6 meses, 13 días si es de 6 a 12 meses.
+function conFraccionCesantia(
+  base: DetalleTramoPrestacion,
+  anosServicio: number,
+  p: { d3a6m: number; d6a12m: number },
+): DetalleTramoPrestacion {
+  const fraccion = anosServicio - Math.floor(anosServicio)
+  if (fraccion < 0.25) return base
+  const diasFr = fraccion < 0.5 ? p.d3a6m : p.d6a12m
+  return {
+    dias: base.dias + diasFr,
+    tarifaDiaria: base.tarifaDiaria,
+    total: base.total + base.tarifaDiaria * diasFr,
+    tramo: `${base.tramo} + fracción de año (${fraccion < 0.5 ? '3–6' : '6–12'} meses): ${diasFr} días (Art. 80)`,
+  }
+}
+
 // ─── Cesantía (Art. 80, Código de Trabajo Ley 16-92) ─────────────────────────
 // Salario diario = salario mensual ÷ divisor laboral (23.83 ordinario, 26
 // régimen intermitente) — NO ÷30 días calendario. Usa getDivisorSalarioDiario().
@@ -509,11 +545,11 @@ export function calcularCesantiaDetalle(salarioMensual: number, anosServicio: nu
   if (anosServicio < 5) {
     const anios = Math.floor(anosServicio)
     const dias = p.diasAnio1a5 * anios
-    return { dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `1–5 años — ${p.diasAnio1a5} días × ${anios} año(s) completo(s)` }
+    return conFraccionCesantia({ dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `1–5 años — ${p.diasAnio1a5} días × ${anios} año(s) completo(s)` }, anosServicio, p)
   }
   const anios = Math.floor(anosServicio)
   const dias = p.diasAnio5mas * anios
-  return { dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `5+ años — ${p.diasAnio5mas} días × ${anios} año(s) completo(s)` }
+  return conFraccionCesantia({ dias, tarifaDiaria, total: tarifaDiaria * dias, tramo: `5+ años — ${p.diasAnio5mas} días × ${anios} año(s) completo(s)` }, anosServicio, p)
 }
 
 export function calcularCesantia(salarioMensual: number, anosServicio: number, divisor: number = getDivisorOrdinario()): number {

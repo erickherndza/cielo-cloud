@@ -22,7 +22,7 @@ const fechaHora = (iso: string) => new Date(iso).toLocaleString('es-DO', { dateS
 // Etiquetas de cada campo, con el artículo del Código de Trabajo que lo respalda.
 const SECCIONES: { grupo: Grupo; titulo: string; nota: string; campos: Record<string, string> }[] = [
   { grupo: 'vacaciones', titulo: 'Vacaciones (Art. 177)', nota: 'Días laborables por año. Pasa a la tasa mayor cuando la antigüedad supera el umbral.',
-    campos: { diasHasta5: 'Días por año hasta el umbral', diasMas5: 'Días por año después del umbral', umbralAnios: 'Umbral (más de N años)' } },
+    campos: { diasHasta5: 'Días por año hasta el umbral', diasMas5: 'Días por año después del umbral', umbralAnios: 'Umbral (desde N años cumplidos)' } },
   { grupo: 'divisor', titulo: 'Salario diario', nota: 'Salario mensual ÷ divisor. Lo usan cesantía, preaviso, asistencia y vacaciones.',
     campos: { ordinario: 'Divisor régimen ordinario', intermitente: 'Divisor régimen intermitente (Res. 04-93)' } },
   { grupo: 'cesantia', titulo: 'Cesantía (Art. 80)', nota: 'Días de salario según la antigüedad.',

@@ -1081,8 +1081,8 @@ function EmpleadoDrawer({
         {mostrarSuspension && (
           <div className="shrink-0 border-t border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-6 py-4 space-y-3">
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-              Suspender contrato — no acumulará vacaciones/regalía hasta que lo reactives, pero
-              conserva su antigüedad. Si ya trabajó parte del período de nómina en curso antes de
+              Suspender contrato — conserva su antigüedad y sus vacaciones (Art. 84); solo deja de
+              acumular regalía mientras no devenga salario. Si ya trabajó parte del período de nómina en curso antes de
               esta fecha, se le paga el prorrateo correspondiente; los períodos siguientes no lo
               incluirán mientras siga suspendido.
             </p>

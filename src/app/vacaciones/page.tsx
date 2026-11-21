@@ -13,8 +13,7 @@ import {
   getDivisorSalarioDiario,
   calcularNomina,
   contarDiasLaborables,
-  diasVacacionesAnoEnCurso, inicioCicloVacaciones,
-  aniosSuspendidosTotal,
+  vacacionesPendientes, inicioCicloVacaciones,
   getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
 import { getParametros } from '@/lib/parametros-legales'
@@ -44,16 +43,10 @@ export default function VacacionesPage() {
 
   const filas = empleadosEnNomina.map(e => {
     const anos            = getAnosServicio(e.fechaIngreso)
-    // Reloj de vacaciones ≠ antigüedad legal: el tiempo suspendido no genera
-    // derecho a vacaciones (ni monto, ni cuándo se alcanza la tasa de 18
-    // días), pero sí cuenta para cesantía/preaviso, que siguen usando `anos`.
-    const anosServicioEfectivosVacaciones = Math.max(0, anos - aniosSuspendidosTotal(e))
+    const anosServicioEfectivosVacaciones = anos  // Art. 84: la suspensión no interrumpe la antigüedad
     const diasAnuales     = getDiasVacacionesAnuales(anosServicioEfectivosVacaciones)
-    // Compone TODOS los años completos de servicio (a la tasa vigente en cada
-    // uno) + la fracción del año en curso — no solo el ciclo actual, que
-    // descartaría años completos nunca disfrutados. + saldo inicial:
-    // empleados con historial previo a Cielo Cloud (migración).
-    const diasAcumulados  = diasVacacionesAnoEnCurso(e, anosServicioEfectivosVacaciones)
+    // Período adquirido en el último aniversario + fracción por la escala de los Arts. 179-180 + saldo inicial.
+    const diasAcumulados  = vacacionesPendientes(e, anosServicioEfectivosVacaciones).total
     const tomados         = diasTomados(e.id, inicioCicloVacaciones(e.fechaIngreso, new Date()))
     const diasDisponibles = Math.max(0, diasAcumulados - tomados)
     const valorDiario     = e.salarioBase / getDivisorSalarioDiario(e)
@@ -264,7 +257,7 @@ export default function VacacionesPage() {
           <div className="border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-4">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Vacaciones por Empleado</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              14 días laborables (1–5 años) · 18 días laborables (más de 5 años). Tarifa diaria = salario ÷ 23.83
+              14 días laborables (años 1 a 4) · 18 días laborables (desde los 5 años cumplidos). Tarifa diaria = salario ÷ 23.83
               (÷ 26 en régimen de trabajo intermitente). Días Disponibles resta lo ya tomado en Disfrutes registrados.
             </p>
           </div>

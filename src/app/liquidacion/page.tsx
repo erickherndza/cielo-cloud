@@ -16,7 +16,7 @@ import {
   calcularCesantiaDetalle, calcularPreavisoDetalle, calcularAsistenciaEconomicaDetalle,
   calcularSalarioPromedioUltimos12Meses, getDivisorSalarioDiario, getDiasPreavisoRequeridos,
   calcularDiasTrabajadosPendientes, calcularNomina, MOTIVO_LIQUIDACION_LABELS, regaliaPagadaVigente,
-  diasVacacionesAnoEnCurso, inicioCicloVacaciones, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
+  vacacionesPendientes, inicioCicloVacaciones, aniosSuspendidosTotal, mesesSuspendidosEnAnio,
   motivoGenera,
   getDiasVacacionesAnuales,
 } from '@/lib/dominican-labor'
@@ -494,7 +494,8 @@ export default function LiquidacionPage() {
     // vacaciones (ni monto, ni el salto a 18 días/año), pero cesantía/
     // preaviso/asistencia sí usan `anosServicio` continuo, sin descontar.
     const aniosSuspendidos = aniosSuspendidosTotal(emp, fechaTerm)
-    const anosServicioEfectivosVacaciones = Math.max(0, anosServicio - aniosSuspendidos)
+    // Art. 84: la suspensión NO interrumpe la antigüedad; las vacaciones se calculan con la antigüedad completa.
+    const anosServicioEfectivosVacaciones = anosServicio
 
     const salarioOrdinario = calcularSalarioPromedioUltimos12Meses(emp, periodos, fechaTerm)
     const divisorDiario    = getDivisorSalarioDiario(emp)
@@ -531,7 +532,9 @@ export default function LiquidacionPage() {
     // (Disfrute de Vacaciones, /vacaciones) antes de calcular lo pendiente
     // por pagar — de lo contrario esos días se cobrarían DOS veces (una en
     // Nómina al gozarlos/venderlos, otra aquí al liquidar).
-    const diasVacAcum = Math.max(0, diasVacacionesAnoEnCurso(emp, anosServicioEfectivosVacaciones) - diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, fechaTerm)))
+    const vacPend = vacacionesPendientes(emp, anosServicioEfectivosVacaciones)
+    const diasVacTomados = diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, fechaTerm))
+    const diasVacAcum = Math.max(0, vacPend.total - diasVacTomados)
     const tarifaDiariaVac = emp.salarioBase / divisorDiario
     const vacacionesBruto = diasVacAcum * tarifaDiariaVac
     // Las vacaciones SÍ son salario ordinario continuado (Art. 178, Código de
@@ -585,7 +588,7 @@ export default function LiquidacionPage() {
       anosServicio, mesesCalendario, mesesSuspendidosRegalia, aniosSuspendidos, salarioOrdinario,
       cesantia, cesantiaDetalle, preaviso, preavisoDetalle, asistenciaEconomica, asistenciaDetalle,
       vacaciones, vacacionesBruto, afpVacaciones, sfsVacaciones, isrVacaciones,
-      diasVacAcum, diasVacAnuales, tarifaDiariaVac,
+      diasVacAcum, diasVacAnuales, tarifaDiariaVac, vacPend, diasVacTomados,
       regalia, regaliaBruta,
       totalPrestamos, saldoISR: saldoISRPendiente,
       diasPreavisoRequeridos, diasAnticipacionReal, cumplioPreaviso, diferenciaDiasPreaviso,
@@ -654,8 +657,9 @@ export default function LiquidacionPage() {
         Icon: CalendarDays,
         montoAuto: resultado.vacaciones,
         detalle: [
-          `Solo el año en curso (desde el ${formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))}, último aniversario); los años anteriores se asumen pagados o disfrutados.`,
-          `Antigüedad ${formatAnosServicio(resultado.anosServicio)} (Art. 177, tasa vigente × fracción transcurrida del año en curso)${resultado.aniosSuspendidos > 0 ? ` − ${(resultado.aniosSuspendidos * 12).toFixed(2)} mes(es) de suspensión (no generan vacaciones)` : ''}${(emp.saldoVacacionesInicial ?? 0) > 0 ? ` + ${emp.saldoVacacionesInicial} días de saldo inicial` : ''}${diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion))) > 0 ? ` − ${diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)))} días ya disfrutados/vendidos este año` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
+          `Período adquirido en el último aniversario (${formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))}): ${resultado.vacPend.periodoAdquirido} días (Art. 177/178), pagados si no se disfrutaron (Art. 182/184). Los años anteriores se asumen pagados o disfrutados.`,
+          `Fracción desde ese aniversario: ${resultado.vacPend.mesesFraccion.toFixed(1)} meses → ${resultado.vacPend.proporcional} días por la escala de los Arts. 179-180 (más de 5 meses = 6 días … más de 11 = 12).`,
+          `${resultado.vacPend.periodoAdquirido} + ${resultado.vacPend.proporcional}${resultado.vacPend.saldoInicial > 0 ? ` + ${resultado.vacPend.saldoInicial} de saldo inicial` : ''}${resultado.diasVacTomados > 0 ? ` − ${resultado.diasVacTomados} ya disfrutados/vendidos` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
           `${resultado.diasVacAcum.toFixed(2)} días × ${formatRD(resultado.tarifaDiariaVac, 2)}/día = ${formatRD(resultado.vacacionesBruto, 2)} bruto`,
           `Bruto ${formatRD(resultado.vacacionesBruto, 2)} − AFP ${formatRD(resultado.afpVacaciones, 2)} − SFS ${formatRD(resultado.sfsVacaciones, 2)} − ISR ${formatRD(resultado.isrVacaciones, 2)}`,
         ],
@@ -1195,9 +1199,9 @@ export default function LiquidacionPage() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/20 px-4 py-2.5 text-xs text-sky-800 dark:text-sky-300">
               <Info className="h-3.5 w-3.5 shrink-0" />
               <span className="font-semibold">Criterio aplicado:</span>
-              <span>Cesantía fija por antigüedad ({formatAnosServicio(resultado.anosServicio)})</span>
+              <span>Cesantía fija por antigüedad ({formatAnosServicio(resultado.anosServicio)}, incluye fracción mayor de 3 meses)</span>
               {motivoGenera(motivo as Motivo, 'preaviso') && <span>· Preaviso: {preavisoOtorgado ? 'otorgado (no se paga)' : 'no otorgado (se paga)'}</span>}
-              <span>· Vacaciones: solo el año en curso (desde el {formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))})</span>
+              <span>· Vacaciones: período del último aniversario + fracción (escala Arts. 179-180)</span>
               <span>· Regalía: solo {parseFechaLocal(fechaTerminacion).getFullYear()}</span>
             </div>
 

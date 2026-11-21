@@ -14,7 +14,7 @@ export interface ParametrosLegales {
   vacaciones: {
     diasHasta5: number      // días laborables por año hasta el umbral (Art. 177)
     diasMas5: number        // días laborables por año después del umbral
-    umbralAnios: number     // «más de N años» pasa a la tasa mayor
+    umbralAnios: number     // desde N años cumplidos pasa a la tasa mayor
   }
   divisor: {
     ordinario: number       // salario mensual ÷ N = salario diario
