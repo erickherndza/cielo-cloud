@@ -426,6 +426,8 @@ export default function LiquidacionPage() {
   )
   const [fechaNotificacionRenuncia, setFechaNotificacionRenuncia] = useState<string>('')
   const [preavisoOtorgado, setPreavisoOtorgado] = useState(false)
+  // Días de períodos de vacaciones de años anteriores que el trabajador nunca disfrutó ni se le pagaron (Art. 182/184).
+  const [diasVacAnteriores, setDiasVacAnteriores] = useState('')
   const [prestamosADescontar, setPrestamosADescontar] = useState<string[]>([])
   const [overrides, setOverrides] = useState<Partial<Record<ConceptoLiquidacion, { monto: number; motivo: string }>>>({})
   const [metodoPago, setMetodoPago] = useState<MetodoPago | ''>('')
@@ -450,6 +452,7 @@ export default function LiquidacionPage() {
   // liquidación a otra por accidente.
   useEffect(() => {
     setOverrides({})
+    setDiasVacAnteriores('')
     setMetodoPago('')
     setReferenciaPago('')
     setConfirmoRevision(false)
@@ -534,7 +537,8 @@ export default function LiquidacionPage() {
     // Nómina al gozarlos/venderlos, otra aquí al liquidar).
     const vacPend = vacacionesPendientes(emp, anosServicioEfectivosVacaciones)
     const diasVacTomados = diasTomados(emp.id, inicioCicloVacaciones(emp.fechaIngreso, fechaTerm))
-    const diasVacAcum = Math.max(0, vacPend.total - diasVacTomados)
+    const diasVacPrevios = Math.max(0, Number(diasVacAnteriores) || 0)
+    const diasVacAcum = Math.max(0, vacPend.total + diasVacPrevios - diasVacTomados)
     const tarifaDiariaVac = emp.salarioBase / divisorDiario
     const vacacionesBruto = diasVacAcum * tarifaDiariaVac
     // Las vacaciones SÍ son salario ordinario continuado (Art. 178, Código de
@@ -588,7 +592,7 @@ export default function LiquidacionPage() {
       anosServicio, mesesCalendario, mesesSuspendidosRegalia, aniosSuspendidos, salarioOrdinario,
       cesantia, cesantiaDetalle, preaviso, preavisoDetalle, asistenciaEconomica, asistenciaDetalle,
       vacaciones, vacacionesBruto, afpVacaciones, sfsVacaciones, isrVacaciones,
-      diasVacAcum, diasVacAnuales, tarifaDiariaVac, vacPend, diasVacTomados,
+      diasVacAcum, diasVacAnuales, tarifaDiariaVac, vacPend, diasVacTomados, diasVacPrevios,
       regalia, regaliaBruta,
       totalPrestamos, saldoISR: saldoISRPendiente,
       diasPreavisoRequeridos, diasAnticipacionReal, cumplioPreaviso, diferenciaDiasPreaviso,
@@ -659,7 +663,7 @@ export default function LiquidacionPage() {
         detalle: [
           `Período adquirido en el último aniversario (${formatDate(inicioCicloVacaciones(emp.fechaIngreso, parseFechaLocal(fechaTerminacion)).toISOString().slice(0, 10))}): ${resultado.vacPend.periodoAdquirido} días (Art. 177/178), pagados si no se disfrutaron (Art. 182/184). Los años anteriores se asumen pagados o disfrutados.`,
           `Fracción desde ese aniversario: ${resultado.vacPend.mesesFraccion.toFixed(1)} meses → ${resultado.vacPend.proporcional} días por la escala de los Arts. 179-180 (más de 5 meses = 6 días … más de 11 = 12).`,
-          `${resultado.vacPend.periodoAdquirido} + ${resultado.vacPend.proporcional}${resultado.vacPend.saldoInicial > 0 ? ` + ${resultado.vacPend.saldoInicial} de saldo inicial` : ''}${resultado.diasVacTomados > 0 ? ` − ${resultado.diasVacTomados} ya disfrutados/vendidos` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
+          `${resultado.vacPend.periodoAdquirido} + ${resultado.vacPend.proporcional}${resultado.diasVacPrevios > 0 ? ` + ${resultado.diasVacPrevios} de períodos anteriores sin disfrutar ni pagar (Art. 182/184)` : ''}${resultado.vacPend.saldoInicial > 0 ? ` + ${resultado.vacPend.saldoInicial} de saldo inicial` : ''}${resultado.diasVacTomados > 0 ? ` − ${resultado.diasVacTomados} ya disfrutados/vendidos` : ''} = ${resultado.diasVacAcum.toFixed(2)} días`,
           `${resultado.diasVacAcum.toFixed(2)} días × ${formatRD(resultado.tarifaDiariaVac, 2)}/día = ${formatRD(resultado.vacacionesBruto, 2)} bruto`,
           `Bruto ${formatRD(resultado.vacacionesBruto, 2)} − AFP ${formatRD(resultado.afpVacaciones, 2)} − SFS ${formatRD(resultado.sfsVacaciones, 2)} − ISR ${formatRD(resultado.isrVacaciones, 2)}`,
         ],
@@ -902,6 +906,7 @@ export default function LiquidacionPage() {
     setMotivo('')
     setFechaNotificacionRenuncia('')
     setPreavisoOtorgado(false)
+    setDiasVacAnteriores('')
     setPrestamosADescontar([])
     setUltimaLiquidacion(null)
     setPaso(1)
@@ -1048,6 +1053,26 @@ export default function LiquidacionPage() {
                       </span>
                     </span>
                   </label>
+                )}
+
+                {emp && motivo && resultado && (
+                  <div className="mt-4 rounded-lg border border-sky-200 dark:border-sky-800/40 bg-sky-50 dark:bg-sky-950/20 px-4 py-3 text-xs text-sky-900 dark:text-sky-200">
+                    <label className="block font-semibold" htmlFor="dias-vac-anteriores">Vacaciones de años anteriores sin disfrutar ni pagar (días)</label>
+                    <p className="mt-0.5 text-[11px] opacity-80">
+                      Por defecto se asume que los años anteriores se pagaron o disfrutaron. Si el trabajador acumuló períodos sin tomarlos
+                      (Art. 182/184 obligan a pagarlos), escribe aquí los días: p. ej. {resultado.vacPend.aniosCompletos >= 2 ? `el período del año ${resultado.vacPend.aniosCompletos - 1} = ${getDiasVacacionesAnuales(resultado.vacPend.aniosCompletos - 1)} días` : '14 días por cada año pendiente'}.
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input id="dias-vac-anteriores" type="number" min="0" step="0.5" value={diasVacAnteriores}
+                        onChange={e => setDiasVacAnteriores(e.target.value)} placeholder="0" className={`${INPUT_CLASS} max-w-[140px]`} />
+                      {resultado.vacPend.aniosCompletos >= 2 && (
+                        <button type="button" onClick={() => setDiasVacAnteriores(String(getDiasVacacionesAnuales(resultado.vacPend.aniosCompletos - 1)))}
+                          className="rounded-md border border-sky-300 dark:border-sky-700 px-2.5 py-1.5 font-medium hover:bg-sky-100 dark:hover:bg-sky-900/30">
+                          Usar el año anterior ({getDiasVacacionesAnuales(resultado.vacPend.aniosCompletos - 1)} días)
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {motivo === 'renuncia' && (
