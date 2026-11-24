@@ -28,6 +28,8 @@ export interface AlertaItem {
   detalleTotal?: number
   href: string
   linkLabel: string
+  // Permite apagar la alerta directo desde la campanita (con confirmación) cuando el usuario sabe que ya está resuelta o no aplica.
+  descartar?: { label: string; mensaje: string; ejecutar: () => void }
 }
 
 export const SEVERIDAD_ORDEN: Record<Severidad, number> = { danger: 0, warning: 1, info: 2 }
@@ -49,7 +51,7 @@ const ANIOS_FISCALES = Array.from({ length: 12 }, (_, i) => anioActual - 10 + i)
 // puedan reutilizar exactamente la misma regla sin duplicar lógica.
 export function useAlertas(): AlertaItem[] {
   const { empleadosActivos, empleados } = useEmpleados()
-  const { empresa } = useEmpresa()
+  const { empresa, guardar } = useEmpresa()
   const { periodos } = usePeriodos()
   const { prestamos } = usePrestamos()
   const { liquidaciones } = useLiquidaciones()
@@ -106,6 +108,11 @@ export function useAlertas(): AlertaItem[] {
         detalleTotal: otrosBonif.length,
         href: `/bonificacion?anio=${alertaBonif.anio}`,
         linkLabel: `Calcular Bonificación ${alertaBonif.anio}`,
+        descartar: {
+          label: 'No corresponde este año',
+          mensaje: `¿Confirmas que la Bonificación por Utilidades ${alertaBonif.anio} no corresponde pagarla (sin utilidades o exención) o ya se pagó fuera del sistema? La alerta se apagará.`,
+          ejecutar: () => guardar({ ...empresa, bonificacionExentaAnios: Array.from(new Set([...(empresa.bonificacionExentaAnios ?? []), alertaBonif.anio])) }),
+        },
       })
     }
 
@@ -131,6 +138,11 @@ export function useAlertas(): AlertaItem[] {
         detalleTotal: otrasRegalia.length,
         // Si ya hay un período de Regalía de ese año abierto, lo que falta es procesarlo y cerrarlo en Nómina.
         href: regaliaAbierta ? '/nomina' : alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual?accion=pendiente',
+        descartar: {
+          label: 'Ya se pagó / no aplica',
+          mensaje: `¿Confirmas que la Regalía Pascual ${alertaRegalia.anio} ya se pagó fuera de Cielo Cloud o no aplica? La alerta se apagará.`,
+          ejecutar: () => guardar({ ...empresa, regaliaResueltaAnios: Array.from(new Set([...(empresa.regaliaResueltaAnios ?? []), alertaRegalia.anio])) }),
+        },
         linkLabel: regaliaAbierta ? `Procesar y cerrar Regalía ${alertaRegalia.anio} en Nómina` : alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : `Resolver Regalía ${alertaRegalia.anio}`,
       })
     }
@@ -258,7 +270,7 @@ export function useAlertas(): AlertaItem[] {
       if (grupo) grupo.push(p); else mesesConPeriodo.set(key, [p])
     }
 
-    const gapsRetroactivos: { nombre: string; periodoLabel: string; mes: number; anio: number }[] = []
+    const gapsRetroactivos: { nombre: string; periodoLabel: string; mes: number; anio: number; clave: string }[] = []
     for (const gruposDelMes of mesesConPeriodo.values()) {
       if (gruposDelMes.some(p => p.empleadosProcesados === undefined)) continue // algún período de ese mes sin tracking — no se puede evaluar con confianza
       const { mes, anio } = gruposDelMes[0]
@@ -297,7 +309,7 @@ export function useAlertas(): AlertaItem[] {
             p.estado !== 'en_proceso' &&
             p.anio * 12 + p.mes > anio * 12 + mes &&
             (p.resultadosPorEmpleado?.[e.id]?.diasIngresoPendientes ?? 0) > 0)
-          if (!saldado) gapsRetroactivos.push({ nombre: fullName(e), periodoLabel: `${MESES_CORTO[mes - 1]} ${anio}`, mes, anio })
+          if (!saldado) gapsRetroactivos.push({ nombre: fullName(e), periodoLabel: `${MESES_CORTO[mes - 1]} ${anio}`, mes, anio, clave: `${e.id}|${anio}-${mes}` })
         }
       }
     }
@@ -312,9 +324,15 @@ export function useAlertas(): AlertaItem[] {
         detalleTotal: gapsRetroactivos.length,
         href: `/reportes?reporte=sin_ingresos&periodo=${gapsRetroactivos[0].mes}-${gapsRetroactivos[0].anio}`,
         linkLabel: 'Revisar y pagar en el próximo período',
+        descartar: {
+          label: 'Ya se pagó / no aplica',
+          mensaje: `¿Confirmas que ${gapsRetroactivos.length === 1 ? 'este caso' : `estos ${gapsRetroactivos.length} casos`} ya se pagó por otra vía o no corresponde? La alerta se apagará.`,
+          ejecutar: () => guardar({ ...empresa, pagoRetroactivoResueltos: Array.from(new Set([...(empresa.pagoRetroactivoResueltos ?? []), ...gapsRetroactivos.map(g => g.clave)])) }),
+        },
       })
     }
 
     return items.sort((a, b) => SEVERIDAD_ORDEN[a.severidad] - SEVERIDAD_ORDEN[b.severidad])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empleadosActivos, empleados, empresa, periodos, prestamos, liquidaciones, bandas, retribuciones])
 }

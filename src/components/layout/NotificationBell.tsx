@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Bell, CheckCircle2, ArrowRight } from 'lucide-react'
 import { useAlertas, SEVERIDAD_LABEL, type Severidad } from '@/lib/alertas'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/lib/confirm-context'
 
 const SEVERIDAD_GRADIENTE: Record<Severidad, string> = {
   danger:  'linear-gradient(135deg, #e11d48, #fb7185)',
@@ -43,6 +44,7 @@ const SEVERIDAD_BADGE: Record<Severidad, string> = {
 // el detalle — cada fila navega directo al módulo donde hay que accionar.
 export function NotificationBell() {
   const alertas = useAlertas()
+  const confirmar = useConfirm()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -160,6 +162,20 @@ export function NotificationBell() {
                       </div>
                     </div>
                   </Link>
+                  {item.descartar && (
+                    <div className="flex justify-end px-4 pb-3 -mt-1">
+                      <button
+                        onClick={async () => {
+                          setOpen(false)
+                          const ok = await confirmar({ titulo: item.descartar!.label, mensaje: item.descartar!.mensaje, confirmarLabel: 'Sí, apagar la alerta' })
+                          if (ok) item.descartar!.ejecutar()
+                        }}
+                        className="rounded-md border border-zinc-200 dark:border-[#2e2e2e] px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#262626] transition-colors"
+                      >
+                        {item.descartar.label}
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
