@@ -219,7 +219,11 @@ export interface Empleado {
 export interface ResultadoNomina {
   empleadoId: string
   // Cómo se prorrateó el salario del período (para explicarlo en el detalle). Ausente en snapshots anteriores.
-  detalleDias?: { diasTrabajados: number; diasLaborablesMes: number; divisor: number }
+  detalleDias?: {
+    diasTrabajados: number; diasLaborablesMes: number; divisor: number
+    // Fechas reales del período y qué lo acortó (ISO yyyy-mm-dd). Ausente en snapshots anteriores.
+    fechas?: { periodoDesde: string; periodoHasta: string; desde: string; hasta: string; notas: string[] }
+  }
 
   // Ingresos
   salarioBruto: number

@@ -323,6 +323,12 @@ function DetalleNomina({
               {prorrateado
                 ? fila('Días del período pagados', dd ? `${Number(dd.diasTrabajados.toFixed(2))} de ${Number(dd.diasLaborablesMes.toFixed(2))} días calendario (${(proporcion * 100).toFixed(1)}%)` : `Equivale al ${(proporcion * 100).toFixed(1)}% del período`, 'Prorrateo por ingreso, salida, suspensión, licencia sin sueldo o vacaciones dentro del período')
                 : fila('Días del período pagados', 'Período completo')}
+              {dd?.fechas && fila('Fechas pagadas', dd.fechas.desde === dd.fechas.periodoDesde && dd.fechas.hasta === dd.fechas.periodoHasta
+                ? `Del ${formatDate(dd.fechas.periodoDesde)} al ${formatDate(dd.fechas.periodoHasta)}`
+                : `Del ${formatDate(dd.fechas.desde)} al ${formatDate(dd.fechas.hasta)}`, `Período: ${formatDate(dd.fechas.periodoDesde)} al ${formatDate(dd.fechas.periodoHasta)}`)}
+              {dd?.fechas?.notas.map(n => (
+                <p key={n} className="rounded-md bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">{n}</p>
+              ))}
               {fila('Salario básico pagado', fmt(nomina.salarioBruto))}
               {nomina.vacacionesGoce > 0 && fila('Vacaciones disfrutadas', `${dias(nomina.vacacionesGoce).toFixed(2)} días laborables`, `${fmt(nomina.vacacionesGoce)} a la tarifa diaria`)}
               {nomina.vacacionesVendidas > 0 && fila('Vacaciones vendidas', `${dias(nomina.vacacionesVendidas).toFixed(2)} días laborables`, `${fmt(nomina.vacacionesVendidas)} a la tarifa diaria`)}

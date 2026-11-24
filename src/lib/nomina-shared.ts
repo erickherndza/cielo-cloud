@@ -660,6 +660,51 @@ function gravableQuincena1De(
 // Usada tanto por Cálculo de Nómina (nomina/page.tsx) como por Gestión de
 // Envíos / el modal de comprobantes (EnvioComprobantesModal.tsx) — una sola
 // fuente de verdad.
+// Fechas exactas que cubre el pago de este período y qué lo acortó, para explicarlo en el detalle de
+// nómina («pagó del 16 al 20 de julio»). Solo describe: el monto lo siguen calculando los mecanismos de arriba.
+function fechasDetalle(
+  empleado: Empleado, periodo: { mes: number; anio: number; tipo: TipoPeriodo; quincena?: 1 | 2 },
+  disfrutes: DisfruteVacaciones[], licencias: Licencia[], pendientesMonto: number | undefined,
+): NonNullable<NonNullable<ResultadoNomina['detalleDias']>['fechas']> {
+  const quincena = periodo.quincena ?? 1
+  const { inicio, fin } = rangoPeriodo(periodo.mes, periodo.anio, periodo.tipo, quincena)
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const f = (d: Date) => formatDate(iso(d))
+  let desde = inicio
+  let hasta = fin
+  const notas: string[] = []
+  const corte = (fecha: string | undefined) => (fecha ? parseFechaLocal(fecha) : null)
+  const susp = empleado.suspendido ? corte(empleado.fechaSuspension) : null
+  const salida = empleado.salidaPendiente && empleado.pagoDiasTrabajadosPendiente === 'nomina' ? corte(empleado.fechaSalidaPendiente) : null
+  if (susp && susp >= inicio) { if (susp < fin) hasta = susp; notas.push(`Suspensión de contrato desde el ${f(susp)}`) }
+  else if (salida && salida >= inicio) { if (salida < fin) hasta = salida; notas.push(`Salida el ${f(salida)}`) }
+  else {
+    const lics = licencias.filter(l => l.empleadoId === empleado.id && (l.tipo === 'enfermedad_comun' || l.tipo === 'accidente_laboral') && !l.disfruteSueldo)
+    let hayLic = false
+    for (const l of lics) {
+      const a = parseFechaLocal(l.fechaInicio), b = parseFechaLocal(l.fechaFin)
+      if (a > fin || b < inicio) continue
+      hayLic = true
+      notas.push(`Licencia sin sueldo del ${f(a < inicio ? inicio : a)} al ${f(b > fin ? fin : b)} (no se paga como sueldo)`)
+    }
+    if (!hayLic) {
+      const ing = parseFechaLocal(empleado.fechaIngreso)
+      if (ing > inicio && ing < fin) { desde = ing; notas.push(`Ingresó el ${f(ing)}`) }
+      else {
+        for (const d of disfrutes.filter(x => x.empleadoId === empleado.id)) {
+          const a = parseFechaLocal(d.fechaInicio), b = parseFechaLocal(d.fechaFin)
+          if (a > fin || b < inicio) continue
+          notas.push(d.tipo === 'venta'
+            ? `Venta de vacaciones el ${f(a)} (se paga aparte, sin dejar de trabajar)`
+            : `Vacaciones del ${f(a < inicio ? inicio : a)} al ${f(b > fin ? fin : b)} (se pagan como vacaciones)`)
+        }
+      }
+    }
+  }
+  if (pendientesMonto && pendientesMonto > 0) notas.push('Incluye días del período anterior que quedaron pendientes por un ingreso en el corte de cierre')
+  return { periodoDesde: iso(inicio), periodoHasta: iso(fin), desde: iso(desde), hasta: iso(hasta), notas }
+}
+
 export function calcularParaPeriodo(
   empleado: Empleado, ajustes: AjusteLinea[],
   periodo: { mes: number; anio: number; tipo: TipoPeriodo; quincena?: 1 | 2 },
@@ -692,14 +737,18 @@ export function calcularParaPeriodo(
   // salario ponderado por reajuste, en cambio, SÍ compone con cualquiera de
   // los otros mecanismos (se aplica primero, como base, antes de cualquier
   // prorrateo de días encima).
-  if (dias) return calcularConAjustes(empleadoCalculo, ajustes, periodo.tipo, quincena, dias, undefined, undefined, pendientes?.monto, grav1)
+  const conFechas = (r: ResultadoNomina): ResultadoNomina => ({
+    ...r,
+    ...(r.detalleDias ? { detalleDias: { ...r.detalleDias, fechas: fechasDetalle(empleadoCalculo, periodo, disfrutes, licencias, pendientes?.monto) } } : {}),
+  })
+  if (dias) return conFechas(calcularConAjustes(empleadoCalculo, ajustes, periodo.tipo, quincena, dias, undefined, undefined, pendientes?.monto, grav1))
   const vac = diasVacacionEnPeriodo(empleadoCalculo, disfrutes, periodo.mes, periodo.anio, periodo.tipo, quincena)
-  return calcularConAjustes(
+  return conFechas(calcularConAjustes(
     empleadoCalculo, ajustes, periodo.tipo, quincena,
     vac ? { diasTrabajados: vac.diasTrabajados, diasLaborablesMes: vac.diasLaborablesMes } : null,
     vac?.vacacionesGoce,
     vac?.vacacionesVendidas,
     pendientes?.monto,
     grav1,
-  )
+  ))
 }
