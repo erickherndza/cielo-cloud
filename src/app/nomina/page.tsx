@@ -298,6 +298,39 @@ function DetalleNomina({
           </div>
         </div>
 
+        {(() => {
+          // Detalle de días pagados — cómo se llegó al salario básico y a los días extra del período.
+          const divisor = nomina.detalleDias?.divisor ?? getDivisorSalarioDiario(empleado)
+          const tarifa = empleado.salarioBase / divisor
+          const quincenal = /quincena/i.test(periodoLabel)
+          const dd = nomina.detalleDias
+          const salarioPeriodo = empleado.salarioBase / (quincenal ? 2 : 1)
+          const proporcion = dd && dd.diasLaborablesMes > 0 ? dd.diasTrabajados / dd.diasLaborablesMes : (salarioPeriodo > 0 ? Math.min(1, nomina.salarioBruto / salarioPeriodo) : 1)
+          const prorrateado = proporcion < 0.9999
+          const dias = (monto: number) => (tarifa > 0 ? monto / tarifa : 0)
+          const fila = (label: string, valor: string, nota?: string) => (
+            <div key={label} className="flex items-baseline justify-between gap-4 text-xs">
+              <span className="text-zinc-600 dark:text-zinc-400">{label}{nota && <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{nota}</span>}</span>
+              <span className="tabular-nums font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{valor}</span>
+            </div>
+          )
+          return (
+            <div className="border-t border-zinc-100 dark:border-[#2a2a2a] px-6 py-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Detalle de días pagados</p>
+              {fila('Salario mensual contractual', fmt(empleado.salarioBase))}
+              {fila(`Salario diario (÷ ${divisor})`, fmt(tarifa), empleado.regimenIntermitente ? 'Régimen intermitente: divisor 26' : 'Divisor legal de 23.83 días laborables (Art. 177)')}
+              {fila(quincenal ? 'Salario de la quincena completa' : 'Salario del mes completo', fmt(empleado.salarioBase / (quincenal ? 2 : 1)))}
+              {prorrateado
+                ? fila('Días del período pagados', dd ? `${Number(dd.diasTrabajados.toFixed(2))} de ${Number(dd.diasLaborablesMes.toFixed(2))} días calendario (${(proporcion * 100).toFixed(1)}%)` : `Equivale al ${(proporcion * 100).toFixed(1)}% del período`, 'Prorrateo por ingreso, salida, suspensión, licencia sin sueldo o vacaciones dentro del período')
+                : fila('Días del período pagados', 'Período completo')}
+              {fila('Salario básico pagado', fmt(nomina.salarioBruto))}
+              {nomina.vacacionesGoce > 0 && fila('Vacaciones disfrutadas', `${dias(nomina.vacacionesGoce).toFixed(2)} días laborables`, `${fmt(nomina.vacacionesGoce)} a la tarifa diaria`)}
+              {nomina.vacacionesVendidas > 0 && fila('Vacaciones vendidas', `${dias(nomina.vacacionesVendidas).toFixed(2)} días laborables`, `${fmt(nomina.vacacionesVendidas)} a la tarifa diaria`)}
+              {nomina.diasIngresoPendientes > 0 && fila('Días pendientes de ingreso', `${dias(nomina.diasIngresoPendientes).toFixed(2)} días laborables`, `${fmt(nomina.diasIngresoPendientes)} a la tarifa diaria`)}
+            </div>
+          )
+        })()}
+
         <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 dark:border-[#2a2a2a] bg-zinc-50 dark:bg-[#262626] p-6 rounded-b-xl">
           <div className="rounded-lg bg-white dark:bg-[#1f1f1f] border border-tabler-line dark:border-[#2e2e2e] p-4">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase font-semibold tracking-wide">Salario Neto a Pagar</p>

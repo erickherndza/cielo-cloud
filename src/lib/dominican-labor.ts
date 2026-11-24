@@ -357,6 +357,7 @@ export function calcularNomina(
 
   return {
     empleadoId: empleado.id,
+    detalleDias: { diasTrabajados, diasLaborablesMes, divisor: getDivisorSalarioDiario(empleado) },
     salarioBruto,
     importeHE35,
     importeHE100,
