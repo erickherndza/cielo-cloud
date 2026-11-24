@@ -335,9 +335,9 @@ function diasCorteEnPeriodo(
   const { inicio, fin } = rangoPeriodo(mes, anio, tipo, quincena)
   if (fechaCorte < inicio) return null
   const finEfectivo = fechaCorte < fin ? fechaCorte : fin
-  const msPorDia = 24 * 3600 * 1000
-  const diasTrabajados     = Math.floor((finEfectivo.getTime() - inicio.getTime()) / msPorDia) + 1
-  const diasLaborablesMes  = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
+  // Días LABORABLES (sin domingos), no calendario: se paga el tiempo realmente trabajado.
+  const diasTrabajados     = contarDiasLaborables(inicio, finEfectivo)
+  const diasLaborablesMes  = contarDiasLaborables(inicio, fin)
   return { diasTrabajados, diasLaborablesMes }
 }
 
@@ -401,13 +401,13 @@ export function diasVacacionEnPeriodo(
     if (d.tipo === 'venta') {
       goceRealVenta += d.diasLaborables * tarifaDiaria
     } else {
-      diasVacCalendario += Math.floor((solapFin.getTime() - solapInicio.getTime()) / msPorDia) + 1
+      diasVacCalendario += contarDiasLaborables(solapInicio, solapFin)
       goceRealDisfrute   += contarDiasLaborables(solapInicio, solapFin) * tarifaDiaria
     }
   }
   if (diasVacCalendario === 0 && goceRealVenta === 0) return null
 
-  const diasLaborablesMes = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
+  const diasLaborablesMes = contarDiasLaborables(inicio, fin)
   const diasTrabajados    = Math.max(0, diasLaborablesMes - diasVacCalendario)
   const factor = tipo === 'quincenal' ? 2 : 1
   return {
@@ -438,8 +438,8 @@ export function diasIngresoEnPeriodo(
   if (fechaIngreso <= inicio) return null  // ingresó desde el día 1 — período completo, sin prorrateo
   if (fechaIngreso >= fin) return null     // cae en el corte de cierre (o después) — se excluye del todo, ver empleadosDelPeriodo/diasIngresoPendientes
   const msPorDia = 24 * 3600 * 1000
-  const diasLaborablesMes = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
-  const diasTrabajados = Math.floor((fin.getTime() - fechaIngreso.getTime()) / msPorDia) + 1
+  const diasLaborablesMes = contarDiasLaborables(inicio, fin)
+  const diasTrabajados = contarDiasLaborables(fechaIngreso, fin)
   return { diasTrabajados, diasLaborablesMes }
 }
 
@@ -544,11 +544,11 @@ export function diasLicenciaSinSueldoEnPeriodo(
     const solapInicio = lInicio < inicio ? inicio : lInicio
     const solapFin    = lFin > fin ? fin : lFin
     if (solapInicio > solapFin) continue
-    diasLicenciaCalendario += Math.floor((solapFin.getTime() - solapInicio.getTime()) / msPorDia) + 1
+    diasLicenciaCalendario += contarDiasLaborables(solapInicio, solapFin)
   }
   if (diasLicenciaCalendario === 0) return null
 
-  const diasLaborablesMes = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
+  const diasLaborablesMes = contarDiasLaborables(inicio, fin)
   const diasTrabajados    = Math.max(0, diasLaborablesMes - diasLicenciaCalendario)
   return { diasTrabajados, diasLaborablesMes }
 }
@@ -589,18 +589,18 @@ export function salarioEfectivoEnPeriodo(
   const relevantes = aplicados.filter(a => a.fechaEfectivaDate >= inicio && a.fechaEfectivaDate <= fin)
 
   if (relevantes.length > 0) {
-    const diasLaborablesMes = Math.floor((fin.getTime() - inicio.getTime()) / msPorDia) + 1
+    const diasLaborablesMes = contarDiasLaborables(inicio, fin)
     let cursor = inicio
     let totalPonderado = 0
     for (const r of relevantes) {
       const finTramo = new Date(r.fechaEfectivaDate.getTime() - msPorDia)
       if (finTramo >= cursor) {
-        const dias = Math.floor((finTramo.getTime() - cursor.getTime()) / msPorDia) + 1
+        const dias = contarDiasLaborables(cursor, finTramo)
         totalPonderado += dias * r.salarioAnterior
       }
       cursor = r.fechaEfectivaDate
     }
-    const diasFinal = Math.floor((fin.getTime() - cursor.getTime()) / msPorDia) + 1
+    const diasFinal = contarDiasLaborables(cursor, fin)
     totalPonderado += diasFinal * relevantes[relevantes.length - 1].salarioNuevo
 
     return Math.round((totalPonderado / diasLaborablesMes) * 100) / 100

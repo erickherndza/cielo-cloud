@@ -321,7 +321,7 @@ function DetalleNomina({
               {fila(`Salario diario (÷ ${divisor})`, fmt(tarifa), empleado.regimenIntermitente ? 'Régimen intermitente: divisor 26' : 'Divisor legal de 23.83 días laborables (Art. 177)')}
               {fila(quincenal ? 'Salario de la quincena completa' : 'Salario del mes completo', fmt(empleado.salarioBase / (quincenal ? 2 : 1)))}
               {prorrateado
-                ? fila('Días del período pagados', dd ? `${Number(dd.diasTrabajados.toFixed(2))} de ${Number(dd.diasLaborablesMes.toFixed(2))} días calendario (${(proporcion * 100).toFixed(1)}%)` : `Equivale al ${(proporcion * 100).toFixed(1)}% del período`, 'Prorrateo por ingreso, salida, suspensión, licencia sin sueldo o vacaciones dentro del período')
+                ? fila('Días del período pagados', dd ? `${Number(dd.diasTrabajados.toFixed(2))} de ${Number(dd.diasLaborablesMes.toFixed(2))} días laborables (${(proporcion * 100).toFixed(1)}%)` : `Equivale al ${(proporcion * 100).toFixed(1)}% del período`, 'Prorrateo por ingreso, salida, suspensión, licencia sin sueldo o vacaciones dentro del período')
                 : fila('Días del período pagados', 'Período completo')}
               {dd?.fechas && fila('Fechas pagadas', dd.fechas.desde === dd.fechas.periodoDesde && dd.fechas.hasta === dd.fechas.periodoHasta
                 ? `Del ${formatDate(dd.fechas.periodoDesde)} al ${formatDate(dd.fechas.periodoHasta)}`
