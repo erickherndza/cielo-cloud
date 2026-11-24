@@ -1234,6 +1234,16 @@ export default function NominaPage() {
             )}
           </div>
 
+          {/* Aviso cuando hay una Regalía Pascual pendiente de cerrar (viene de la alerta de la campanita) */}
+          {periodos.some(p => p.tipo === 'regalia' && p.estado !== 'cerrada') && (
+            <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-5 py-3.5 text-sm text-amber-900 dark:text-amber-200">
+              <strong>Regalía Pascual pendiente.</strong> Abre la fila resaltada en la tabla
+              {periodos.some(p => p.tipo === 'regalia' && p.estado === 'en_proceso')
+                ? ' y procesa a los empleados (botón «Procesar»); después ciérrala con el candado.'
+                : ' y ciérrala con el candado (columna de acciones, a la derecha) para apagar la alerta de la campanita.'}
+            </div>
+          )}
+
           {/* Historial de períodos */}
           <div className="overflow-hidden rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] shadow-sm dark:shadow-none">
             <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 dark:border-[#2a2a2a] px-5 py-3">
@@ -1317,7 +1327,7 @@ export default function NominaPage() {
                       <tr
                         key={p.id}
                         onClick={() => setPeriodoAbierto(p.id)}
-                        className="cursor-pointer hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors"
+                        className={cn('cursor-pointer hover:bg-[#eef0fb]/30 dark:hover:bg-indigo-950/20 transition-colors', p.tipo === 'regalia' && p.estado !== 'cerrada' && 'bg-amber-50/70 dark:bg-amber-950/20')}
                       >
                         <td data-col="full" className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
