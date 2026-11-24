@@ -281,48 +281,23 @@ export function Sidebar() {
             wide ? 'px-5 gap-4' : 'flex-col justify-center gap-2.5 px-0',
           )}
         >
-          {/* Isotipo — arco geométrico 300° */}
-          <svg
-            viewBox="0 0 32 32"
-            fill="none"
-            aria-label="Cielo Cloud"
-            className={cn('shrink-0 transition-[width,height] duration-200 ease-in-out', wide ? 'h-10 w-10' : 'h-[46px] w-[46px]')}
-          >
-            {/*
-              Arco grueso: círculo r=9, strokeWidth=5.5
-              300° de arco · gap=60° con terminaciones redondeadas
-              rotate(30°) → apertura centrada al Este (derecha)
-              C = 2π×9 ≈ 56.55 · arco300° ≈ 47.12 · gap ≈ 9.43
-            */}
-            <circle
-              cx="16" cy="16" r="9"
-              strokeWidth="5.5"
-              strokeDasharray="47.12 9.43"
-              strokeLinecap="round"
-              transform="rotate(30 16 16)"
-              className="stroke-[#1B2980] dark:stroke-white"
-            />
-            {/* Punto interior */}
-            <circle cx="16" cy="16" r="2.8" className="fill-[#1B2980] dark:fill-white" />
-          </svg>
-
-          {/* Wordmark — visible expandido o en flyout */}
-          {wide && (
-            <div className="flex flex-col min-w-0 flex-1 gap-[3px]">
-              {/* Nombre de marca con contraste de peso */}
-              <div className="flex items-baseline gap-[5px]">
-                <span className="text-[16px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-white leading-none">
-                  Cielo
-                </span>
-                <span className="text-[16px] font-extralight tracking-[-0.01em] text-zinc-400 dark:text-zinc-300 leading-none">
-                  Cloud
-                </span>
-              </div>
-              {/* Descriptor en versalitas espaciadas */}
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500 leading-none">
-                Nómina
-              </span>
+          {/* Logo de Cielo Cloud Nómina: completo al expandir, solo isotipo al colapsar */}
+          {wide ? (
+            <div className="flex min-w-0 flex-1 items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/cielo-erp-logo.png`}
+                alt="Cielo Cloud Nómina"
+                className="h-11 w-auto max-w-full object-contain dark:rounded-lg dark:bg-white dark:px-2 dark:py-1"
+              />
             </div>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/cielo-erp-isotipo.png`}
+              alt="Cielo Cloud"
+              className="h-[40px] w-[40px] shrink-0 object-contain"
+            />
           )}
 
           {/* Toggle — colapsa/expande de forma persistente (independiente del flyout) */}

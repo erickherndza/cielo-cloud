@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Building2, Search, Plus, UserPlus, ShieldAlert, LogIn, Pause, Play, X, History, Users, LayoutDashboard, Activity } from 'lucide-react'
+import { Building2, Search, Plus, UserPlus, LogIn, Pause, Play, X, History, Users, LayoutDashboard, Activity } from 'lucide-react'
 import { apiJson, elegirEmpresa, getAcceso } from '@/lib/storage'
 import { formatDate } from '@/lib/utils'
 import { rncValido } from '@/lib/rnc'
@@ -139,9 +139,12 @@ export function AdminPanel() {
     <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1B2980] to-[#2f3fa8] text-white">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/cielo-erp-logo.png`}
+            alt="Cielo Cloud Nómina"
+            className="h-10 w-auto object-contain dark:rounded-lg dark:bg-white dark:px-2 dark:py-1"
+          />
           <div>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Consola de Cielo Cloud</h1>
             <p className="text-xs text-zinc-500">Uso de la plataforma, empresas, usuarios y parámetros legales. No muestra datos de empleados.</p>
