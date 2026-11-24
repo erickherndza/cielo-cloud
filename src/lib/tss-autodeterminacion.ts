@@ -228,8 +228,6 @@ export function construirAutodeterminacion(args: {
     if (!esCedula) {
       if (!emp.sexo) errores.push('Extranjero sin cédula: falta el sexo')
       if (!emp.fechaNacimiento) errores.push('Extranjero sin cédula: falta la fecha de nacimiento')
-    } else if (!emp.sexo) {
-      avisos.push('Sin sexo registrado (la TSS lo exige solo a extranjeros)')
     }
     if (x.ss < 0.005 && (x.reg + x.ind + x.otras) > 0) avisos.push('Solo ingresos exentos o extraordinarios, sin salario cotizable')
     const ingresoEnMes = mesAnioDe(emp.fechaIngreso)
