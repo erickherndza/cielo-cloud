@@ -8,6 +8,7 @@ import { EmpresaProvider } from '@/lib/empresa-context'
 import { PrestamosProvider } from '@/lib/prestamos-context'
 import { AumentosProvider } from '@/lib/aumentos-context'
 import { LicenciasProvider } from '@/lib/licencias-context'
+import { HorasExtrasProvider } from '@/lib/horas-extras-context'
 import { BandasSalarialesProvider } from '@/lib/bandas-salariales-context'
 import { ConceptosPersonalizadosProvider } from '@/lib/conceptos-personalizados-context'
 import { LiquidacionesProvider } from '@/lib/liquidaciones-context'
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <PrestamosProvider>
                       <AumentosProvider>
                         <LicenciasProvider>
+                          <HorasExtrasProvider>
                           <LiquidacionesProvider>
                             <SaldoISRProvider>
                               <PeriodosProvider>
@@ -77,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                               </PeriodosProvider>
                             </SaldoISRProvider>
                           </LiquidacionesProvider>
+                          </HorasExtrasProvider>
                         </LicenciasProvider>
                       </AumentosProvider>
                     </PrestamosProvider>

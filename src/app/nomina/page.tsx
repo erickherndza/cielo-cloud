@@ -43,6 +43,7 @@ import { useSaldoISR } from '@/lib/saldo-isr-context'
 import { useFeriados } from '@/lib/feriados-context'
 import { useVacaciones } from '@/lib/vacaciones-context'
 import { useLicencias } from '@/lib/licencias-context'
+import { useHorasExtras } from '@/lib/horas-extras-context'
 import { useAumentos } from '@/lib/aumentos-context'
 import { useAuth } from '@/lib/auth-context'
 import { calcularNomina, calcularNominaQuincenal, cuotaDependienteSFS, aplicarSaldoISRFavor, prorratearMontoFijo, ajustesToParams, getAnosServicio, getDivisorSalarioDiario, contarDiasLaborables } from '@/lib/dominican-labor'
@@ -69,7 +70,7 @@ import type {
   CuentaBancariaSnapshot,
 } from '@/types'
 import { UMBRAL_ENDEUDAMIENTO_DEFAULT, UMBRAL_VARIACION_BRUTO_DEFAULT } from '@/types'
-import { Wallet, TrendingUp, Receipt, BarChart3, Landmark } from 'lucide-react'
+import { Wallet, TrendingUp, Receipt, BarChart3, Landmark, Timer } from 'lucide-react'
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -414,6 +415,7 @@ export default function NominaPage() {
   const { getFeriados } = useFeriados()
   const { disfrutes } = useVacaciones()
   const { licencias } = useLicencias()
+  const { horasEnRango } = useHorasExtras()
   const { aumentos } = useAumentos()
   const { user } = useAuth()
   const { conceptosActivos: conceptosPersonalizados, getConcepto: getConceptoPersonalizado } = useConceptosPersonalizados()
@@ -1899,6 +1901,32 @@ export default function NominaPage() {
   const ajustesPorEmp  = periodoActual.ajustesPorEmpleado ?? {}
   const quincenaActual: 1 | 2 = periodoActual.quincena ?? 1
   const esEnProceso    = periodoActual.estado === 'en_proceso'
+
+  // Suma las horas extras registradas en /horas-extras dentro de las fechas de ESTE período y las deja como
+  // ajustes H.E. 35% / 100% de cada empleado. Idempotente: reemplaza lo cargado antes por esta vía (id 'he-reg-*')
+  // y no toca ajustes manuales.
+  function cargarHorasRegistradas() {
+    const per = periodoActual
+    if (!per) return
+    if (per.tipo !== 'mensual' && per.tipo !== 'quincenal') return
+    const { inicio, fin } = rangoPeriodo(per.mes, per.anio, per.tipo, quincenaActual)
+    let empleadosConHoras = 0
+    let totalHoras = 0
+    for (const e of empleadosPeriodo) {
+      const previos = ajustesPorEmp[e.id] ?? []
+      const sinPrevias = previos.filter(a => !a.id.startsWith('he-reg-'))
+      const h = horasEnRango(e.id, inicio, fin)
+      const nuevos: AjusteLinea[] = []
+      if (h.he35 > 0) nuevos.push({ id: 'he-reg-35', tipo: 'ingreso', concepto: 'horas_extras_35', descripcion: `Horas extras registradas (${h.registros} registro${h.registros !== 1 ? 's' : ''})`, valor: h.he35 })
+      if (h.he100 > 0) nuevos.push({ id: 'he-reg-100', tipo: 'ingreso', concepto: 'horas_extras_100', descripcion: `Horas extras registradas (${h.registros} registro${h.registros !== 1 ? 's' : ''})`, valor: h.he100 })
+      if (nuevos.length === 0 && sinPrevias.length === previos.length) continue
+      actualizarAjustes(per.id, e.id, [...sinPrevias, ...nuevos])
+      if (nuevos.length > 0) { empleadosConHoras++; totalHoras += h.he35 + h.he100 }
+    }
+    setToast(empleadosConHoras > 0
+      ? `Se cargaron ${totalHoras.toFixed(2)} h extras a ${empleadosConHoras} empleado(s) del período`
+      : 'No hay horas extras registradas dentro de las fechas de este período')
+  }
   const esProcesada    = periodoActual.estado === 'procesada'
   const procesados     = new Set(periodoActual.empleadosProcesados ?? [])
   const noProcessados  = empleadosPeriodo.filter(e => !procesados.has(e.id))
@@ -1970,6 +1998,16 @@ export default function NominaPage() {
               >
                 <Lock className="h-4 w-4" />
                 Cerrar
+              </button>
+            )}
+            {esEnProceso && (periodoActual.tipo === 'mensual' || periodoActual.tipo === 'quincenal') && (
+              <button
+                onClick={cargarHorasRegistradas}
+                className="flex items-center gap-2 rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-[#262626] transition-colors"
+                title="Suma las horas extras registradas en el módulo Horas Extras dentro de las fechas de este período"
+              >
+                <Timer className="h-4 w-4" />
+                Cargar horas registradas
               </button>
             )}
             {esEnProceso && (

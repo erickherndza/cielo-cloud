@@ -941,3 +941,19 @@ export interface RetribucionComplementaria {
   vehiculoPropiedadDe?: 'empresa' | 'empleado'
   vehiculoPorcentajeAplicado?: number  // % efectivamente usado (auditable aunque cambie la matriz sugerida)
 }
+
+
+// ─── Horas extras — registro diario ───────────────────────────────────────────
+// Cada fila es UN día trabajado de más por UN empleado. De aquí se suma el total del período a los
+// ajustes de nómina (H.E. 35% / 100%) y sirve de base exacta para el tope semanal del Art. 155.
+export type TipoHoraExtra = 'he35' | 'he100'
+
+export interface RegistroHoraExtra {
+  id: string
+  empleadoId: string
+  fecha: string            // ISO date (yyyy-mm-dd)
+  horas: number
+  tipo: TipoHoraExtra      // he35 = recargo 35% · he100 = recargo 100% (feriado / descanso)
+  motivo?: string
+  fechaRegistro: string    // ISO timestamp
+}

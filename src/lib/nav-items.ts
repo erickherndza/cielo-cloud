@@ -14,6 +14,7 @@ import {
   BarChart2,
   Landmark,
   Send,
+  Timer,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/regalia-pascual', icon: Gift,            label: 'Regalía Pascual' },
   { href: '/vacaciones',      icon: CalendarDays,    label: 'Vacaciones' },
   { href: '/prestamos',       icon: HandCoins,       label: 'Préstamos', keywords: 'avance de salario' },
+  { href: '/horas-extras',    icon: Timer,           label: 'Horas Extras', keywords: 'sobretiempo recargo 35 100 articulo 155' },
   { href: '/licencias',       icon: FileClock,       label: 'Licencias' },
   { href: '/bonificacion',    icon: Percent,         label: 'Bonificación Utilidades' },
   { href: '/retribuciones-complementarias', icon: Landmark, label: 'Retribuciones Complementarias' },

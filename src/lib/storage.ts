@@ -18,7 +18,7 @@ const SYNC = new Set([
   'empresa', 'empleados', 'periodos', 'prestamos', 'aumentos', 'licencias',
   'bandas-salariales', 'liquidaciones', 'saldo-isr', 'feriados',
   'disfrutes-vacaciones', 'retribuciones-complementarias',
-  'conceptos-personalizados', 'agenda-custom', 'agenda-done',
+  'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
 export type SyncStatus = 'idle' | 'saving' | 'error' | 'conflict'
