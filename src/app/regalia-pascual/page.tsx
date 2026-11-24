@@ -132,6 +132,8 @@ export default function RegaliaPage() {
   const [periodoCreado, setPeriodoCreado] = useState<PeriodoNomina | null>(null)
 
   function abrirSolicitud() {
+    // Ya hay un período abierto de este año: no tiene sentido crear otro (el botón «Confirmar» no haría nada).
+    if (periodoRegaliaExistente) return
     setOverrides({})
     setEditandoId(null)
     setPeriodoCreado(null)

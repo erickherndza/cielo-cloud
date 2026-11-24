@@ -484,6 +484,8 @@ export interface Empresa {
   bonificacionExentaAnios?: number[]
   // Años en que la Regalía Pascual ya se pagó fuera de Cielo Cloud o no aplica. Apaga la alerta de ese año.
   regaliaResueltaAnios?: number[]
+  // Casos de «posible pago retroactivo» que el usuario declaró resueltos o que no aplican. Clave: `${empleadoId}|${año}-${mes}`. Apaga esa alerta.
+  pagoRetroactivoResueltos?: string[]
   numeroEmpleadosAprox?: RangoEmpleados
   zonaFranca?: boolean // opera bajo régimen de zona franca — salario mínimo distinto
   rolUsuario?: RolUsuario

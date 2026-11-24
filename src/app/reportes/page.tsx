@@ -18,6 +18,7 @@ import { useEmpleados } from '@/lib/empleados-context'
 import { usePeriodos } from '@/lib/periodos-context'
 import { usePrestamos } from '@/lib/prestamos-context'
 import { useEmpresa } from '@/lib/empresa-context'
+import { useConfirm } from '@/lib/confirm-context'
 import { useLiquidaciones } from '@/lib/liquidaciones-context'
 import { useLicencias, labelLicencia, esLicenciaConSubsidio } from '@/lib/licencias-context'
 import { useRetribuciones } from '@/lib/retribuciones-context'
@@ -3410,6 +3411,23 @@ function ReporteSinIngresos({
   const [searchQ, setSearchQ] = useState('')
 
   const periodo = sorted.find(p => p.id === periodoId)
+  const { guardar } = useEmpresa()
+  const confirmar = useConfirm()
+
+  const resueltos = empresa.pagoRetroactivoResueltos ?? []
+  const claveCaso = (empId: string) => `${empId}|${periodo?.anio}-${periodo?.mes}`
+  async function marcarResuelto(empId: string, nombre: string) {
+    const ok = await confirmar({
+      titulo: 'Marcar como resuelto',
+      mensaje: `¿Confirmas que a ${nombre} ya se le pagó este período por otra vía (o que no le corresponde)? La alerta de la campanita se apagará.`,
+      confirmarLabel: 'Sí, está resuelto',
+    })
+    if (!ok) return
+    guardar({ ...empresa, pagoRetroactivoResueltos: Array.from(new Set([...resueltos, claveCaso(empId)])) })
+  }
+  function revertirResuelto(empId: string) {
+    guardar({ ...empresa, pagoRetroactivoResueltos: resueltos.filter(k => k !== claveCaso(empId)) })
+  }
 
   // ─── "Activo durante el mes" ────────────────────────────────────────────
   // Unión de dos casos:
@@ -3619,6 +3637,7 @@ function ReporteSinIngresos({
                     <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Cargo</th>
                     <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">Fecha Ingreso</th>
                     <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Alerta</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-tabler-line dark:divide-[#2e2e2e]">
@@ -3633,6 +3652,18 @@ function ReporteSinIngresos({
                       <td className="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(emp.fechaIngreso)}</td>
                       <td className="px-4 py-3">
                         <Badge variant={motivo === 'no_procesado' ? 'danger' : 'warning'}>{motivoLabel(motivo)}</Badge>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {resueltos.includes(claveCaso(emp.id)) ? (
+                          <span className="text-xs text-zinc-500">
+                            <Badge variant="success">Resuelto</Badge>{' '}
+                            <button onClick={() => revertirResuelto(emp.id)} className="ml-1 underline hover:text-zinc-700">Revertir</button>
+                          </span>
+                        ) : (
+                          <button onClick={() => marcarResuelto(emp.id, fullName(emp))} className="rounded-lg border border-tabler-line dark:border-[#2e2e2e] px-3 py-1.5 text-xs font-medium text-[#1B2980] dark:text-indigo-400 hover:bg-zinc-50 dark:hover:bg-[#262626]">
+                            Ya se pagó / no aplica
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

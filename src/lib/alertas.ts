@@ -117,6 +117,7 @@ export function useAlertas(): AlertaItem[] {
     if (alertaRegalia && alertaRegalia.diasRestantes <= 30) {
       const vencida = alertaRegalia.diasRestantes < 0
       const otrasRegalia = pendientesRegalia.slice(1)
+      const regaliaAbierta = periodos.some(p => p.tipo === 'regalia' && p.anio === alertaRegalia.anio && p.estado !== 'cerrada')
       items.push({
         id: 'regalia',
         severidad: vencida ? 'danger' : 'warning',
@@ -128,8 +129,9 @@ export function useAlertas(): AlertaItem[] {
           + (otrasRegalia.length > 0 ? ` — ${otrasRegalia.length} año(s) más sin pagar` : ''),
         detalle: otrasRegalia.slice(0, 3).map(p => `${p.anio}${p.diasRestantes < 0 ? ` — vencida hace ${Math.abs(p.diasRestantes)}d` : ` — vence en ${p.diasRestantes}d`}`),
         detalleTotal: otrasRegalia.length,
-        href: alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual?accion=pendiente',
-        linkLabel: alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : `Resolver Regalía ${alertaRegalia.anio}`,
+        // Si ya hay un período de Regalía de ese año abierto, lo que falta es procesarlo y cerrarlo en Nómina.
+        href: regaliaAbierta ? '/nomina' : alertaRegalia.anio === anioActual ? '/regalia-pascual?accion=solicitar' : '/regalia-pascual?accion=pendiente',
+        linkLabel: regaliaAbierta ? `Procesar y cerrar Regalía ${alertaRegalia.anio} en Nómina` : alertaRegalia.anio === anioActual ? `Liquidar Regalía ${alertaRegalia.anio}` : `Resolver Regalía ${alertaRegalia.anio}`,
       })
     }
 
@@ -285,7 +287,7 @@ export function useAlertas(): AlertaItem[] {
         }
         if (!elegible) continue
         const faltaEnTodos = gruposDelMes.every(p => !p.empleadosProcesados!.includes(e.id))
-        if (faltaEnTodos) {
+        if (faltaEnTodos && !(empresa.pagoRetroactivoResueltos ?? []).includes(`${e.id}|${anio}-${mes}`)) {
           // Un período cerrado es inmutable: el hueco no se "corrige" editándolo,
           // se salda cuando un período POSTERIOR ya procesado/cerrado le pagó los
           // días pendientes del ingreso (diasIngresoPendientes > 0). Sin esta
