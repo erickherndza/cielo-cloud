@@ -9,6 +9,8 @@ import { useEmpresa } from '@/lib/empresa-context'
 import { useLiquidaciones } from '@/lib/liquidaciones-context'
 import { useAumentos } from '@/lib/aumentos-context'
 import { useVacaciones } from '@/lib/vacaciones-context'
+import { useHorasExtras } from '@/lib/horas-extras-context'
+import { parseFechaLocal } from '@/lib/utils'
 import { construirDGT, lineasDGT, nombreArchivoDGT, type TipoDGT, type ExtrasDGT } from '@/lib/dgt-mt'
 import { cargarCatalogosMT } from '@/lib/catalogos-mt'
 import { BTN_PRIMARY, formatRD } from '@/lib/utils'
@@ -90,6 +92,7 @@ export function ReporteDGT() {
   }
 
   // ── DGT-2: captura de horas extras por día ──
+  const { registros: registrosHE } = useHorasExtras()
   const [empSel, setEmpSel] = useState('')
   const [diaSel, setDiaSel] = useState('1')
   const [horasSel, setHorasSel] = useState('')
@@ -99,6 +102,28 @@ export function ReporteDGT() {
     const todo = { ...(empresa.horasExtrasDGT2 ?? {}) }
     if (Object.keys(nuevo).length) todo[per] = nuevo; else delete todo[per]
     guardar({ ...empresa, horasExtrasDGT2: todo })
+  }
+  // Registros diarios del módulo Horas Extras que caen en este mes, agrupados por empleado y día
+  const desdeModulo = useMemo(() => {
+    const out: Record<string, Record<string, { h: number; pct: number }>> = {}
+    for (const r of registrosHE) {
+      const f = parseFechaLocal(r.fecha)
+      if (f.getMonth() + 1 !== mes || f.getFullYear() !== anio) continue
+      const dia = String(f.getDate())
+      const d = (out[r.empleadoId] ??= {})
+      const prev = d[dia]
+      // Si un mismo día mezcla 35% y 100%, el formulario admite un solo porcentaje: se usa 100
+      d[dia] = { h: Math.round(((prev?.h ?? 0) + r.horas) * 100) / 100, pct: r.tipo === 'he100' || prev?.pct === 100 ? 100 : 35 }
+    }
+    return out
+  }, [registrosHE, mes, anio])
+  function importarDesdeModulo() {
+    const nuevo = { ...datos2 }
+    for (const [id, dias] of Object.entries(desdeModulo)) {
+      const actual = nuevo[id] ?? { causa: '', dias: {} }
+      nuevo[id] = { ...actual, dias: { ...actual.dias, ...dias } }
+    }
+    guardarDatos2(nuevo)
   }
   function agregarDia() {
     const h = Number(horasSel)
@@ -248,6 +273,13 @@ export function ReporteDGT() {
                       </button>
                     ) : null
                   })}
+                </div>
+              )}
+              {Object.keys(desdeModulo).length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-[#eef0fb] dark:bg-[#1a1d2e] px-3 py-2 text-xs text-zinc-600 dark:text-zinc-300">
+                  <span>El módulo Horas Extras tiene registros de este mes para {Object.keys(desdeModulo).length} empleado(s).</span>
+                  <button onClick={importarDesdeModulo} className="rounded-lg border border-[#1B2980] px-2.5 py-1 font-medium text-[#1B2980] dark:text-indigo-300 dark:border-indigo-300">Traer desde Horas Extras</button>
+                  <span className="text-zinc-500">Si un día mezcla 35% y 100%, se usa 100%. Falta indicar la causa A–E de cada empleado.</span>
                 </div>
               )}
               <div className="flex flex-wrap items-end gap-2">
