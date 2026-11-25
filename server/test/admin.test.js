@@ -163,3 +163,16 @@ test('errores: cualquiera reporta, solo el super admin los ve y los marca', asyn
   assert.ok(!(await call('GET', '/api/admin/errores', S)).json().some(x => x.mensaje === msg))
   assert.ok((await call('GET', '/api/admin/errores?resueltos=1', S)).json().some(x => x.mensaje === msg))
 })
+
+test('consola: los conteos de empleados, períodos y actividad reflejan los datos reales', async () => {
+  const id = (await call('POST', '/api/admin/empresas', S, { nombre: 'Conteos', rnc: String(Math.floor(100000000 + Math.random() * 899999999)) })).json().id
+  await call('PUT', `/api/empresas/${id}/documentos/empleados`, S, { datos: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], version: 0 })
+  await call('PUT', `/api/empresas/${id}/documentos/periodos`, S, { datos: [{ id: 'p' }], version: 0 })
+  const fila = (await call('GET', '/api/admin/empresas', S)).json().find(e => e.id === id)
+  assert.equal(fila.empleados, 3)
+  assert.equal(fila.periodos, 1)
+  assert.ok(fila.ultima_actividad)
+  assert.ok((await call('GET', '/api/admin/resumen', S)).json().empleados >= 3)
+  // lo que devuelve la consola nunca incluye el contenido de los documentos
+  assert.ok(!JSON.stringify(fila).includes('"id":"a"'))
+})

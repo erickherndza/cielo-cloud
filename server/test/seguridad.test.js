@@ -147,5 +147,5 @@ test('M4: la base no entrega documentos a quien no es miembro, aunque se fije ap
   const miembro = await conContexto({ uid: `m4${RUN}`, empresaId: emp }, (c) => c.query('SELECT 1 FROM documentos'))
   assert.equal(miembro.rowCount, 1)
   const sup = await conContexto({ uid: 'otro', empresaId: emp, superadmin: true }, (c) => c.query('SELECT 1 FROM documentos'))
-  assert.equal(sup.rowCount, 1)
+  assert.ok(sup.rowCount >= 1)   // el super admin lee en toda la base (solo lectura, para los conteos de la consola)
 })
