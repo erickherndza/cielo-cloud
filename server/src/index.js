@@ -18,10 +18,29 @@ export const COLECCIONES = new Set([
   'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
-// Matriz de roles pendiente de definir con el cliente (gerente / RRHH /
-// contador). Fase 1: todo miembro puede leer y escribir. Cuando exista la
-// matriz, restringir aquí en un solo lugar.
-const ROLES_ESCRITURA = new Set(['admin', 'gerente', 'rrhh', 'contador'])
+// Matriz de roles (definida por Erick, 2026-11-24). Todo miembro LEE todas las
+// colecciones de su empresa; lo que cambia es qué puede ESCRIBIR. El super admin
+// (administración del software) entra como 'admin' y puede todo.
+//  - admin:    todo dentro de la empresa.
+//  - gerente:  supervisor. Solo lectura, salvo aprobar aumentos y cerrar períodos.
+//  - rrhh:     gestiona personal y nómina: empleados (alta, auditoría, baja), vacaciones,
+//              licencias, horas extras, préstamos, aumentos, períodos y prestaciones.
+//              No toca la configuración de la empresa ni los catálogos.
+//  - contador: nómina: períodos, horas extras, vacaciones, licencias, préstamos,
+//              saldos de ISR, retribuciones y liquidaciones. No edita empleados ni configuración.
+// Limitación: el permiso es por colección completa (el servidor guarda cada colección
+// como un documento), no por campo. «Aprobar» exige escribir la colección de aumentos.
+const NOMINA = ['periodos', 'horas-extras', 'disfrutes-vacaciones', 'licencias', 'prestamos',
+  'saldo-isr', 'retribuciones-complementarias', 'liquidaciones', 'agenda-custom', 'agenda-done']
+export const PERMISOS_ESCRITURA = {
+  admin: new Set(COLECCIONES),
+  gerente: new Set(['aumentos', 'periodos', 'agenda-custom', 'agenda-done']),
+  rrhh: new Set([...NOMINA, 'empleados', 'aumentos', 'feriados']),
+  contador: new Set(NOMINA),
+}
+export const puedeEscribir = (rol, coleccion) => PERMISOS_ESCRITURA[rol]?.has(coleccion) ?? false
+// Envío de comprobantes por correo: quien gestiona la nómina.
+const ROLES_ENVIO_CORREO = new Set(['admin', 'rrhh', 'contador'])
 
 // Limitador de ventana deslizante en memoria, por usuario VERIFICADO (la clave
 // es el uid del token ya validado, no una cabecera que el cliente pueda falsear).
@@ -284,7 +303,7 @@ export function buildApp({
     conEmpresa(req, reply, async (c, rol) => {
       const { coleccion, empresaId } = req.params
       if (!COLECCIONES.has(coleccion)) return reply.code(400).send({ error: 'Colección no permitida' })
-      if (!ROLES_ESCRITURA.has(rol)) return reply.code(403).send({ error: 'Rol sin permiso de escritura' })
+      if (!puedeEscribir(rol, coleccion)) return reply.code(403).send({ error: `Tu rol (${rol}) no puede modificar «${coleccion}»` })
       const { datos, version } = req.body ?? {}
       const esEstructura = datos !== null && typeof datos === 'object'   // array u objeto, no primitivos
       if (!esEstructura || !Number.isInteger(version) || version < 0) {
@@ -377,7 +396,7 @@ export function buildApp({
   const MAX_PDF_B64 = 1_500_000
   app.post('/api/empresas/:empresaId/comprobantes/enviar', (req, reply) =>
     conEmpresa(req, reply, async (c, rol) => {
-      if (!ROLES_ESCRITURA.has(rol)) return reply.code(403).send({ error: 'Rol sin permiso' })
+      if (!ROLES_ENVIO_CORREO.has(rol)) return reply.code(403).send({ error: 'Tu rol no puede enviar comprobantes' })
       if (!enviarCorreo) return reply.code(503).send({ error: 'El envío de correo no está configurado' })
       const items = req.body?.items
       if (!Array.isArray(items) || !items.length || items.length > MAX_ITEMS_ENVIO) {

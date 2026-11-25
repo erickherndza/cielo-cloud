@@ -4,7 +4,8 @@ import { ReactNode, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { REMOTE_ENABLED } from '@/lib/storage'
 import { useRemoteStore } from '@/lib/remote-store'
-import { elegirEmpresa, salirDeEmpresa } from '@/lib/storage'
+import { elegirEmpresa, salirDeEmpresa, getDenegado } from '@/lib/storage'
+import { ETIQUETA_ROL } from '@/lib/roles'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import { instalarReporteDeErrores } from '@/lib/error-reporter'
 
@@ -99,6 +100,12 @@ export function SyncGate({ children }: { children: ReactNode }) {
         <div className="fixed inset-x-0 top-0 z-[90] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white">
           Otra sesión modificó estos datos. Tus últimos cambios no se guardaron.
           <button onClick={() => window.location.reload()} className="rounded bg-white/20 px-2 py-0.5 font-semibold">Recargar</button>
+        </div>
+      )}
+      {status === 'denied' && (
+        <div className="fixed inset-x-0 top-0 z-[90] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white">
+          Tu rol ({ETIQUETA_ROL[getDenegado()?.rol ?? ''] ?? getDenegado()?.rol}) no puede modificar «{getDenegado()?.col}». El cambio no se guardó.
+          <button onClick={() => window.location.reload()} className="rounded bg-white/20 px-2 py-0.5 font-semibold">Descartar y recargar</button>
         </div>
       )}
       {status === 'error' && (

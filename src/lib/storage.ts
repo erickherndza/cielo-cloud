@@ -9,6 +9,7 @@
 //   No se guarda copia en el navegador.
 
 import { setParametros } from './parametros-legales'
+import { puedeEscribirColeccion } from './roles'
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')
 export const REMOTE_ENABLED = API_URL !== '' && !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY
@@ -21,7 +22,7 @@ const SYNC = new Set([
   'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
-export type SyncStatus = 'idle' | 'saving' | 'error' | 'conflict'
+export type SyncStatus = 'idle' | 'saving' | 'error' | 'conflict' | 'denied'
 type Listener = (s: SyncStatus) => void
 
 interface Doc { raw: string | null; version: number }
@@ -36,6 +37,7 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const inflight = new Map<string, Promise<void>>()
 let status: SyncStatus = 'idle'
 let generacion = 0
+let ultimoDenegado: { col: string; rol: string } | null = null
 const listeners = new Set<Listener>()
 
 function setStatus(s: SyncStatus) {
@@ -79,6 +81,19 @@ export interface AccesoInfo {
 }
 let acceso: AccesoInfo | null = null
 export function getAcceso(): AccesoInfo | null { return acceso }
+export function getDenegado() { return ultimoDenegado }
+/** Rol de la persona en la empresa activa; el super admin en modo soporte actúa como admin. */
+export function rolActivo(): string | null {
+  if (!acceso?.activa) return null
+  if (acceso.soporte) return 'admin'
+  return acceso.empresas.find(e => e.id === acceso!.activa!.id)?.rol ?? null
+}
+function permitido(col: string): boolean {
+  if (puedeEscribirColeccion(rolActivo(), col)) return true
+  ultimoDenegado = { col, rol: rolActivo() ?? '' }
+  setStatus('denied')
+  return false
+}
 
 const claveActiva = (uid: string) => `cielo-empresa-activa::${uid}`
 let uidActual = ''
@@ -177,7 +192,7 @@ export async function initRemoteStore(uid: string, token: GetToken): Promise<voi
     for (const col of SYNC) {
       if (cache.has(col)) continue
       const legacy = localStorage.getItem(`cielo-${col}::${uid}`)
-      if (legacy) {
+      if (legacy && puedeEscribirColeccion(rolActivo(), col)) {
         cache.set(col, { raw: legacy, version: 0 })
         markDirty(col)
       }
@@ -246,6 +261,7 @@ async function pushOnce(col: string, keepalive: boolean): Promise<void> {
         keepalive && sent.length < 60_000,
       )
       if (r.status === 409) { setStatus('conflict'); return }
+      if (r.status === 403) { ultimoDenegado = { col, rol: rolActivo() ?? '' }; setStatus('denied'); return }   // no reintentar: el rol no cambia
       if (!r.ok) throw new Error(String(r.status))
       doc.version = (await r.json()).version
       setStatus(dirty.size ? 'saving' : 'idle')
@@ -280,6 +296,7 @@ export const storage = {
   setItem(key: string, value: string): void {
     const col = REMOTE_ENABLED ? coleccionDe(key) : null
     if (!col) { localStorage.setItem(key, value); return }
+    if (!permitido(col)) return
     const doc = cache.get(col) ?? { raw: null, version: 0 }
     doc.raw = value
     cache.set(col, doc)
@@ -288,6 +305,7 @@ export const storage = {
   removeItem(key: string): void {
     const col = REMOTE_ENABLED ? coleccionDe(key) : null
     if (!col) { localStorage.removeItem(key); return }
+    if (!permitido(col)) return
     // El servidor no borra colecciones: se guarda vacía (array/objeto nulo → []).
     const doc = cache.get(col) ?? { raw: null, version: 0 }
     doc.raw = '[]'
