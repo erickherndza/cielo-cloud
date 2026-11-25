@@ -6,6 +6,7 @@ import { REMOTE_ENABLED } from '@/lib/storage'
 import { useRemoteStore } from '@/lib/remote-store'
 import { elegirEmpresa, salirDeEmpresa, getDenegado } from '@/lib/storage'
 import { ETIQUETA_ROL } from '@/lib/roles'
+import { SoloLectura } from './SoloLectura'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import { instalarReporteDeErrores } from '@/lib/error-reporter'
 
@@ -113,6 +114,7 @@ export function SyncGate({ children }: { children: ReactNode }) {
           Sin conexión con el servidor. Reintentando; no cierres esta pestaña.
         </div>
       )}
+      <SoloLectura rol={acceso?.soporte ? 'admin' : (acceso?.empresas?.find(e => e.id === acceso.activa?.id)?.rol ?? null)} />
       {children}
     </>
   )
