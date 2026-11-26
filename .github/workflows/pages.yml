@@ -10,7 +10,11 @@ permissions:
   contents: read
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   build-and-deploy:
+    needs: ci
     runs-on: ubuntu-latest
     # Solo desde main, y el permiso de escritura solo en este job.
     if: github.ref == 'refs/heads/main'

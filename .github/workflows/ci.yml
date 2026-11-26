@@ -1,0 +1,76 @@
+name: CI
+
+# Fitness functions: reglas de arquitectura y seguridad que se comprueban en
+# cada cambio. Si algo falla, el cambio no se fusiona ni se publica.
+on:
+  pull_request:
+  push:
+    branches: [main, feat/**, security/**]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci_admin
+          POSTGRES_DB: cielo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: ci_admin
+      ADMIN_URL: postgres://postgres:ci_admin@127.0.0.1:5432/cielo
+      APP_URL: postgres://cielo_app:ci_app@127.0.0.1:5432/cielo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Dependencias
+        run: |
+          npm ci
+          npm ci --prefix server
+
+      # Vulnerabilidades: el estándar es 0 en ambos paquetes.
+      - name: npm audit (frontend y API)
+        run: |
+          npm audit --audit-level=low
+          npm audit --audit-level=low --prefix server
+
+      - name: Tipos (tsc)
+        run: npx tsc --noEmit
+
+      # Mismo modelo que producción: las migraciones corren con un superusuario
+      # y la API (y las pruebas) con un rol sin privilegios.
+      - name: Base de datos y migraciones
+        run: |
+          psql "$ADMIN_URL" -c "CREATE ROLE cielo_app LOGIN PASSWORD 'ci_app' NOSUPERUSER NOBYPASSRLS"
+          psql "$ADMIN_URL" -c "GRANT CONNECT ON DATABASE cielo TO cielo_app"
+          DATABASE_URL="$ADMIN_URL" npm run migrate --prefix server
+
+      - name: Pruebas del servidor y reglas de arquitectura
+        run: npm test --prefix server
+        env:
+          DATABASE_URL: ${{ env.APP_URL }}
+
+      - name: Pruebas de formato de archivos regulatorios
+        run: ./server/node_modules/.bin/tsx scripts/test-ancho-fijo.mjs
+
+      - name: Compilación de producción
+        run: npm run build
+        env:
+          NODE_ENV: production
