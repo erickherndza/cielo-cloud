@@ -1,5 +1,7 @@
 'use client'
 
+import { puedeVerRuta } from '@/lib/roles'
+import { useRolActual } from '@/lib/rol-actual'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -22,13 +24,14 @@ const BOTTOM_ITEMS = [
 export function BottomNav() {
   const pathname = usePathname()
   const { open } = useMobileMenu()
+  const rol = useRolActual()
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center border-t pb-[env(safe-area-inset-bottom)] box-content border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#1f1f1f] px-1">
-      {BOTTOM_ITEMS.map((item) => {
+      {BOTTOM_ITEMS.filter(i => puedeVerRuta(rol, i.href)).map((item) => {
         const active = isActive(item.href)
         return (
           <Link

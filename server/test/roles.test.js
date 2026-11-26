@@ -1,4 +1,4 @@
-// Matriz de roles: todos leen; cada rol escribe solo sus colecciones.
+// Matriz de roles: cada rol escribe solo sus colecciones (qué ve cada uno: lectura.test.js).
 //  - admin    «Gerente de nómina / administrador»: todo.
 //  - analista «Analista de nómina y recursos humanos»: todo menos configuración, catálogos y usuarios.
 //  - auxiliar «Auxiliar de nómina / recursos humanos»: solo captura (horas extras, licencias, vacaciones, préstamos).
@@ -69,7 +69,7 @@ test('el servidor aplica la matriz, todos leen y solo admin/analista envían com
   // Auxiliar
   for (const c of CAPTURA) assert.equal((await put('auxiliar', c)).statusCode, 200, `auxiliar ${c}`)
   for (const c of ['empleados', 'periodos', 'aumentos', 'liquidaciones', 'saldo-isr', ...CONFIGURACION]) assert.equal((await put('auxiliar', c)).statusCode, 403, `auxiliar ${c}`)
-  // Todos leen todo
+  // Todos pueden pedir la carga (cada uno recibe solo lo suyo: ver lectura.test.js)
   for (const rol of Object.keys(usuarios)) assert.equal((await call('GET', `/api/empresas/${e.id}/documentos`, usuarios[rol])).statusCode, 200)
   // Comprobantes por correo: el auxiliar no; el analista pasa el control de rol (después puede fallar por otra razón)
   assert.equal((await call('POST', `/api/empresas/${e.id}/comprobantes/enviar`, usuarios.auxiliar, { items: [] })).statusCode, 403)
@@ -83,12 +83,13 @@ test('el auxiliar no puede cerrar, pagar ni reabrir un período aunque llame a l
   await call('GET', '/api/empresas', aux)
   const periodo = { id: 'p1', tipo: 'mensual', mes: 7, anio: 2026, estado: 'procesada', empleadosProcesados: ['e1'] }
   await call('PUT', `/api/empresas/${e.id}/documentos/periodos`, S, { datos: [periodo], version: 0 })   // lo deja el super admin
-  const lee = (await call('GET', `/api/empresas/${e.id}/documentos`, aux)).json().periodos
+  const lee = (await call('GET', `/api/empresas/${e.id}/documentos`, S)).json().periodos   // el auxiliar ni siquiera los ve (lectura.test.js); la versión la lee el super admin
+  assert.equal('periodos' in (await call('GET', `/api/empresas/${e.id}/documentos`, aux)).json(), false)
   for (const nuevo of [{ ...periodo, estado: 'cerrada' }, { ...periodo, estado: 'cerrada', pagada: true, fechaPago: '2026-08-05' }, { ...periodo, estado: 'en_proceso' }, { ...periodo, totales: { bruto: 1 } }]) {
     const r = await call('PUT', `/api/empresas/${e.id}/documentos/periodos`, aux, { datos: [nuevo], version: lee.version })
     assert.equal(r.statusCode, 403, 'el auxiliar no debe poder escribir períodos')
   }
-  const despues = (await call('GET', `/api/empresas/${e.id}/documentos`, aux)).json().periodos
+  const despues = (await call('GET', `/api/empresas/${e.id}/documentos`, S)).json().periodos
   assert.equal(despues.version, lee.version); assert.equal(despues.datos[0].estado, 'procesada')
 })
 

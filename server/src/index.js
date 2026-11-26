@@ -10,6 +10,7 @@ import { verificarToken, AuthNoDisponible } from './auth.js'
 import { crearEnviadorResend } from './correo.js'
 import { crearConsultaConCache, rncValido, limpiarRnc } from './dgii.js'
 import { validarParametros } from './parametros.js'
+import { puedeLeer, leeCompleta, proyectarParaRol } from './lectura.js'
 
 // Colecciones que el frontend puede sincronizar (las mismas claves que hoy
 // usa localStorage, sin el prefijo `cielo-`). Todo lo demás se rechaza.
@@ -20,8 +21,8 @@ export const COLECCIONES = new Set([
   'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
-// Matriz de roles (definida por Erick, 2026-11-26). Todo miembro LEE todas las colecciones de su
-// empresa; lo que cambia es qué puede ESCRIBIR. El super admin (administración del software) entra
+// Matriz de roles (definida por Erick, 2026-11-26). Qué puede VER cada rol vive en lectura.js; aquí, qué
+// puede ESCRIBIR. El super admin (administración del software) entra
 // como 'admin' y puede todo.
 //  - admin     «Gerente de nómina / administrador»: acceso completo.
 //  - analista  «Analista de nómina y recursos humanos»: todo menos la configuración de la empresa, los
@@ -317,12 +318,15 @@ export function buildApp({
 
   // Carga masiva: todas las colecciones de la empresa en una sola petición.
   app.get('/api/empresas/:empresaId/documentos', (req, reply) =>
-    conEmpresa(req, reply, async (c) => {
+    conEmpresa(req, reply, async (c, rol) => {
       const r = await c.query(
         'SELECT coleccion, datos, version FROM documentos WHERE empresa_id = $1',
         [req.params.empresaId])
       const out = {}
-      for (const row of r.rows) out[row.coleccion] = { datos: row.datos, version: row.version }
+      for (const row of r.rows) {
+        if (!puedeLeer(rol, row.coleccion)) continue
+        out[row.coleccion] = { datos: proyectarParaRol(rol, row.coleccion, row.datos), version: row.version }
+      }
       return out
     }))
 
@@ -404,9 +408,10 @@ export function buildApp({
 
   // Lista las versiones guardadas de una colección (para recuperar un error).
   app.get('/api/empresas/:empresaId/documentos/:coleccion/historial', (req, reply) =>
-    conEmpresa(req, reply, async (c) => {
+    conEmpresa(req, reply, async (c, rol) => {
       const { coleccion, empresaId } = req.params
       if (!COLECCIONES.has(coleccion)) return reply.code(400).send({ error: 'Colección no permitida' })
+      if (!leeCompleta(rol, coleccion)) return reply.code(403).send({ error: 'Tu rol no puede ver esta información' })
       const r = await c.query(
         `SELECT version, actualizado_en, actualizado_por, pg_column_size(datos) AS bytes
            FROM documentos_historial WHERE empresa_id = $1 AND coleccion = $2
@@ -416,10 +421,11 @@ export function buildApp({
 
   // Devuelve el contenido de una versión anterior.
   app.get('/api/empresas/:empresaId/documentos/:coleccion/historial/:version', (req, reply) =>
-    conEmpresa(req, reply, async (c) => {
+    conEmpresa(req, reply, async (c, rol) => {
       const { coleccion, empresaId, version } = req.params
       const v = Number(version)
       if (!COLECCIONES.has(coleccion) || !Number.isInteger(v)) return reply.code(400).send({ error: 'Petición inválida' })
+      if (!leeCompleta(rol, coleccion)) return reply.code(403).send({ error: 'Tu rol no puede ver esta información' })
       const r = await c.query(
         `SELECT version, datos, actualizado_en, actualizado_por FROM documentos_historial
           WHERE empresa_id = $1 AND coleccion = $2 AND version = $3`, [empresaId, coleccion, v])

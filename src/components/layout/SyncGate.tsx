@@ -1,11 +1,13 @@
 'use client'
 
 import { ReactNode, useEffect } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { REMOTE_ENABLED } from '@/lib/storage'
 import { useRemoteStore } from '@/lib/remote-store'
 import { elegirEmpresa, salirDeEmpresa, getDenegado, getRechazo } from '@/lib/storage'
-import { ETIQUETA_ROL } from '@/lib/roles'
+import { ETIQUETA_ROL, puedeVerRuta, rutaInicio } from '@/lib/roles'
 import { SoloLectura } from './SoloLectura'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import { instalarReporteDeErrores } from '@/lib/error-reporter'
@@ -16,6 +18,12 @@ export function SyncGate({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const { ready, sinEmpresa, acceso, error, status } = useRemoteStore()
   useEffect(() => instalarReporteDeErrores(), [])
+  const pathname = usePathname() ?? '/'
+  const router = useRouter()
+  const rol = acceso?.soporte ? 'admin' : (acceso?.empresas?.find(e => e.id === acceso.activa?.id)?.rol ?? null)
+  // Pantalla que el rol no puede ver (solo interfaz: el servidor ya no le entrega esos datos): se lleva a su inicio.
+  const sinAcceso = REMOTE_ENABLED && ready && !!rol && !puedeVerRuta(rol, pathname)
+  useEffect(() => { if (sinAcceso) router.replace(rutaInicio(rol)) }, [sinAcceso, rol, router])
   if (!REMOTE_ENABLED || !user) return <>{children}</>
   // Correo sin verificar: todavía no hay datos que cargar; el RouteGuard
   // muestra la pantalla de verificación.
@@ -120,8 +128,16 @@ export function SyncGate({ children }: { children: ReactNode }) {
           Sin conexión con el servidor. Reintentando; no cierres esta pestaña.
         </div>
       )}
-      <SoloLectura rol={acceso?.soporte ? 'admin' : (acceso?.empresas?.find(e => e.id === acceso.activa?.id)?.rol ?? null)} />
-      {children}
+      <SoloLectura rol={rol} />
+      {sinAcceso ? (
+        <div className="flex min-h-[60vh] items-center justify-center p-6">
+          <div className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 text-center dark:border-[#2e2e2e] dark:bg-[#1f1f1f]">
+            <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Esta pantalla no está disponible para tu rol</p>
+            <p className="mt-2 text-sm text-zinc-500">Como {ETIQUETA_ROL[rol ?? ''] ?? rol} no tienes acceso a esta información.</p>
+            <Link href={rutaInicio(rol)} className="mt-4 inline-block rounded-lg bg-[#1B2980] px-4 py-2 text-sm font-semibold text-white">Ir a mi pantalla de inicio</Link>
+          </div>
+        </div>
+      ) : children}
     </>
   )
 }

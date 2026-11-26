@@ -1211,7 +1211,7 @@ export default function PrestamosPage() {
               )}
 
               {/* Capacidad de Pago — solo préstamos, con empleado seleccionado */}
-              {modoNuevo === 'prestamo' && fEmpleado && empleadoSeleccionado && (
+              {modoNuevo === 'prestamo' && fEmpleado && empleadoSeleccionado && empleadoSeleccionado.salarioBase > 0 && (
                 <PanelCapacidadPago
                   salarioBase={empleadoSeleccionado.salarioBase}
                   sumaCuotasActivas={sumaCuotasActivasEmp}

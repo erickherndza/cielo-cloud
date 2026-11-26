@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useRolActual } from '@/lib/rol-actual'
+import { veDatosDeNomina } from '@/lib/roles'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Badge } from '@/components/ui/Badge'
@@ -18,11 +20,14 @@ import {
 } from '@/lib/dominican-labor'
 import { getParametros } from '@/lib/parametros-legales'
 import { useEmpresa } from '@/lib/empresa-context'
-import { formatRD, formatDate, formatAnosServicio, fullName, BTN_PRIMARY, parseFechaLocal } from '@/lib/utils'
+import { formatRD as formatRDReal, formatDate, formatAnosServicio, fullName, BTN_PRIMARY, parseFechaLocal } from '@/lib/utils'
 import { CalendarDays, Users, Wallet, AlertCircle, Download, Plane, Plus, X, Trash2, Banknote, Search, RotateCcw } from 'lucide-react'
 
 export default function VacacionesPage() {
   const { empleadosEnNomina } = useEmpleados()
+  // El auxiliar no recibe sueldos: los valores en dinero se muestran como «—».
+  const verDinero = veDatosDeNomina(useRolActual())
+  const dinero = (n: number, d?: number) => (verDinero ? formatRDReal(n, d) : '—')
   const { empresa } = useEmpresa()
   const { disfrutes, registrarDisfrute, registrarVenta, eliminarDisfrute, diasTomados, estaDeVacaciones } = useVacaciones()
 
@@ -136,7 +141,7 @@ export default function VacacionesPage() {
     if (!empSeleccionadoVenta || diasVentaNum <= 0 || !fechaEfectivaVenta) return
     registrarVenta(empSeleccionadoVenta.id, diasVentaNum, fechaEfectivaVenta, notasVenta || undefined)
     setModalVentaAbierto(false)
-    setToast(`Venta registrada — ${fullName(empSeleccionadoVenta)} · ${diasVentaNum} día(s) · ${formatRD(valorVentaPreview)}`)
+    setToast(`Venta registrada — ${fullName(empSeleccionadoVenta)} · ${diasVentaNum} día(s) · ${dinero(valorVentaPreview)}`)
   }
 
   function handleEliminar(id: string) {
@@ -225,14 +230,14 @@ export default function VacacionesPage() {
           />
           <StatCard
             label="Valor Bruto"
-            value={formatRD(totalValor)}
+            value={dinero(totalValor)}
             sub="Días acumulados × tarifa diaria"
             icon={Wallet}
             iconColor="bg-[#eef0fb] text-[#1B2980] dark:bg-indigo-950/40 dark:text-indigo-400"
           />
           <StatCard
             label="Neto Estimado"
-            value={formatRD(totalValorNeto)}
+            value={dinero(totalValorNeto)}
             sub="Si se pagara hoy — con AFP/SFS/ISR"
             icon={Wallet}
             iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
@@ -363,10 +368,10 @@ export default function VacacionesPage() {
                       {diasDisponibles.toFixed(2)}
                     </td>
                     <td data-col="num" data-label="Valor bruto" className="px-4 py-3.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {formatRD(valorAcumulado)}
+                      {dinero(valorAcumulado)}
                     </td>
                     <td data-col="num" data-label="Neto estimado" className="px-4 py-3.5 text-right tabular-nums font-semibold text-sky-700 dark:text-sky-400">
-                      {formatRD(valorNetoEstimado)}
+                      {dinero(valorNetoEstimado)}
                     </td>
                     <td data-col="num" data-label="Estado" className="px-4 py-3.5">
                       {deVacacionesHoy
@@ -406,8 +411,8 @@ export default function VacacionesPage() {
                   </td>
                   <td data-col="hide" className="px-4 py-3 text-right tabular-nums font-bold text-zinc-500 dark:text-zinc-400">{totalDiasVisible.toFixed(2)}</td>
                   <td data-col="num" data-label="Disponibles" className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{totalDisponiblesVisible.toFixed(2)}</td>
-                  <td data-col="num" data-label="Valor bruto" className="px-4 py-3 text-right tabular-nums font-semibold text-zinc-500 dark:text-zinc-400">{formatRD(totalValorVisible)}</td>
-                  <td data-col="num" data-label="Neto estimado" className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{formatRD(totalValorNetoVisible)}</td>
+                  <td data-col="num" data-label="Valor bruto" className="px-4 py-3 text-right tabular-nums font-semibold text-zinc-500 dark:text-zinc-400">{dinero(totalValorVisible)}</td>
+                  <td data-col="num" data-label="Neto estimado" className="px-4 py-3 text-right tabular-nums font-bold text-sky-700 dark:text-sky-300">{dinero(totalValorNetoVisible)}</td>
                   <td colSpan={2} data-col="hide" />
                 </tr>
               </tfoot>
@@ -649,7 +654,7 @@ export default function VacacionesPage() {
                   ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300'
                   : 'bg-[#eef0fb] text-[#151f66] dark:bg-indigo-950/30 dark:text-indigo-300'}`}
                 >
-                  <p><strong>{formatRD(valorVentaPreview)} bruto</strong> ({diasVentaNum} día(s) × tarifa diaria) — {disponiblesVenta.toFixed(2)} disponible(s)</p>
+                  <p><strong>{dinero(valorVentaPreview)} bruto</strong> ({diasVentaNum} día(s) × tarifa diaria) — {disponiblesVenta.toFixed(2)} disponible(s)</p>
                   {excedeDisponiblesVenta && (
                     <p className="mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3.5 w-3.5 shrink-0" />

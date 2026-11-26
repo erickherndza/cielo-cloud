@@ -72,6 +72,7 @@ interface LicenciasCtx {
     opciones?: RegistrarOpciones,
   ) => Licencia
   eliminar: (licenciaId: string) => void
+  completarMontosPendientes: (empleados: Pick<Empleado, 'id' | 'salarioBase' | 'regimenIntermitente'>[]) => void
   licenciaActiva: (empleadoId: string, fecha?: Date) => Licencia | null
   estaDeLicencia: (empleadoId: string, fecha?: Date) => boolean
   marcarReclamado: (licenciaId: string, fecha: string) => void
@@ -83,12 +84,36 @@ const Ctx = createContext<LicenciasCtx>({
   licencias: [],
   registrar: () => { throw new Error('LicenciasProvider not mounted') },
   eliminar: () => {},
+  completarMontosPendientes: () => {},
   licenciaActiva: () => null,
   estaDeLicencia: () => false,
   marcarReclamado: () => {},
   marcarReembolsado: () => {},
   revertirEstadoReclamo: () => {},
 })
+
+function calcularMontosLicencia(
+  tipo: TipoLicencia, dias: number,
+  empleado: Pick<Empleado, 'salarioBase' | 'regimenIntermitente'>,
+  opciones: Pick<RegistrarOpciones, 'modalidadEnfermedad' | 'disfruteSueldo'>,
+): { montoPagado: number; montoSubsidioEstimado: number | undefined } {
+  const conSubsidio = esLicenciaConSubsidio(tipo)
+  const salarioDiario = empleado.salarioBase / getDivisorSalarioDiario(empleado)
+  const montoCompleto = Math.round(salarioDiario * dias * 100) / 100
+  if (tipo === 'maternidad') {
+    // El empleador paga el 100% y luego solicita reembolso a SISALRIL.
+    return { montoPagado: montoCompleto, montoSubsidioEstimado: montoCompleto }
+  }
+  if (conSubsidio) {
+    // enfermedad_comun / accidente_laboral: SISALRIL/ARL paga el subsidio directo al empleado — Cielo Cloud
+    // solo lo registra. El "disfrute de sueldo" es un beneficio adicional que la empresa paga vía nómina.
+    return {
+      montoSubsidioEstimado: Math.round(montoCompleto * porcentajeSubsidio(tipo, opciones.modalidadEnfermedad) * 100) / 100,
+      montoPagado: opciones.disfruteSueldo ? montoCompleto : 0,
+    }
+  }
+  return { montoPagado: montoCompleto, montoSubsidioEstimado: undefined }
+}
 
 export function LicenciasProvider({ children }: { children: ReactNode }) {
   const [licencias, setLicencias] = useState<Licencia[]>([])
@@ -124,25 +149,10 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
     const fin = new Date(inicio)
     fin.setDate(fin.getDate() + (dias - 1))
 
-    const salarioDiario = empleado.salarioBase / getDivisorSalarioDiario(empleado)
-    const montoCompleto = Math.round(salarioDiario * dias * 100) / 100
-
-    let montoPagado: number
-    let montoSubsidioEstimado: number | undefined
-
-    if (tipo === 'maternidad') {
-      // El empleador paga el 100% y luego solicita reembolso a SISALRIL.
-      montoPagado = montoCompleto
-      montoSubsidioEstimado = montoCompleto
-    } else if (conSubsidio) {
-      // enfermedad_comun / accidente_laboral: SISALRIL/ARL paga el subsidio
-      // directo al empleado — Cielo Cloud solo lo registra. El "disfrute de
-      // sueldo" es un beneficio adicional que la empresa paga vía nómina.
-      montoSubsidioEstimado = Math.round(montoCompleto * porcentajeSubsidio(tipo, opciones.modalidadEnfermedad) * 100) / 100
-      montoPagado = opciones.disfruteSueldo ? montoCompleto : 0
-    } else {
-      montoPagado = montoCompleto
-    }
+    // Un auxiliar no recibe el sueldo (salarioBase llega en 0): los montos quedan pendientes y los calcula
+    // quien sí ve salarios (analista/admin) la próxima vez que abra Licencias.
+    const sinSueldo = !(empleado.salarioBase > 0)
+    const { montoPagado, montoSubsidioEstimado } = calcularMontosLicencia(tipo, dias, empleado, opciones)
 
     const nueva: Licencia = {
       id: `licencia-${Date.now().toString(36)}`,
@@ -159,6 +169,7 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
       documentoSoporte: opciones.documentoSoporte,
       documentoNombre: opciones.documentoNombre,
       estadoReclamo: conSubsidio ? 'por_reclamar' : undefined,
+      montoPendiente: sinSueldo ? true : undefined,
     }
     setLicencias(prev => {
       const next = [nueva, ...prev]
@@ -166,6 +177,24 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
       return next
     })
     return nueva
+  }
+
+  /** Calcula los montos de las licencias registradas sin acceso al sueldo (ver `registrar`). */
+  function completarMontosPendientes(empleados: Pick<Empleado, 'id' | 'salarioBase' | 'regimenIntermitente'>[]) {
+    setLicencias(prev => {
+      let cambio = false
+      const next = prev.map(l => {
+        if (!l.montoPendiente) return l
+        const emp = empleados.find(e => e.id === l.empleadoId)
+        if (!emp || !(emp.salarioBase > 0)) return l
+        cambio = true
+        const m = calcularMontosLicencia(l.tipo, l.dias, emp, { modalidadEnfermedad: l.modalidadEnfermedad, disfruteSueldo: l.disfruteSueldo })
+        return { ...l, ...m, montoPendiente: undefined }
+      })
+      if (!cambio) return prev
+      persist(next)
+      return next
+    })
   }
 
   function eliminar(licenciaId: string) {
@@ -234,7 +263,7 @@ export function LicenciasProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      licencias, registrar, eliminar, licenciaActiva, estaDeLicencia,
+      licencias, registrar, eliminar, completarMontosPendientes, licenciaActiva, estaDeLicencia,
       marcarReclamado, marcarReembolsado, revertirEstadoReclamo,
     }}>
       {children}

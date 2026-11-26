@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useRemoteStore } from '@/lib/remote-store'
 import { salirDeEmpresa } from '@/lib/storage'
 import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
+import { puedeVerRuta } from '@/lib/roles'
+import { useRolActual } from '@/lib/rol-actual'
 import { useCommandPalette } from '@/lib/command-palette-context'
 import { CieloLogo } from '@/components/ui/CieloLogo'
 
@@ -38,6 +40,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user, logout } = useAuth()
   const { acceso } = useRemoteStore()
   const palette = useCommandPalette()
+  const rol = useRolActual()
 
   // Cierra al navegar y bloquea el scroll del fondo mientras está abierto.
   useEffect(() => { onClose() }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -55,7 +58,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   if (!open) return null
 
-  const items = [...NAV_ITEMS, CONFIGURACION_ITEM]
+  const items = [...NAV_ITEMS, CONFIGURACION_ITEM].filter(i => puedeVerRuta(rol, i.href))
   const activeHref = items
     .map(i => i.href)
     .filter(h => h === '/' ? pathname === '/' : (pathname === h || pathname.startsWith(`${h}/`)))

@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Moon, Sun, LogOut, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react'
 import { NAV_ITEMS, CONFIGURACION_ITEM, type NavItem } from '@/lib/nav-items'
+import { puedeVerRuta } from '@/lib/roles'
+import { useRolActual } from '@/lib/rol-actual'
 import { useTheme } from '@/lib/theme'
 import { useAuth } from '@/lib/auth-context'
 
@@ -24,6 +26,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const router = useRouter()
   const { theme, toggle: toggleTheme } = useTheme()
   const { logout } = useAuth()
+  const rol = useRolActual()
 
   const [query, setQuery]       = useState('')
   const [selected, setSelected] = useState(0)
@@ -31,7 +34,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const listRef  = useRef<HTMLDivElement>(null)
 
   const entries: Entry[] = useMemo(() => {
-    const navegacion: Entry[] = [...NAV_ITEMS, CONFIGURACION_ITEM].map(item => ({
+    const navegacion: Entry[] = [...NAV_ITEMS, CONFIGURACION_ITEM].filter(item => puedeVerRuta(rol, item.href)).map(item => ({
       id: `nav-${item.href}`,
       label: item.label,
       hint: item.keywords,
@@ -58,7 +61,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     ]
 
     return [...navegacion, ...acciones]
-  }, [router, theme, toggleTheme, logout])
+  }, [router, theme, toggleTheme, logout, rol])
 
   const filtered = useMemo(() => {
     const q = normalizar(query.trim())

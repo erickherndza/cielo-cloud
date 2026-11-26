@@ -13,6 +13,8 @@ import { useBandasSalariales, normalizarPosicion } from './bandas-salariales-con
 import { useRetribuciones } from './retribuciones-context'
 import { getSalarioMinimoAplicable, getBonificacionesPendientes, getRetribucionesPendientes, getRegaliaPendientes, getMesesServicio, mesesSuspendidosEnAnio, regaliaPagadaVigente } from './dominican-labor'
 import { fullName, formatRD, parseFechaLocal } from './utils'
+import { veDatosDeNomina } from './roles'
+import { useRolActual } from './rol-actual'
 
 const MESES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -57,9 +59,12 @@ export function useAlertas(): AlertaItem[] {
   const { liquidaciones } = useLiquidaciones()
   const { bandas } = useBandasSalariales()
   const { retribuciones } = useRetribuciones()
+  const rol = useRolActual()
 
   return useMemo(() => {
     const items: AlertaItem[] = []
+    // El auxiliar no recibe salarios ni períodos: cualquier alerta calculada con ellos sería falsa.
+    if (!veDatosDeNomina(rol)) return items
 
     // ── Salario mínimo bajo ──────────────────────────────────────────────
     const salarioMinimoAplicable = getSalarioMinimoAplicable(empresa)
@@ -334,5 +339,5 @@ export function useAlertas(): AlertaItem[] {
 
     return items.sort((a, b) => SEVERIDAD_ORDEN[a.severidad] - SEVERIDAD_ORDEN[b.severidad])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [empleadosActivos, empleados, empresa, periodos, prestamos, liquidaciones, bandas, retribuciones])
+  }, [empleadosActivos, empleados, empresa, periodos, prestamos, liquidaciones, bandas, retribuciones, rol])
 }

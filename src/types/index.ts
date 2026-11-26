@@ -681,6 +681,7 @@ export interface Licencia {
   fechaReclamo?: string      // ISO — cuándo se sometió el reclamo ante SISALRIL/ARL
   fechaReembolso?: string    // ISO — cuándo se resolvió/recibió el reembolso
   montoReembolsado?: number  // monto real recibido — puede diferir del estimado
+  montoPendiente?: boolean   // registrada por un rol sin acceso al sueldo (auxiliar): los montos se calculan después
 }
 
 // ─── Disfrute de vacaciones ───────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRolActual } from '@/lib/rol-actual'
+import { veDatosDeNomina } from '@/lib/roles'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/StatCard'
 import { Toast } from '@/components/ui/Toast'
@@ -10,7 +12,7 @@ import { useEmpresa } from '@/lib/empresa-context'
 import {
   useLicencias, DIAS_LICENCIA, DIAS_SUGERIDOS_SUBSIDIO, labelLicencia, esLicenciaConSubsidio,
 } from '@/lib/licencias-context'
-import { formatRD, formatDate, fullName, BTN_PRIMARY, parseFechaLocal, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
+import { formatRD as formatRDReal, formatDate, fullName, BTN_PRIMARY, parseFechaLocal, MAX_ADJUNTO_BYTES, MAX_ADJUNTO_LABEL } from '@/lib/utils'
 import { downloadBase64 } from '@/lib/empleado-form'
 import type { TipoLicencia, EstadoReclamoSubsidio } from '@/types'
 import {
@@ -67,10 +69,15 @@ const VARIANT_RECLAMO: Record<EstadoReclamoSubsidio, 'warning' | 'info' | 'succe
 
 export default function LicenciasPage() {
   const { empleadosActivos, empleados } = useEmpleados()
+  // El auxiliar no recibe sueldos: los montos se muestran como «—» y las licencias que registra quedan
+  // con el monto pendiente hasta que un analista/administrador abre esta pantalla.
+  const verDinero = veDatosDeNomina(useRolActual())
+  const dinero = (n: number, d?: number) => (verDinero ? formatRDReal(n, d) : '—')
   const { empresa } = useEmpresa()
   const {
-    licencias, registrar, eliminar, marcarReclamado, marcarReembolsado, revertirEstadoReclamo,
+    licencias, registrar, eliminar, completarMontosPendientes, marcarReclamado, marcarReembolsado, revertirEstadoReclamo,
   } = useLicencias()
+  useEffect(() => { if (verDinero) completarMontosPendientes(empleados) }, [verDinero, empleados, licencias, completarMontosPendientes])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const [empleadoId, setEmpleadoId] = useState('')
   const [tipo, setTipo] = useState<TipoLicencia>('matrimonial')
@@ -267,28 +274,28 @@ export default function LicenciasPage() {
           />
           <StatCard
             label="Pagado por la Empresa Este Mes"
-            value={formatRD(totalPagadoMes)}
+            value={dinero(totalPagadoMes)}
             sub="Vía nómina — no incluye subsidios TSS"
             icon={Banknote}
             iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
           />
           <StatCard
             label="Subsidio SISALRIL/ARL Este Mes"
-            value={formatRD(totalSubsidioMes)}
+            value={dinero(totalSubsidioMes)}
             sub="Informativo — lo paga/reembolsa TSS"
             icon={ShieldCheck}
             iconColor="bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400"
           />
           <StatCard
             label="Pendiente de Reclamar"
-            value={formatRD(totalPorReclamar)}
+            value={dinero(totalPorReclamar)}
             sub={`${subsidiosPorReclamar.length} caso(s) sin reclamo sometido`}
             icon={HandCoins}
             iconColor="bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
           />
           <StatCard
             label="Total Histórico Pagado"
-            value={formatRD(totalPagadoGeneral)}
+            value={dinero(totalPagadoGeneral)}
             sub={`${licencias.length} licencia(s) registrada(s)`}
             icon={CalendarPlus}
             iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
@@ -557,10 +564,10 @@ export default function LicenciasPage() {
                       <td data-col="num" data-label="Fin" className="px-4 py-3.5 text-xs text-zinc-600 dark:text-zinc-400 whitespace-nowrap">{formatDate(l.fechaFin)}</td>
                       <td data-col="num" data-label="Días" className="px-4 py-3.5 text-center tabular-nums text-zinc-500 dark:text-zinc-400">{l.dias}</td>
                       <td data-col="num" data-label="Pagado empresa" className="px-4 py-3.5 text-right tabular-nums font-semibold text-[#1B2980] dark:text-indigo-300">
-                        {formatRD(l.montoPagado, 2)}
+                        {dinero(l.montoPagado, 2)}
                       </td>
                       <td data-col="num" data-label="Subsidio TSS" className="px-4 py-3.5 text-right tabular-nums text-sky-600 dark:text-sky-400">
-                        {l.montoSubsidioEstimado != null ? formatRD(l.montoSubsidioEstimado, 2) : '—'}
+                        {l.montoSubsidioEstimado != null ? dinero(l.montoSubsidioEstimado, 2) : '—'}
                       </td>
                       <td data-col="num" data-label="Reclamo" className="px-4 py-3.5 text-center">
                         {l.estadoReclamo ? (
@@ -626,10 +633,10 @@ export default function LicenciasPage() {
                       {hayFiltrosActivos ? `TOTAL (filtrado) — ${licenciasVisibles.length} licencia(s)` : `TOTAL — ${licenciasOrdenadas.length} licencia(s)`}
                     </td>
                     <td data-col="num" data-label="Pagado empresa" className="px-4 py-3 text-right tabular-nums font-bold text-[#1B2980] dark:text-indigo-300">
-                      {formatRD(totalPagadoVisible, 2)}
+                      {dinero(totalPagadoVisible, 2)}
                     </td>
                     <td data-col="num" data-label="Subsidio TSS" className="px-4 py-3 text-right tabular-nums font-bold text-sky-600 dark:text-sky-400">
-                      {formatRD(totalSubsidioVisible, 2)}
+                      {dinero(totalSubsidioVisible, 2)}
                     </td>
                     <td colSpan={3} data-col="hide" />
                   </tr>

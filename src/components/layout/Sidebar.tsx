@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils'
 import { useAuth, type CuentaVinculada } from '@/lib/auth-context'
 import { AgregarCuentaModal } from '@/components/auth/AgregarCuentaModal'
 import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
+import { puedeVerRuta } from '@/lib/roles'
+import { useRolActual } from '@/lib/rol-actual'
 import { DevCredit } from '@/components/ui/DevCredit'
 import { useRemoteStore } from '@/lib/remote-store'
 import { salirDeEmpresa } from '@/lib/storage'
@@ -178,6 +180,9 @@ export function Sidebar() {
   const pathname  = usePathname()
   const router    = useRouter()
   const { user, logout } = useAuth()
+  const rol = useRolActual()
+  const navVisibles = NAV_ITEMS.filter(i => puedeVerRuta(rol, i.href))
+  const verConfiguracion = puedeVerRuta(rol, CONFIGURACION_ITEM.href)
 
   const [collapsed, setCollapsed] = useState(false)
   const [mounted,   setMounted]   = useState(false)
@@ -318,7 +323,7 @@ export function Sidebar() {
 
         {/* ── Navigation ───────────────────────────────────────────── */}
         <nav className="flex-1 overflow-y-auto py-1">
-          {NAV_ITEMS.map((item) => {
+          {navVisibles.map((item) => {
             const active = isActive(item.href)
             return (
               <Link
@@ -356,7 +361,7 @@ export function Sidebar() {
         {/* ── Footer ───────────────────────────────────────────────── */}
         <div className="border-t border-tabler-line dark:border-[#2e2e2e] py-1">
           <EmpresaLinks wide={wide} />
-          <Link
+          {verConfiguracion && <Link
             href={CONFIGURACION_ITEM.href}
             prefetch={false}
             title={wide ? undefined : CONFIGURACION_ITEM.label}
@@ -382,7 +387,7 @@ export function Sidebar() {
                 <span className="min-w-0 flex-1 truncate">Configuración</span>
               </>
             )}
-          </Link>
+          </Link>}
 
           {/* User profile + logout */}
           <div

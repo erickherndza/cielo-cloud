@@ -45,11 +45,12 @@ test('cada rol hace su ejercicio con el cliente real', async () => {
   await intento(uid, 'empresa', { nombre: 'Cambiado' })
   assert.equal(getSyncStatus(), 'denied'); assert.equal(getDenegado().col, 'empresa')
 
-  // Auxiliar: ve al empleado, las horas y el período; captura horas extras y licencias; no toca empleados ni períodos
+  // Auxiliar: ve al empleado SIN sueldo ni cédula y las horas; no ve períodos; captura horas extras y licencias; no toca empleados ni períodos
   uid = await entrar('auxiliar', e.id)
   assert.equal(rolActivo(), 'auxiliar')
   assert.equal(JSON.parse(storage.getItem(`cielo-empleados::${uid}`))[0].nombre, 'Ana')
-  assert.equal(JSON.parse(storage.getItem(`cielo-periodos::${uid}`))[0].id, 'p1')
+  assert.equal(JSON.parse(storage.getItem(`cielo-empleados::${uid}`))[0].salarioBase, 0, 'el auxiliar no recibe el sueldo')
+  assert.equal(storage.getItem(`cielo-periodos::${uid}`), null, 'el auxiliar no recibe los períodos')
   await intento(uid, 'horas-extras', [{ id: 'h1', empleadoId: 'e1', horas: 3 }, { id: 'h2', empleadoId: 'e1', horas: 2 }]); assert.equal(getSyncStatus(), 'idle')
   await intento(uid, 'licencias', [{ id: 'l1', empleadoId: 'e1' }]); assert.equal(getSyncStatus(), 'idle')
   await intento(uid, 'empleados', [{ ...emp, salarioBase: 1 }]); assert.equal(getSyncStatus(), 'denied')
