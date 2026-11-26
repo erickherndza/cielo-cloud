@@ -203,3 +203,28 @@ test('las entradas congeladas siguen siendo necesarias (si un archivo ya bajó d
   }).map(([f]) => f)
   assert.deepEqual(obsoletas, [], 'quitar de CONGELADOS: ' + obsoletas.join(', '))
 })
+
+// ── Resiliencia: protecciones que los experimentos de caos exigieron (test/caos/) ──
+// Los experimentos las prueban en funcionamiento (lentos); estas guardas baratas impiden quitarlas por accidente.
+test('resiliencia: el pool de la base tiene tiempo límite, manejador de errores y destruye conexiones rotas', () => {
+  const db = fs.readFileSync(path.join(RAIZ, 'server/src/db.js'), 'utf8')
+  assert.match(db, /connectionTimeoutMillis/, 'sin tiempo límite de conexión una base muda cuelga todas las peticiones')
+  assert.match(db, /query_timeout/, 'sin tiempo límite de consulta una red muda a mitad de petición la cuelga')
+  assert.match(db, /pool\.on\('error'/, 'sin manejador, la pérdida de una conexión inactiva tumba el proceso')
+  assert.match(db, /client\.on\('error'/, 'sin manejador en la conexión en uso, su pérdida tumba el proceso')
+  assert.match(db, /release\(fallo\)/, 'una conexión rota no debe volver al pool')
+})
+test('resiliencia: la API instala el cierre ordenado y responde 503 (no 500) ante fallas de infraestructura', () => {
+  const idx = fs.readFileSync(path.join(RAIZ, 'server/src/index.js'), 'utf8')
+  assert.match(idx, /instalarCierreOrdenado\(/, 'sin cierre ordenado cada despliegue (SIGTERM) pierde las peticiones en curso')
+  assert.match(idx, /esFallaDeInfraestructura\(err\)/)
+  assert.match(idx, /keepAliveTimeout:\s*65_000/, 'el keep-alive debe superar al del balanceador (evita 502 esporádicos)')
+  assert.match(idx, /AuthNoDisponible/, 'si Google no responde debe ser 503, no 401 (no parecer sesión vencida)')
+})
+test('resiliencia: el cliente pone tiempo límite a las peticiones, acota flushStorage y reconoce su propia escritura perdida', () => {
+  const st = fs.readFileSync(path.join(RAIZ, 'src/lib/storage.ts'), 'utf8')
+  assert.match(st, /AbortSignal\.timeout\(TIMEOUT_API_MS\)/, 'una petición sin tiempo límite bloquea todos los guardados siguientes')
+  assert.match(st, /limiteMs/, 'flushStorage sin límite deja colgado el cierre de sesión')
+  assert.match(st, /adoptarSiFueNuestra/, 'sin esto, una respuesta perdida se confunde con un conflicto y se pierden cambios')
+  assert.match(st, /ESPERA_MAXIMA_MS/, 'sin espera máxima, quien escribe sin parar nunca guarda')
+})

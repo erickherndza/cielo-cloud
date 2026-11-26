@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
-import { conContexto, pool } from './db.js'
+import { conContexto, pool, esFallaDeInfraestructura } from './db.js'
 import { validarPeriodos } from './periodos-reglas.js'
-import { verificarToken } from './auth.js'
+import { instalarCierreOrdenado } from './ciclo-vida.js'
+import { verificarToken, AuthNoDisponible } from './auth.js'
 import { crearEnviadorResend } from './correo.js'
 import { crearConsultaConCache, rncValido, limpiarRnc } from './dgii.js'
 import { validarParametros } from './parametros.js'
@@ -119,8 +120,19 @@ export function buildApp({
     logger: logger && { redact: ['req.headers.authorization', 'req.headers.cookie'] },
     bodyLimit: 25 * 1024 * 1024,
     trustProxy: true,
+    // Detrás de un balanceador (Cloudflare / DigitalOcean) el keep-alive del servidor debe ser MAYOR que el
+    // del balanceador; el de Node (5 s) provoca 502 esporádicos cuando el balanceador reutiliza una conexión
+    // que el servidor ya cerró.
+    keepAliveTimeout: 65_000,
+    requestTimeout: 120_000,
+    forceCloseConnections: 'idle',
   })
   const excede = crearLimitador()
+
+  // Cierre ordenado: durante el cierre cada respuesta lleva `Connection: close`. Sin esto, una conexión
+  // keep-alive que acaba de recibir su respuesta queda abierta (hasta 65 s) y app.close() no termina.
+  app.decorate('cerrando', false)
+  app.addHook('onSend', async (req, reply) => { if (app.cerrando) reply.header('connection', 'close') })
 
   app.register(helmet, { global: true })
   // Tope por IP contra inundaciones (incluye peticiones sin token). La IP sale
@@ -134,6 +146,13 @@ export function buildApp({
   })
 
   app.setErrorHandler((err, req, reply) => {
+    // Base caída, red cortada o pool saturado: el servicio no está disponible un momento. Se responde 503
+    // con Retry-After (el cliente reintenta solo) en vez de un 500 que parece un fallo de código.
+    if (esFallaDeInfraestructura(err)) {
+      req.log.error({ err }, 'infraestructura no disponible')
+      reply.header('Retry-After', '5')
+      return reply.code(503).send({ error: 'Servicio no disponible por un momento, reintenta en unos segundos', codigo: 'no_disponible' })
+    }
     const code = err.statusCode ?? 500
     if (code >= 500) {
       req.log.error({ err }, 'error interno')
@@ -172,7 +191,13 @@ export function buildApp({
     if (!token) return reply.code(401).send({ error: 'No autenticado' })
     try {
       req.user = await verify(token, projectId)
-    } catch {
+    } catch (err) {
+      // No se pudo contactar al servicio de llaves de Google: no es culpa del token, así que NO se responde
+      // 401 (el cliente lo tomaría por sesión vencida); se responde 503 para que reintente.
+      if (err instanceof AuthNoDisponible) {
+        reply.header('Retry-After', '5')
+        return reply.code(503).send({ error: 'Servicio de autenticación no disponible, reintenta en unos segundos', codigo: 'auth_no_disponible' })
+      }
       return reply.code(401).send({ error: 'Token inválido' })
     }
     if (!req.user.emailVerified) {
@@ -876,5 +901,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const superadmins = (process.env.SUPERADMIN_EMAILS ?? '').split(',')
   const autoregistro = (process.env.AUTOREGISTRO_EMPRESAS ?? 'true') !== 'false'
   const app = buildApp({ projectId, origins, enviarCorreo, superadmins, autoregistro })
+  instalarCierreOrdenado({ app, pool })
   await app.listen({ port: Number(process.env.PORT ?? 8080), host: '0.0.0.0' })
 }

@@ -59,11 +59,16 @@ function coleccionDe(key: string): string | null {
   return SYNC.has(col) ? col : null
 }
 
+// Tiempo máximo de una petición a la API. Sin él, una petición que nunca responde bloquea PARA SIEMPRE todos
+// los guardados siguientes de esa colección (se encadenan una tras otra) y cerrar sesión se queda esperando.
+const TIMEOUT_API_MS = 30_000
+
 async function api(path: string, init: RequestInit = {}, keepalive = false): Promise<Response> {
   if (!getToken) throw new Error('sin sesión')
   const token = await getToken()
   return fetch(`${API_URL}${path}`, {
     ...init,
+    signal: init.signal ?? AbortSignal.timeout(TIMEOUT_API_MS),
     keepalive,
     headers: { ...(init.headers ?? {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
@@ -235,10 +240,51 @@ export function resetRemoteStore() {
 }
 
 // ── Escritura en segundo plano ──────────────────────────────────────────────
+// El guardado espera 400 ms de pausa (agrupa ediciones seguidas), pero nunca más de 5 s desde el primer
+// cambio pendiente: quien escribe sin parar también guarda, y un cierre brusco de la pestaña no pierde minutos de trabajo.
+const PAUSA_GUARDADO_MS = 400
+const ESPERA_MAXIMA_MS = 5_000
+const primeraSucia = new Map<string, number>()
+
+// Cambios enviados cuya respuesta nunca llegó (la red falló DESPUÉS de que el servidor pudo haberlos aplicado).
+const sinConfirmar = new Map<string, string[]>()
+
+function canon(v: unknown): string {
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']'
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + canon(o[k])).join(',') + '}'
+  }
+  return JSON.stringify(v)
+}
+
 function markDirty(col: string) {
+  const ahora = Date.now()
+  if (!primeraSucia.has(col)) primeraSucia.set(col, ahora)
   dirty.add(col)
   clearTimeout(timers.get(col))
-  timers.set(col, setTimeout(() => { void push(col) }, 400))
+  const espera = Math.max(0, Math.min(PAUSA_GUARDADO_MS, ESPERA_MAXIMA_MS - (ahora - primeraSucia.get(col)!)))
+  timers.set(col, setTimeout(() => { void push(col) }, espera))
+}
+
+// Un 409 puede ser un conflicto real (otra sesión escribió) o SU PROPIA escritura anterior: el servidor la
+// aplicó pero la respuesta se perdió, y el reintento con la versión vieja choca consigo misma. Si lo que hay
+// en el servidor coincide con algo que enviamos sin confirmación, se adopta su versión y se sigue (sin falso
+// «otra sesión modificó los datos»). Devuelve true si era nuestra.
+async function adoptarSiFueNuestra(col: string, doc: Doc): Promise<boolean> {
+  const candidatos = sinConfirmar.get(col)
+  if (!candidatos?.length || !empresaId) return false
+  const r = await api(`/api/empresas/${empresaId}/documentos`)
+  if (!r.ok) return false
+  const todo = await r.json() as Record<string, { datos: unknown; version: number }>
+  const remoto = todo[col]
+  if (!remoto) return false
+  const huella = canon(remoto.datos)
+  if (!candidatos.some(c => canon(JSON.parse(c)) === huella)) return false
+  doc.version = remoto.version
+  sinConfirmar.delete(col)
+  if (doc.raw !== null && canon(JSON.parse(doc.raw)) !== huella) dirty.add(col)   // hay cambios más nuevos por enviar
+  return true
 }
 
 function push(col: string, keepalive = false): Promise<void> {
@@ -253,8 +299,9 @@ function push(col: string, keepalive = false): Promise<void> {
 async function pushOnce(col: string, keepalive: boolean): Promise<void> {
   while (dirty.has(col) && empresaId) {
     const doc = cache.get(col)
-    if (!doc || doc.raw === null) { dirty.delete(col); return }
+    if (!doc || doc.raw === null) { dirty.delete(col); primeraSucia.delete(col); return }
     dirty.delete(col)
+    primeraSucia.delete(col)
     const sent = doc.raw
     setStatus('saving')
     try {
@@ -263,7 +310,10 @@ async function pushOnce(col: string, keepalive: boolean): Promise<void> {
         { method: 'PUT', body: JSON.stringify({ datos: JSON.parse(sent), version: doc.version }) },
         keepalive && sent.length < 60_000,
       )
-      if (r.status === 409) { setStatus('conflict'); return }
+      if (r.status === 409) {
+        if (await adoptarSiFueNuestra(col, doc)) { setStatus(dirty.size ? 'saving' : 'idle'); continue }
+        setStatus('conflict'); return
+      }
       if (r.status === 422) {   // el servidor rechazó el cambio por una regla de integridad: no reintentar
         ultimoRechazo = (await r.json().catch(() => null))?.error ?? 'El servidor rechazó el cambio'
         setStatus('rejected'); return
@@ -271,8 +321,11 @@ async function pushOnce(col: string, keepalive: boolean): Promise<void> {
       if (r.status === 403) { ultimoDenegado = { col, rol: rolActivo() ?? '' }; setStatus('denied'); return }   // no reintentar: el rol no cambia
       if (!r.ok) throw new Error(String(r.status))
       doc.version = (await r.json()).version
+      sinConfirmar.delete(col)
       setStatus(dirty.size ? 'saving' : 'idle')
     } catch {
+      const pend = sinConfirmar.get(col) ?? []
+      if (!pend.includes(sent)) sinConfirmar.set(col, [...pend, sent].slice(-8))   // quizá el servidor sí lo aplicó
       dirty.add(col)            // reintentar luego sin perder el cambio
       setStatus('error')
       timers.set(col, setTimeout(() => { void push(col) }, 5000))
@@ -281,10 +334,21 @@ async function pushOnce(col: string, keepalive: boolean): Promise<void> {
   }
 }
 
-export async function flushStorage(): Promise<void> {
-  if (!REMOTE_ENABLED) return
+/**
+ * Envía ya los cambios pendientes y espera, como máximo `limiteMs`. Devuelve true si algo quedó sin guardar
+ * (el servidor no respondió a tiempo o falló): cerrar sesión no puede quedarse colgado esperando a un servidor mudo.
+ */
+export async function flushStorage(opciones: { limiteMs?: number } = {}): Promise<boolean> {
+  if (!REMOTE_ENABLED) return false
+  const limiteMs = opciones.limiteMs ?? 15_000
   for (const col of [...dirty]) { clearTimeout(timers.get(col)); void push(col) }
-  await Promise.all([...inflight.values()])
+  let t: ReturnType<typeof setTimeout> | undefined
+  const terminaron = await Promise.race([
+    Promise.all([...inflight.values()]).then(() => true),
+    new Promise<boolean>(r => { t = setTimeout(() => r(false), limiteMs) }),
+  ])
+  clearTimeout(t)
+  return !terminaron || dirty.size > 0
 }
 
 if (typeof window !== 'undefined' && REMOTE_ENABLED) {
