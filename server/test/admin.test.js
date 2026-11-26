@@ -8,7 +8,7 @@ const SUP = `super${Date.now()}@cielo.test`
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP], autoregistro: false,
   limites: { general: 10_000, escritura: 10_000, empresas: 5, correos: 600 } })
 const tok = (uid, email) => ({ authorization: `Bearer ${uid}:${email ?? uid + '@t.com'}` })
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const S = tok('sa1', SUP)
 const call = (method, url, headers, payload) => app.inject({ method, url, headers, payload })
 test.after(async () => { await app.close(); await pool.end() })
@@ -37,15 +37,15 @@ test('crear empresa: valida RNC (con guiones), y el RNC es único', async () => 
 test('invitación: el invitado entra con su correo y queda con el rol; no se reutiliza', async () => {
   const id = (await call('POST', '/api/admin/empresas', S, { nombre: 'Inv', rnc: rnc() })).json().id
   const mail = `conta${Date.now()}@t.com`
-  assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail.toUpperCase(), rol: 'contador' })).statusCode, 201)
-  assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'contador' })).statusCode, 409)
+  assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail.toUpperCase(), rol: 'analista' })).statusCode, 201)
+  assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'analista' })).statusCode, 409)
   assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'dios' })).statusCode, 400)
 
   // Antes de entrar no tiene acceso; al listar sus empresas se acepta la invitación.
   const U = tok('c1'+RUN, mail)
   assert.equal((await call('GET', `/api/empresas/${id}/documentos`, U)).statusCode, 403)
   const lista = (await call('GET', '/api/empresas', U)).json()
-  assert.deepEqual(lista.map(e => [e.id, e.rol]), [[id, 'contador']])
+  assert.deepEqual(lista.map(e => [e.id, e.rol]), [[id, 'analista']])
   assert.equal((await call('GET', `/api/empresas/${id}/documentos`, U)).statusCode, 200)
   const inv = (await call('GET', `/api/admin/empresas/${id}/invitaciones`, S)).json()
   assert.equal(inv.invitaciones[0].estado, 'aceptada'); assert.equal(inv.miembros.length, 1)
@@ -56,7 +56,7 @@ test('un contador con varias empresas las ve todas; otro usuario no ve ninguna',
   const ids = []
   for (const nombre of ['M1', 'M2']) {
     const id = (await call('POST', '/api/admin/empresas', S, { nombre, rnc: rnc() })).json().id
-    await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'contador' })
+    await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'analista' })
     ids.push(id)
   }
   assert.deepEqual((await call('GET', '/api/empresas', tok('c2'+RUN, mail))).json().map(e => e.id).sort(), ids.sort())
@@ -66,7 +66,7 @@ test('un contador con varias empresas las ve todas; otro usuario no ve ninguna',
 test('revocar invitación impide la entrada', async () => {
   const id = (await call('POST', '/api/admin/empresas', S, { nombre: 'Rev', rnc: rnc() })).json().id
   const mail = `rev${Date.now()}@t.com`
-  const inv = (await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'rrhh' })).json()
+  const inv = (await call('POST', `/api/admin/empresas/${id}/invitaciones`, S, { email: mail, rol: 'auxiliar' })).json()
   assert.equal((await call('POST', `/api/admin/empresas/${id}/invitaciones/${inv.id}/revocar`, S)).statusCode, 200)
   assert.deepEqual((await call('GET', '/api/empresas', tok('r1'+RUN, mail))).json(), [])
 })

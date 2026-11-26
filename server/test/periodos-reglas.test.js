@@ -81,7 +81,7 @@ test('datos previos de otro formato no bloquean (nada que proteger)', () => {
 
 // ── De punta a punta por la API (Postgres real) ───────────────────────────────
 const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `super${RUN}@cielo.test`
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP], limites: { general: 10_000, escritura: 10_000, empresas: 100, correos: 5 } })
 test.after(async () => { await app.close(); await pool.end() })
@@ -94,7 +94,7 @@ test('API: un usuario con permiso de escritura no puede alterar un período cerr
   const id = emp.id ?? emp.empresa?.id
   assert.ok(id, 'se creó la empresa: ' + JSON.stringify(emp))
   const correo = `rrhh${RUN}@t.com`
-  const inv = await app.inject({ method: 'POST', url: `/api/admin/empresas/${id}/invitaciones`, headers: sa, payload: { email: correo, rol: 'rrhh' } })
+  const inv = await app.inject({ method: 'POST', url: `/api/admin/empresas/${id}/invitaciones`, headers: sa, payload: { email: correo, rol: 'analista' } })
   assert.ok([200, 201].includes(inv.statusCode), inv.body)
   const u = H(`u${RUN}`, correo)
   await app.inject({ url: '/api/empresas', headers: u })            // acepta la invitación
@@ -131,7 +131,7 @@ test('API: un usuario con permiso de escritura no puede alterar un período cerr
   // (en proceso → cerrada directo no es un camino legítimo del cliente, pero la regla solo protege lo que ya estaba procesado/cerrado)
   assert.equal(r.statusCode, 200, r.body); v = r.json().version
   const rrhhBorra = await put([], v)
-  assert.equal(rrhhBorra.statusCode, 422, 'rrhh no puede vaciar los períodos cerrados')
+  assert.equal(rrhhBorra.statusCode, 422, 'un analista no puede vaciar los períodos cerrados')
   const soporte = await app.inject({ method: 'PUT', url: `/api/empresas/${id}/documentos/periodos`, headers: sa, payload: { datos: [], version: v } })
   assert.equal(soporte.statusCode, 200, 'el super admin sí puede reiniciar: ' + soporte.body)
 })

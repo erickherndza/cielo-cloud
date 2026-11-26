@@ -20,29 +20,32 @@ export const COLECCIONES = new Set([
   'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
-// Matriz de roles (definida por Erick, 2026-11-24). Todo miembro LEE todas las
-// colecciones de su empresa; lo que cambia es qué puede ESCRIBIR. El super admin
-// (administración del software) entra como 'admin' y puede todo.
-//  - admin:    todo dentro de la empresa.
-//  - gerente:  supervisor. Solo lectura, salvo aprobar aumentos y cerrar períodos.
-//  - rrhh:     gestiona personal y nómina: empleados (alta, auditoría, baja), vacaciones,
-//              licencias, horas extras, préstamos, aumentos, períodos y prestaciones.
-//              No toca la configuración de la empresa ni los catálogos.
-//  - contador: nómina: períodos, horas extras, vacaciones, licencias, préstamos,
-//              saldos de ISR, retribuciones y liquidaciones. No edita empleados ni configuración.
-// Limitación: el permiso es por colección completa (el servidor guarda cada colección
-// como un documento), no por campo. «Aprobar» exige escribir la colección de aumentos.
-const NOMINA = ['periodos', 'horas-extras', 'disfrutes-vacaciones', 'licencias', 'prestamos',
-  'saldo-isr', 'retribuciones-complementarias', 'liquidaciones', 'agenda-custom', 'agenda-done']
+// Matriz de roles (definida por Erick, 2026-11-26). Todo miembro LEE todas las colecciones de su
+// empresa; lo que cambia es qué puede ESCRIBIR. El super admin (administración del software) entra
+// como 'admin' y puede todo.
+//  - admin     «Gerente de nómina / administrador»: acceso completo.
+//  - analista  «Analista de nómina y recursos humanos»: todo menos la configuración de la empresa, los
+//              catálogos (conceptos personalizados, bandas salariales, feriados) y la administración de usuarios.
+//  - auxiliar  «Auxiliar de nómina / recursos humanos»: solo captura (horas extras, licencias, vacaciones,
+//              préstamos y avances). No toca períodos (no procesa, cierra, paga ni reabre), no liquida,
+//              no registra aumentos ni altas/bajas de empleados.
+// Los roles anteriores (gerente supervisor, rrhh, contador) siguen existiendo en la base de datos de quien ya
+// estaba invitado: se tratan como «analista» (ROL_ANTERIOR) sin tocar sus datos, así el orden de despliegue
+// no puede dejar a nadie sin acceso.
+// Limitación: el permiso es por colección completa (el servidor guarda cada colección como un documento),
+// no por campo. Por eso el auxiliar no escribe la colección de períodos: cerrar o pagar vive ahí junto a los ajustes.
+const ROL_ANTERIOR = { gerente: 'analista', rrhh: 'analista', contador: 'analista' }
+export const ROLES_VALIDOS = new Set(['admin', 'analista', 'auxiliar'])
+export const normalizarRol = (rol) => ROL_ANTERIOR[rol] ?? rol
+const SIN_CONFIGURACION = new Set(['empresa', 'conceptos-personalizados', 'bandas-salariales', 'feriados'])
 export const PERMISOS_ESCRITURA = {
   admin: new Set(COLECCIONES),
-  gerente: new Set(['aumentos', 'periodos', 'agenda-custom', 'agenda-done']),
-  rrhh: new Set([...NOMINA, 'empleados', 'aumentos', 'feriados']),
-  contador: new Set(NOMINA),
+  analista: new Set([...COLECCIONES].filter(c => !SIN_CONFIGURACION.has(c))),
+  auxiliar: new Set(['horas-extras', 'licencias', 'disfrutes-vacaciones', 'prestamos', 'agenda-custom', 'agenda-done']),
 }
-export const puedeEscribir = (rol, coleccion) => PERMISOS_ESCRITURA[rol]?.has(coleccion) ?? false
+export const puedeEscribir = (rol, coleccion) => PERMISOS_ESCRITURA[normalizarRol(rol)]?.has(coleccion) ?? false
 // Envío de comprobantes por correo: quien gestiona la nómina.
-const ROLES_ENVIO_CORREO = new Set(['admin', 'rrhh', 'contador'])
+const ROLES_ENVIO_CORREO = new Set(['admin', 'analista'])
 
 // Limitador de ventana deslizante en memoria, por usuario VERIFICADO (la clave
 // es el uid del token ya validado, no una cabecera que el cliente pueda falsear).
@@ -250,7 +253,7 @@ export function buildApp({
         `SELECT e.id, e.nombre, e.rnc, e.estado, m.rol
            FROM miembros m JOIN empresas e ON e.id = m.empresa_id
           WHERE m.uid = $1 ORDER BY e.creado_en`, [uid])
-      return r.rows
+      return r.rows.map(f => ({ ...f, rol: normalizarRol(f.rol) }))
     })
   })
 
@@ -308,7 +311,7 @@ export function buildApp({
           WHERE m.empresa_id = $1 AND m.uid = $2`, [empresaId, uid])
       if (!m.rowCount) return reply.code(403).send({ error: 'Sin acceso a esta empresa' })
       if (m.rows[0].estado === 'suspendida') return reply.code(403).send({ error: 'Empresa suspendida — contacta a Cielo' })
-      return fn(c, m.rows[0].rol)
+      return fn(c, normalizarRol(m.rows[0].rol))
     })
   }
 
@@ -511,7 +514,7 @@ export function buildApp({
   }
   const normRnc = (v) => String(v ?? '').replace(/[\s-]/g, '')
   const RNC_OK = /^([0-9]{9}|[0-9]{11})$/
-  const ROLES = new Set(['admin', 'gerente', 'rrhh', 'contador'])
+  const rolEntrante = (r) => { const n = normalizarRol(r); return typeof r === 'string' && ROLES_VALIDOS.has(n) ? n : null }
   const unico = (err) => err?.code === '23505'
 
   app.get('/api/admin/empresas', async (req, reply) => {
@@ -576,9 +579,9 @@ export function buildApp({
     return conContexto(ctx(req, { empresaId: req.params.empresaId }), async (c) => ({
       invitaciones: (await c.query(
         `SELECT id, email, rol, estado, creado_en, expira_en FROM invitaciones
-          WHERE empresa_id = $1 ORDER BY creado_en DESC`, [req.params.empresaId])).rows,
+          WHERE empresa_id = $1 ORDER BY creado_en DESC`, [req.params.empresaId])).rows.map(f => ({ ...f, rol: normalizarRol(f.rol) })),
       miembros: (await c.query(
-        'SELECT uid, email, rol, creado_en FROM miembros WHERE empresa_id = $1 ORDER BY creado_en', [req.params.empresaId])).rows,
+        'SELECT uid, email, rol, creado_en FROM miembros WHERE empresa_id = $1 ORDER BY creado_en', [req.params.empresaId])).rows.map(f => ({ ...f, rol: normalizarRol(f.rol) })),
     }))
   })
 
@@ -586,9 +589,9 @@ export function buildApp({
     if (soloSuper(req, reply)) return
     if (!UUID.test(req.params.empresaId)) return reply.code(400).send({ error: 'empresaId inválido' })
     const email = String(req.body?.email ?? '').trim().toLowerCase()
-    const rol = req.body?.rol
+    const rol = rolEntrante(req.body?.rol)
     if (!/^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/.test(email) || email.length > 254) return reply.code(400).send({ error: 'Correo inválido' })
-    if (!ROLES.has(rol)) return reply.code(400).send({ error: 'Rol inválido' })
+    if (!rol) return reply.code(400).send({ error: 'Rol inválido' })
     try {
       const r = await conContexto(ctx(req, { empresaId: req.params.empresaId }), async (c) => {
         const e = await c.query('SELECT 1 FROM empresas WHERE id = $1', [req.params.empresaId])
@@ -642,8 +645,8 @@ export function buildApp({
   app.put('/api/admin/empresas/:empresaId/miembros/:uid', async (req, reply) => {
     if (soloSuper(req, reply)) return
     if (miembroInvalido(req)) return reply.code(400).send({ error: 'Id inválido' })
-    const rol = req.body?.rol
-    if (!ROLES.has(rol)) return reply.code(400).send({ error: 'Rol inválido' })
+    const rol = rolEntrante(req.body?.rol)
+    if (!rol) return reply.code(400).send({ error: 'Rol inválido' })
     const { empresaId, uid } = req.params
     const fila = await conContexto(ctx(req, { empresaId }), async (c) => {
       const r = await c.query(
@@ -729,7 +732,7 @@ export function buildApp({
       `SELECT m.uid, m.email, m.rol, m.creado_en, m.ultimo_acceso, e.id AS empresa_id, e.nombre AS empresa, e.rnc, e.estado,
               (SELECT max(d.actualizado_en) FROM documentos d WHERE d.empresa_id = e.id) AS ultima_actividad
          FROM miembros m JOIN empresas e ON e.id = m.empresa_id
-        ORDER BY m.creado_en DESC LIMIT 500`)).rows)
+        ORDER BY m.creado_en DESC LIMIT 500`)).rows.map(f => ({ ...f, rol: normalizarRol(f.rol) })))
   })
 
   // ── Cobros y renovaciones (registro manual por el super admin) ─────────────

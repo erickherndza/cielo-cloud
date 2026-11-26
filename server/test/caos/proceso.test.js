@@ -11,7 +11,7 @@ import { ProxyCaos, urlPorProxy, destinoDe, dormir, conLimite } from './proxy.js
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const URL_REAL = process.env.DATABASE_URL
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `super${RUN}@cielo.test`
 const proxy = new ProxyCaos(destinoDe(URL_REAL))
 await proxy.iniciar()

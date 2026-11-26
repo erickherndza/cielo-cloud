@@ -23,8 +23,9 @@ interface UsuarioAdmin { uid: string; email: string | null; rol: string; creado_
 interface Acceso { id: number; empresa: string; rnc: string | null; email: string | null; accion: string; creado_en: string }
 
 const ROLES = [
-  { v: 'admin', l: 'Administrador' }, { v: 'gerente', l: 'Gerente' },
-  { v: 'rrhh', l: 'RRHH' }, { v: 'contador', l: 'Contador' },
+  { v: 'admin', l: 'Gerente de nómina / Administrador' },
+  { v: 'analista', l: 'Analista de nómina y RR. HH.' },
+  { v: 'auxiliar', l: 'Auxiliar de nómina / RR. HH.' },
 ]
 const inputCls = 'w-full rounded-lg border border-tabler-line dark:border-[#2e2e2e] bg-white dark:bg-[#262626] dark:text-zinc-200 px-3 py-2 text-sm focus:border-[#1B2980] focus:outline-none'
 const DIA = 86_400_000
@@ -44,7 +45,7 @@ export function AdminPanel() {
   const [nuevo, setNuevo] = useState({ nombre: '', rnc: '' })
   const [sel, setSel] = useState<EmpresaAdmin | null>(null)
   const [det, setDet] = useState<{ invitaciones: Invitacion[]; miembros: Miembro[] } | null>(null)
-  const [inv, setInv] = useState({ email: '', rol: 'contador' })
+  const [inv, setInv] = useState({ email: '', rol: 'analista' })
   const [vista, setVista] = useState<'resumen' | 'empresas' | 'usuarios' | 'cobros' | 'errores' | 'accesos' | 'legal'>('resumen')
   const [accesos, setAccesos] = useState<Acceso[]>([])
   const [resumen, setResumen] = useState<Resumen | null>(null)
@@ -310,7 +311,7 @@ export function AdminPanel() {
                     </span></p>))}
                 {det?.invitaciones.filter(i => i.estado === 'pendiente').map(i => (
                   <p key={i.id} className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-                    <span className="min-w-0 truncate">{i.email} · {i.rol} (pendiente)</span>
+                    <span className="min-w-0 truncate">{i.email} · {ROLES.find(r => r.v === i.rol)?.l ?? i.rol} (pendiente)</span>
                     <span className="flex shrink-0 gap-2">
                       <button onClick={() => copiarInvitacion(i.email, i.rol)} className="underline">copiar invitación</button>
                       <button onClick={() => revocar(i.id)} className="underline">revocar</button></span></p>))}

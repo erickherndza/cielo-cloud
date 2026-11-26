@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { buildApp } from '../src/index.js'
 import { pool } from '../src/db.js'
 
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `superc${RUN}@cielo.test`
 const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP],
@@ -36,29 +36,30 @@ test('cada rol hace su ejercicio con el cliente real', async () => {
     payload: { nombre: 'Ejercicio', rnc: String(Math.floor(100000000 + Math.random() * 899999999)) } })).json()
   const intento = async (uid, base, valor) => { storage.setItem(`cielo-${base}::${uid}`, JSON.stringify(valor)); await flushStorage() }
 
-  // RRHH da de alta un empleado y registra horas extras
-  let uid = await entrar('rrhh', e.id)
-  assert.equal(rolActivo(), 'rrhh')
+  // Analista da de alta un empleado, registra horas extras y abre un período; la configuración no es suya
+  let uid = await entrar('analista', e.id)
+  assert.equal(rolActivo(), 'analista')
   await intento(uid, 'empleados', [emp]); assert.equal(getSyncStatus(), 'idle')
   await intento(uid, 'horas-extras', [{ id: 'h1', empleadoId: 'e1', horas: 3 }]); assert.equal(getSyncStatus(), 'idle')
-  await intento(uid, 'empresa', { nombre: 'Cambiado' })
-  assert.equal(getSyncStatus(), 'denied'); assert.equal(getDenegado().col, 'empresa')   // la configuración no es de RRHH
-
-  // Contador: ve al empleado y las horas, procesa nómina, pero no edita empleados
-  uid = await entrar('contador', e.id)
-  assert.equal(JSON.parse(storage.getItem(`cielo-empleados::${uid}`))[0].nombre, 'Ana')
-  assert.equal(JSON.parse(storage.getItem(`cielo-horas-extras::${uid}`))[0].horas, 3)
   await intento(uid, 'periodos', [{ id: 'p1', estado: 'en_proceso' }]); assert.equal(getSyncStatus(), 'idle')
-  await intento(uid, 'empleados', [{ ...emp, salarioBase: 1 }]); assert.equal(getSyncStatus(), 'denied')
+  await intento(uid, 'empresa', { nombre: 'Cambiado' })
+  assert.equal(getSyncStatus(), 'denied'); assert.equal(getDenegado().col, 'empresa')
 
-  // Gerente: ve todo, aprueba aumentos, no puede borrar ni agregar empleados
-  uid = await entrar('gerente', e.id)
+  // Auxiliar: ve al empleado, las horas y el período; captura horas extras y licencias; no toca empleados ni períodos
+  uid = await entrar('auxiliar', e.id)
+  assert.equal(rolActivo(), 'auxiliar')
+  assert.equal(JSON.parse(storage.getItem(`cielo-empleados::${uid}`))[0].nombre, 'Ana')
   assert.equal(JSON.parse(storage.getItem(`cielo-periodos::${uid}`))[0].id, 'p1')
-  await intento(uid, 'aumentos', [{ id: 'a1', estado: 'aprobado' }]); assert.equal(getSyncStatus(), 'idle')
-  await intento(uid, 'empleados', []); assert.equal(getSyncStatus(), 'denied')
+  await intento(uid, 'horas-extras', [{ id: 'h1', empleadoId: 'e1', horas: 3 }, { id: 'h2', empleadoId: 'e1', horas: 2 }]); assert.equal(getSyncStatus(), 'idle')
+  await intento(uid, 'licencias', [{ id: 'l1', empleadoId: 'e1' }]); assert.equal(getSyncStatus(), 'idle')
+  await intento(uid, 'empleados', [{ ...emp, salarioBase: 1 }]); assert.equal(getSyncStatus(), 'denied')
+  await intento(uid, 'periodos', [{ id: 'p1', estado: 'cerrada' }]); assert.equal(getSyncStatus(), 'denied')
+  await intento(uid, 'aumentos', [{ id: 'a1', estado: 'aprobado' }]); assert.equal(getSyncStatus(), 'denied')
 
-  // El salario del empleado nunca cambió en el servidor tras los intentos rechazados
-  uid = await entrar('rrhh', e.id)
+  // Nada de lo rechazado cambió en el servidor; lo que el auxiliar capturó sí quedó
+  uid = await entrar('analista', e.id)
   assert.equal(JSON.parse(storage.getItem(`cielo-empleados::${uid}`))[0].salarioBase, 50000)
-  assert.equal(JSON.parse(storage.getItem(`cielo-aumentos::${uid}`))[0].estado, 'aprobado')
+  assert.equal(JSON.parse(storage.getItem(`cielo-periodos::${uid}`))[0].estado, 'en_proceso')
+  assert.equal(storage.getItem(`cielo-aumentos::${uid}`), null)
+  assert.equal(JSON.parse(storage.getItem(`cielo-horas-extras::${uid}`)).length, 2)
 })

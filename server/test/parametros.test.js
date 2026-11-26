@@ -7,7 +7,7 @@ import { validarParametros } from '../src/parametros.js'
 import { pool, conContexto } from '../src/db.js'
 
 const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `superp${RUN}@cielo.test`
 const tok = (uid, email) => ({ authorization: `Bearer ${uid}:${email ?? uid + '@t.com'}` })
 const S = tok(`sp${RUN}`, SUP)

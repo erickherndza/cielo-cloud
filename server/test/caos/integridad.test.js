@@ -13,7 +13,7 @@ process.env.DATABASE_URL = urlPorProxy(URL_REAL, puerto)
 const { buildApp } = await import('../../src/index.js')
 const { pool } = await import('../../src/db.js')
 
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `super${RUN}@cielo.test`
 const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
 const app = buildApp({ projectId: 'x', origins: [], verify, logger: false, superadmins: [SUP], limites: { general: 1e7, escritura: 1e7, empresas: 1e7, correos: 5 }, limiteIp: 1e7 })

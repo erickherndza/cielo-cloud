@@ -29,7 +29,7 @@ test('sin empresa y sin autoregistro: no hay empresa activa (pantalla «sin empr
 
 test('invitado a una empresa: queda activa sola y puede guardar', async () => {
   const id = (await admin('POST', '/api/admin/empresas', { nombre: 'Uno', rnc: rnc() })).json().id
-  await admin('POST', `/api/admin/empresas/${id}/invitaciones`, { email: `uno${sfx}@t.com`, rol: 'gerente' })
+  await admin('POST', `/api/admin/empresas/${id}/invitaciones`, { email: `uno${sfx}@t.com`, rol: 'analista' })
   await entrar(`u1${sfx}`, `uno${sfx}@t.com`)
   assert.equal(getAcceso().activa.id, id); assert.equal(getAcceso().soporte, false)
   storage.setItem(`cielo-empleados::u1${sfx}`, '[{"id":"x"}]')
@@ -40,7 +40,7 @@ test('contador con dos empresas: debe elegir; al elegir carga solo esa', async (
   const ids = []
   for (const nombre of ['A', 'B']) {
     const id = (await admin('POST', '/api/admin/empresas', { nombre, rnc: rnc() })).json().id
-    await admin('POST', `/api/admin/empresas/${id}/invitaciones`, { email: mail, rol: 'contador' })
+    await admin('POST', `/api/admin/empresas/${id}/invitaciones`, { email: mail, rol: 'analista' })
     ids.push(id)
   }
   await entrar(uid, mail)

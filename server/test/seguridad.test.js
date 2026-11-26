@@ -5,7 +5,7 @@ import { buildApp } from '../src/index.js'
 import { pool, conContexto } from '../src/db.js'
 
 const verify = async (t) => { const [uid, email] = t.split(':'); return { uid, email, emailVerified: true } }
-const RUN = Date.now()
+const RUN = `${Date.now()}${process.pid}`
 const SUP = `super${RUN}@cielo.test`
 const tok = (uid, email) => ({ authorization: `Bearer ${uid}:${email ?? uid + '@t.com'}` })
 const S = tok(`sa${RUN}`, SUP)
@@ -87,7 +87,7 @@ test('A4: el super admin quita a un miembro y le cambia el rol; queda registrado
   const e = (await call(app, 'POST', '/api/admin/empresas', S, { nombre: 'Miembros', rnc: rnc() })).json()
   const correo = `rrhh${RUN}@t.com`, uid = `a4${RUN}`
   const U = tok(uid, correo)
-  await call(app, 'POST', `/api/admin/empresas/${e.id}/invitaciones`, S, { email: correo, rol: 'rrhh' })
+  await call(app, 'POST', `/api/admin/empresas/${e.id}/invitaciones`, S, { email: correo, rol: 'auxiliar' })
   assert.deepEqual((await call(app, 'GET', '/api/empresas', U)).json().map(x => x.id), [e.id])
   assert.equal((await call(app, 'GET', `/api/empresas/${e.id}/documentos`, U)).statusCode, 200)
 
@@ -97,9 +97,9 @@ test('A4: el super admin quita a un miembro y le cambia el rol; queda registrado
 
   // cambio de rol
   assert.equal((await call(app, 'PUT', `/api/admin/empresas/${e.id}/miembros/${uid}`, S, { rol: 'dueño' })).statusCode, 400)
-  const c = await call(app, 'PUT', `/api/admin/empresas/${e.id}/miembros/${uid}`, S, { rol: 'contador' })
-  assert.equal(c.statusCode, 200); assert.equal(c.json().rol, 'contador')
-  assert.equal((await call(app, 'GET', '/api/empresas', U)).json()[0].rol, 'contador')
+  const c = await call(app, 'PUT', `/api/admin/empresas/${e.id}/miembros/${uid}`, S, { rol: 'analista' })
+  assert.equal(c.statusCode, 200); assert.equal(c.json().rol, 'analista')
+  assert.equal((await call(app, 'GET', '/api/empresas', U)).json()[0].rol, 'analista')
 
   // una invitación pendiente del mismo correo no debe devolverle el acceso
   await call(app, 'POST', `/api/admin/empresas/${e.id}/invitaciones`, S, { email: correo, rol: 'admin' })
@@ -110,7 +110,7 @@ test('A4: el super admin quita a un miembro y le cambia el rol; queda registrado
 
   const log = (await call(app, 'GET', `/api/admin/accesos?empresaId=${e.id}`, S)).json().map(l => l.accion)
   assert.ok(log.includes(`QUITAR MIEMBRO ${correo}`))
-  assert.ok(log.includes(`CAMBIAR ROL ${correo} -> contador`))
+  assert.ok(log.includes(`CAMBIAR ROL ${correo} -> analista`))
 })
 
 test('A5: cuota de almacenamiento por empresa y tope de tamaño del historial', async () => {
