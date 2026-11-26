@@ -10,6 +10,7 @@ import { useRemoteStore } from '@/lib/remote-store'
 import { salirDeEmpresa } from '@/lib/storage'
 import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
 import { useCommandPalette } from '@/lib/command-palette-context'
+import { CieloLogo } from '@/components/ui/CieloLogo'
 
 interface MobileMenuCtx {
   open: () => void
@@ -73,7 +74,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
       <div className="absolute inset-0 bg-black/40 animate-backdrop-in" onClick={onClose} />
       <div className="absolute inset-y-0 left-0 flex w-[84%] max-w-sm flex-col bg-white dark:bg-[#1f1f1f] shadow-2xl animate-content-in">
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-tabler-line dark:border-[#2e2e2e] px-4 pt-[env(safe-area-inset-top)]">
-          <span className="text-lg font-bold tracking-tight text-[#1B2980] dark:text-indigo-400">Cielo Cloud</span>
+          <CieloLogo className="h-9" />
           <button onClick={onClose} aria-label="Cerrar menú"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-[#262626]">
             <X className="h-5 w-5" />

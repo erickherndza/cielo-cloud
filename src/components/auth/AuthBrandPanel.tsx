@@ -1,27 +1,14 @@
 'use client'
 
 import { CheckCircle2, ShieldCheck } from 'lucide-react'
+import { CieloLogo } from '@/components/ui/CieloLogo'
 
 const NOISE_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"
 
 function Logo({ dark = false }: { dark?: boolean }) {
   return (
-    <div className="flex items-center gap-3.5">
-      <svg viewBox="0 0 32 32" fill="none" className="h-10 w-10 shrink-0">
-        <circle cx="16" cy="16" r="9" strokeWidth="5.5"
-          strokeDasharray="47.12 9.43" strokeLinecap="round"
-          transform="rotate(30 16 16)" stroke="white" />
-        <circle cx="16" cy="16" r="2.8" fill="white" />
-      </svg>
-      <div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xl font-bold text-white">Cielo</span>
-          <span className="text-xl font-extralight text-white/60">Cloud</span>
-        </div>
-        <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">Nómina</span>
-      </div>
-    </div>
+    <CieloLogo variant="dark" className="h-14" />
   )
 }
 
@@ -128,20 +115,8 @@ export function AuthBrandPanel({ eyebrow, title, description, features }: AuthBr
 
 export function MobileLogo() {
   return (
-    <div className="flex lg:hidden items-center gap-3 mb-10">
-      <svg viewBox="0 0 32 32" fill="none" className="h-9 w-9 shrink-0">
-        <circle cx="16" cy="16" r="9" strokeWidth="5.5"
-          strokeDasharray="47.12 9.43" strokeLinecap="round"
-          transform="rotate(30 16 16)" className="stroke-[#1B2980] dark:stroke-indigo-400" />
-        <circle cx="16" cy="16" r="2.8" className="fill-[#1B2980] dark:fill-indigo-400" />
-      </svg>
-      <div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold text-zinc-900 dark:text-white">Cielo</span>
-          <span className="text-lg font-extralight text-zinc-400 dark:text-zinc-400">Cloud</span>
-        </div>
-        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">Nómina</span>
-      </div>
+    <div className="flex lg:hidden items-center mb-10">
+      <CieloLogo className="h-12" />
     </div>
   )
 }

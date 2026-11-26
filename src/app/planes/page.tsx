@@ -10,19 +10,12 @@ import {
   precioMensual, totalAnual, ahorroAnual, fmtUsd,
 } from '@/lib/planes'
 import { cn } from '@/lib/utils'
+import { CieloLogo } from '@/components/ui/CieloLogo'
 
 function Marca() {
   return (
     <Link href="/login" className="flex items-center gap-3" aria-label="Cielo Cloud Nómina">
-      <svg viewBox="0 0 32 32" fill="none" className="h-9 w-9 shrink-0">
-        <circle cx="16" cy="16" r="9" strokeWidth="5.5" strokeDasharray="47.12 9.43" strokeLinecap="round"
-          transform="rotate(30 16 16)" className="stroke-[#1B2980] dark:stroke-white" />
-        <circle cx="16" cy="16" r="2.8" className="fill-[#1B2980] dark:fill-white" />
-      </svg>
-      <span className="flex items-baseline gap-1.5">
-        <span className="text-lg font-bold text-tabler-ink dark:text-white">Cielo</span>
-        <span className="text-lg font-extralight text-tabler-mute dark:text-zinc-300">Cloud</span>
-      </span>
+      <CieloLogo className="h-10" />
     </Link>
   )
 }

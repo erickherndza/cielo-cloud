@@ -21,6 +21,7 @@ import { NAV_ITEMS, CONFIGURACION_ITEM } from '@/lib/nav-items'
 import { DevCredit } from '@/components/ui/DevCredit'
 import { useRemoteStore } from '@/lib/remote-store'
 import { salirDeEmpresa } from '@/lib/storage'
+import { CieloLogo } from '@/components/ui/CieloLogo'
 
 // Accesos de multiempresa: panel del super admin y cambio de empresa para
 // quien trabaja con más de una (contadores).
@@ -284,12 +285,7 @@ export function Sidebar() {
           {/* Logo de Cielo Cloud Nómina: completo al expandir, solo isotipo al colapsar */}
           {wide ? (
             <div className="flex min-w-0 flex-1 items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/cielo-erp-logo.png`}
-                alt="Cielo Cloud Nómina"
-                className="h-11 w-auto max-w-full object-contain dark:rounded-lg dark:bg-white dark:px-2 dark:py-1"
-              />
+              <CieloLogo className="h-11 max-w-full" />
             </div>
           ) : (
             // eslint-disable-next-line @next/next/no-img-element

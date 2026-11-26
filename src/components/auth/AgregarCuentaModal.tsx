@@ -7,6 +7,7 @@ import { firebaseAuthMsg } from '@/lib/firebase-errors'
 import { GoogleIcon } from './GoogleIcon'
 import { MicrosoftIcon } from './MicrosoftIcon'
 import { MICROSOFT_LOGIN_ENABLED } from '@/lib/firebase'
+import { CieloLogo } from '@/components/ui/CieloLogo'
 
 const INPUT = 'w-full rounded-xl border border-zinc-200 dark:border-[#252840] bg-white dark:bg-[#1a1d2e] px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#1B2980] dark:focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-[#1B2980]/10 dark:focus:ring-indigo-500/10 transition-colors'
 
@@ -114,19 +115,7 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
         <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-white/5" />
 
         <div className="relative z-10 flex h-full flex-col p-10">
-          <div className="flex items-center gap-3.5">
-            <svg viewBox="0 0 32 32" fill="none" className="h-10 w-10 shrink-0">
-              <circle cx="16" cy="16" r="9" strokeWidth="5.5" strokeDasharray="47.12 9.43" strokeLinecap="round" transform="rotate(30 16 16)" stroke="white" />
-              <circle cx="16" cy="16" r="2.8" fill="white" />
-            </svg>
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-white">Cielo</span>
-                <span className="text-xl font-extralight text-white/60">Cloud</span>
-              </div>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">Nómina</span>
-            </div>
-          </div>
+          <CieloLogo variant="dark" className="h-14" />
 
           <div className="mt-auto">
             <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/40">Multiempresa</p>
@@ -162,15 +151,8 @@ export function AgregarCuentaModal({ onClose }: { onClose: () => void }) {
 
         <div className="w-full max-w-[400px]">
           {/* Mobile logo */}
-          <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <svg viewBox="0 0 32 32" fill="none" className="h-9 w-9 shrink-0">
-              <circle cx="16" cy="16" r="9" strokeWidth="5.5" strokeDasharray="47.12 9.43" strokeLinecap="round" transform="rotate(30 16 16)" className="stroke-[#1B2980] dark:stroke-indigo-400" />
-              <circle cx="16" cy="16" r="2.8" className="fill-[#1B2980] dark:fill-indigo-400" />
-            </svg>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold text-zinc-900 dark:text-white">Cielo</span>
-              <span className="text-lg font-extralight text-zinc-400">Cloud</span>
-            </div>
+          <div className="mb-10 flex items-center lg:hidden">
+            <CieloLogo className="h-12" />
           </div>
 
           {/* ── Paso: elegir ─────────────────────────────────────── */}
