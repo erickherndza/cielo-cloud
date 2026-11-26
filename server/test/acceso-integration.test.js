@@ -11,6 +11,8 @@ process.env.NEXT_PUBLIC_API_URL = `http://127.0.0.1:${app.server.address().port}
 process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'x'
 const store = new Map()
 globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) }
+// Node 26 trae sessionStorage global y Node 22 no: simular ambos para que corra igual en cualquier versión
+globalThis.sessionStorage = globalThis.localStorage
 const { storage, initRemoteStore, getAcceso } = await import('../../src/lib/storage.ts')
 test.after(async () => { await app.close(); await pool.end() })
 
