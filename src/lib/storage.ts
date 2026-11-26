@@ -22,7 +22,7 @@ const SYNC = new Set([
   'conceptos-personalizados', 'agenda-custom', 'agenda-done', 'horas-extras',
 ])
 
-export type SyncStatus = 'idle' | 'saving' | 'error' | 'conflict' | 'denied'
+export type SyncStatus = 'idle' | 'saving' | 'error' | 'conflict' | 'denied' | 'rejected'
 type Listener = (s: SyncStatus) => void
 
 interface Doc { raw: string | null; version: number }
@@ -38,6 +38,7 @@ const inflight = new Map<string, Promise<void>>()
 let status: SyncStatus = 'idle'
 let generacion = 0
 let ultimoDenegado: { col: string; rol: string } | null = null
+let ultimoRechazo: string | null = null
 const listeners = new Set<Listener>()
 
 function setStatus(s: SyncStatus) {
@@ -82,6 +83,8 @@ export interface AccesoInfo {
 let acceso: AccesoInfo | null = null
 export function getAcceso(): AccesoInfo | null { return acceso }
 export function getDenegado() { return ultimoDenegado }
+/** Motivo con el que el servidor rechazó el último guardado (reglas de integridad, p. ej. período cerrado). */
+export function getRechazo() { return ultimoRechazo }
 /** Rol de la persona en la empresa activa; el super admin en modo soporte actúa como admin. */
 export function rolActivo(): string | null {
   if (!acceso?.activa) return null
@@ -261,6 +264,10 @@ async function pushOnce(col: string, keepalive: boolean): Promise<void> {
         keepalive && sent.length < 60_000,
       )
       if (r.status === 409) { setStatus('conflict'); return }
+      if (r.status === 422) {   // el servidor rechazó el cambio por una regla de integridad: no reintentar
+        ultimoRechazo = (await r.json().catch(() => null))?.error ?? 'El servidor rechazó el cambio'
+        setStatus('rejected'); return
+      }
       if (r.status === 403) { ultimoDenegado = { col, rol: rolActivo() ?? '' }; setStatus('denied'); return }   // no reintentar: el rol no cambia
       if (!r.ok) throw new Error(String(r.status))
       doc.version = (await r.json()).version

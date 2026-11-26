@@ -4,7 +4,7 @@ import { ReactNode, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { REMOTE_ENABLED } from '@/lib/storage'
 import { useRemoteStore } from '@/lib/remote-store'
-import { elegirEmpresa, salirDeEmpresa, getDenegado } from '@/lib/storage'
+import { elegirEmpresa, salirDeEmpresa, getDenegado, getRechazo } from '@/lib/storage'
 import { ETIQUETA_ROL } from '@/lib/roles'
 import { SoloLectura } from './SoloLectura'
 import { AdminPanel } from '@/components/admin/AdminPanel'
@@ -106,6 +106,12 @@ export function SyncGate({ children }: { children: ReactNode }) {
       {status === 'denied' && (
         <div className="fixed inset-x-0 top-0 z-[90] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white">
           Tu rol ({ETIQUETA_ROL[getDenegado()?.rol ?? ''] ?? getDenegado()?.rol}) no puede modificar «{getDenegado()?.col}». El cambio no se guardó.
+          <button onClick={() => window.location.reload()} className="rounded bg-white/20 px-2 py-0.5 font-semibold">Descartar y recargar</button>
+        </div>
+      )}
+      {status === 'rejected' && (
+        <div className="fixed inset-x-0 top-0 z-[90] flex items-center justify-center gap-3 bg-rose-600 px-4 py-2 text-sm font-medium text-white">
+          {getRechazo() ?? 'El servidor rechazó el cambio.'} El cambio no se guardó.
           <button onClick={() => window.location.reload()} className="rounded bg-white/20 px-2 py-0.5 font-semibold">Descartar y recargar</button>
         </div>
       )}

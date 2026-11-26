@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { conContexto, pool } from './db.js'
+import { validarPeriodos } from './periodos-reglas.js'
 import { verificarToken } from './auth.js'
 import { crearEnviadorResend } from './correo.js'
 import { crearConsultaConCache, rncValido, limpiarRnc } from './dgii.js'
@@ -330,10 +331,18 @@ export function buildApp({
       // 1) bloquea la fila de la versión esperada; 2) la archiva; 3) actualiza.
       // Todo en la misma transacción de conContexto: si algo falla, no queda nada a medias.
       const lock = await c.query(
-        `SELECT 1 FROM documentos
+        `SELECT datos FROM documentos
           WHERE empresa_id = $1 AND coleccion = $2 AND version = $3 FOR UPDATE`,
         [empresaId, coleccion, version])
       if (!lock.rowCount) return reply.code(409).send({ error: 'Conflicto de versión' })
+      // Integridad de la nómina en el servidor: un período cerrado o pagado no se altera aunque
+      // alguien llame a la API directamente (ver periodos-reglas.js). Solo el super admin (soporte de
+      // Cielo, cada acción queda en accesos_log) puede reemplazar la colección completa: así siguen
+      // funcionando «Reiniciar nómina» y las cargas de prueba de las empresas de pruebas.
+      if (coleccion === 'periodos' && !req.user.esSuperadmin) {
+        const violacion = validarPeriodos(lock.rows[0].datos, datos)
+        if (violacion) return reply.code(422).send({ error: violacion, codigo: 'periodo_inmutable' })
+      }
       await c.query(
         `INSERT INTO documentos_historial
                 (empresa_id, coleccion, version, datos, actualizado_en, actualizado_por)
