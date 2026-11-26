@@ -144,3 +144,62 @@ test('ninguna variable NEXT_PUBLIC_ lleva un secreto', () => {
   }
   assert.deepEqual(mal, [])
 })
+
+// ── Cadena de suministro y configuración ──────────────────────────────────────
+test('toda acción de GitHub está fijada por SHA de commit (no por etiqueta movible)', () => {
+  const dir = path.join(RAIZ, '.github/workflows')
+  const sueltas = []
+  for (const f of fs.readdirSync(dir).filter(n => n.endsWith('.yml'))) {
+    for (const m of fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/uses:\s*([^\s#]+)/g)) {
+      if (m[1].startsWith('./')) continue   // workflow reutilizable del propio repo
+      if (!/@[0-9a-f]{40}$/.test(m[1])) sueltas.push(`${f}: ${m[1]}`)
+    }
+  }
+  assert.deepEqual(sueltas, [], 'acciones sin fijar por SHA: ' + sueltas.join(', '))
+})
+
+test('la API se niega a arrancar en producción sin verificar el certificado de la base', async () => {
+  const { spawnSync } = await import('node:child_process')
+  const lanzar = (env) => spawnSync(process.execPath, ['--input-type=module', '-e', "await import('./src/db.js'); process.exit(0)"], {
+    cwd: path.join(RAIZ, 'server'), encoding: 'utf8',
+    env: { PATH: process.env.PATH, DATABASE_URL: 'postgres://u:p@127.0.0.1:1/x', ...env },
+  })
+  const sinCA = lanzar({ NODE_ENV: 'production' })
+  assert.notEqual(sinCA.status, 0, 'debía fallar sin DATABASE_CA_CERT en producción')
+  assert.match(sinCA.stderr, /DATABASE_CA_CERT es obligatorio/)
+  const sinCAconSslmode = lanzar({ NODE_ENV: 'production', DATABASE_URL: 'postgres://u:p@127.0.0.1:1/x?sslmode=require' })
+  assert.notEqual(sinCAconSslmode.status, 0)
+  assert.equal(lanzar({ NODE_ENV: 'development' }).status, 0, 'en desarrollo sí arranca')
+})
+
+// ── Mantenibilidad: los archivos grandes no pueden seguir creciendo ───────────
+// Un archivo de más de 1,000 líneas es difícil de cambiar sin romper algo. Los que ya lo eran se
+// congelan en su tamaño actual (un «trinquete»): pueden encogerse, nunca crecer. Al dividir uno,
+// se baja o se quita su entrada. Todo archivo nuevo tiene el tope general.
+const TOPE_LINEAS = 1000
+const CONGELADOS = {
+  'src/app/nomina/page.tsx': 2752,
+  'src/app/configuracion/page.tsx': 1715,
+  'src/app/liquidacion/page.tsx': 1665,
+  'src/app/empleados/page.tsx': 1597,
+  'src/app/prestamos/page.tsx': 1471,
+  'src/lib/dominican-labor.ts': 1361,
+  'src/app/retribuciones-complementarias/page.tsx': 1080,
+  'src/app/bonificacion/page.tsx': 1044,
+}
+test('ningún archivo supera el tope de líneas ni crece si ya lo superaba', () => {
+  const mal = []
+  for (const f of archivos(path.join(RAIZ, 'src'), ['.ts', '.tsx'])) {
+    const lineas = (fs.readFileSync(f, 'utf8').match(/\n/g) ?? []).length
+    const tope = CONGELADOS[rel(f)] ?? TOPE_LINEAS
+    if (lineas > tope) mal.push(`${rel(f)}: ${lineas} líneas (tope ${tope})`)
+  }
+  assert.deepEqual(mal, [], 'archivos demasiado grandes — dividirlos en componentes: ' + mal.join('; '))
+})
+test('las entradas congeladas siguen siendo necesarias (si un archivo ya bajó del tope, quitarlo de la lista)', () => {
+  const obsoletas = Object.entries(CONGELADOS).filter(([f]) => {
+    const p = path.join(RAIZ, f)
+    return !fs.existsSync(p) || (fs.readFileSync(p, 'utf8').match(/\n/g) ?? []).length <= TOPE_LINEAS
+  }).map(([f]) => f)
+  assert.deepEqual(obsoletas, [], 'quitar de CONGELADOS: ' + obsoletas.join(', '))
+})

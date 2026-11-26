@@ -30,9 +30,9 @@ jobs:
       ADMIN_URL: postgres://postgres:ci_admin@127.0.0.1:5432/cielo
       APP_URL: postgres://cielo_app:ci_app@127.0.0.1:5432/cielo
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -66,6 +66,15 @@ jobs:
         run: npm test --prefix server
         env:
           DATABASE_URL: ${{ env.APP_URL }}
+
+      # Un respaldo que nunca se ha restaurado no es un respaldo: se respalda, se restaura
+      # en otra base y se compara (filas, RLS, políticas, índices).
+      - name: Restauración de respaldo
+        run: ./server/scripts/prueba-restauracion.sh
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          BASE: cielo
 
       - name: Pruebas de formato de archivos regulatorios
         run: ./server/node_modules/.bin/tsx scripts/test-ancho-fijo.mjs

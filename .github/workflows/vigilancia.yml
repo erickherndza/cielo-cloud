@@ -1,0 +1,60 @@
+name: Vigilancia de producción
+
+# Revisa cada 15 minutos que la web y la API respondan y que los certificados no
+# estén por vencer. Si algo falla, el workflow queda en rojo y GitHub avisa por
+# correo al dueño del repositorio. (Los workflows programados solo corren desde la
+# rama por defecto.)
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      WEB: cieloerp.com
+      API: api.cieloerp.com
+    steps:
+      - name: La API responde y está sana
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/h.json -w '%{http_code}' --max-time 15 "https://$API/health" || true)
+            [ "$code" = "200" ] && grep -q '"ok":true' /tmp/h.json && exit 0
+            sleep 10
+          done
+          echo "::error::La API no está sana (HTTP $code): $(cat /tmp/h.json 2>/dev/null | head -c 200)"; exit 1
+
+      - name: La API protege las rutas (401 sin sesión)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$API/api/empresas")
+          [ "$code" = "401" ] || { echo "::error::/api/empresas respondió $code, se esperaba 401"; exit 1; }
+
+      - name: La web responde
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$WEB/login/" || true)
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::error::La web no responde (HTTP $code)"; exit 1
+
+      - name: Cabeceras de seguridad de la web
+        run: |
+          h=$(curl -sI --max-time 15 "https://$WEB/login/")
+          for c in strict-transport-security x-frame-options x-content-type-options; do
+            echo "$h" | grep -qi "^$c:" || { echo "::error::Falta la cabecera $c"; exit 1; }
+          done
+
+      - name: Certificados con más de 14 días
+        run: |
+          for host in "$WEB" "$API"; do
+            fin=$(echo | openssl s_client -servername "$host" -connect "$host:443" 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+            dias=$(( ( $(date -d "$fin" +%s) - $(date +%s) ) / 86400 ))
+            echo "$host: vence en $dias días"
+            [ "$dias" -gt 14 ] || { echo "::error::El certificado de $host vence en $dias días"; exit 1; }
+          done

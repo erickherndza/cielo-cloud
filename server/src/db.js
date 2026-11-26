@@ -7,11 +7,12 @@ const { DATABASE_URL, DATABASE_CA_CERT } = process.env
 // se acepta en desarrollo local.
 function sslConfig() {
   if (DATABASE_CA_CERT) return { ca: DATABASE_CA_CERT, rejectUnauthorized: true }
+  // En producción nunca se acepta un servidor sin verificar (suplantación), ni una conexión sin TLS,
+  // aunque la URL no traiga `sslmode`.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_CA_CERT es obligatorio en producción')
+  }
   if (/sslmode=/.test(DATABASE_URL ?? '')) {
-    // En producción nunca se acepta un servidor sin verificar (suplantación).
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('DATABASE_CA_CERT es obligatorio en producción')
-    }
     console.warn('[db] DATABASE_CA_CERT no definido: TLS cifrado pero sin verificar el servidor')
     return { rejectUnauthorized: false }
   }
