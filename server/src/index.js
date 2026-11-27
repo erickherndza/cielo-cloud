@@ -87,6 +87,8 @@ export function buildApp({
   // tamaño del historial de versiones por colección.
   cuotas = { empresaBytes: 100 * 1024 * 1024, historialBytes: 30 * 1024 * 1024 },
   enviarCorreo = null,
+  // Dirección pública de la web: va en el enlace del correo de invitación (nunca sale del cliente).
+  webUrl = 'https://cieloerp.com',
   consultarRnc = crearConsultaConCache(),
   // Correos (verificados) de los super admin de la plataforma. Vienen de la
   // variable SUPERADMIN_EMAILS del servidor, nunca del código ni de la base.
@@ -484,6 +486,161 @@ export function buildApp({
       }
       await Promise.all(Array.from({ length: 4 }, trabajador))
       return { resultados }
+    }))
+
+  // ── Equipo de la empresa ────────────────────────────────────────────────────────────────────────
+  // El administrador de la empresa (o el super admin en modo soporte) invita a sus colaboradores,
+  // les cambia el rol o los quita. La invitación manda un correo con enlace; la persona queda
+  // asignada cuando entra con ese correo VERIFICADO (el correo del enlace no es una credencial).
+  const EMAIL_OK = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/
+  const ETIQUETA = { admin: 'Gerente de nómina / Administrador', analista: 'Analista de nómina y RR. HH.', auxiliar: 'Auxiliar de nómina / RR. HH.' }
+  const soloAdminEmpresa = (rol, reply) =>
+    rol === 'admin' ? false : (reply.code(403).send({ error: 'Solo el administrador de la empresa gestiona el equipo' }), true)
+  const registrarEquipo = (c, req, empresaId, accion) => c.query(
+    'INSERT INTO accesos_log (empresa_id, uid, email, accion) VALUES ($1, $2, $3, $4)',
+    [empresaId, req.user.uid, req.user.email, accion.slice(0, 300)])
+
+  async function correoInvitacion(c, req, empresaId, email, rol, invitador) {
+    if (!enviarCorreo) return false
+    const e = await c.query('SELECT nombre FROM empresas WHERE id = $1', [empresaId])
+    const empresa = String(e.rows[0]?.nombre || 'una empresa').replace(/[\r\n]+/g, ' ').slice(0, 120)
+    const enlace = `${webUrl.replace(/\/$/, '')}/registro?correo=${encodeURIComponent(email)}`
+    try {
+      await enviarCorreo({
+        to: email,
+        subject: `Te invitaron a ${empresa} en Cielo Cloud Nómina`,
+        text: [
+          'Hola,', '',
+          `${invitador || 'El administrador'} te invitó a ${empresa} en Cielo Cloud Nómina como ${ETIQUETA[rol] ?? rol}.`, '',
+          'Para entrar:',
+          `1. Abre este enlace: ${enlace}`,
+          `2. Crea tu cuenta con este mismo correo (${email}) y verifícalo desde el mensaje que te llegará.`,
+          '   Si ya tienes cuenta con este correo, solo inicia sesión.',
+          '3. Al entrar quedas dentro de la empresa con tu rol.', '',
+          'Si no esperabas esta invitación, ignora este mensaje: no se crea nada hasta que entres.',
+        ].join('\n'),
+      })
+      return true
+    } catch (err) {
+      req.log.error({ err, detalle: err.detalle }, 'fallo al enviar invitación')
+      return false
+    }
+  }
+
+  app.get('/api/empresas/:empresaId/equipo', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      const id = req.params.empresaId
+      return {
+        yo: req.user.uid,
+        correoActivo: !!enviarCorreo,
+        invitaciones: (await c.query(
+          `SELECT id, email, rol, estado, creado_en, expira_en FROM invitaciones
+            WHERE empresa_id = $1 AND estado = 'pendiente' ORDER BY creado_en DESC`, [id])).rows.map(f => ({ ...f, rol: normalizarRol(f.rol) })),
+        miembros: (await c.query(
+          'SELECT uid, email, rol, creado_en FROM miembros WHERE empresa_id = $1 ORDER BY creado_en', [id])).rows.map(f => ({ ...f, rol: normalizarRol(f.rol) })),
+      }
+    }))
+
+  app.post('/api/empresas/:empresaId/equipo/invitaciones', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      const id = req.params.empresaId
+      const email = String(req.body?.email ?? '').trim().toLowerCase()
+      const nuevoRol = rolEntrante(req.body?.rol)
+      if (!EMAIL_OK.test(email) || email.length > 254) return reply.code(400).send({ error: 'Correo inválido' })
+      if (!nuevoRol) return reply.code(400).send({ error: 'Rol inválido' })
+      if (excede(`i:${req.user.uid}`, limites.invitaciones ?? 30, 3_600_000)) {
+        reply.header('Retry-After', '3600')
+        return reply.code(429).send({ error: 'Límite de invitaciones por hora alcanzado' })
+      }
+      const ya = await c.query('SELECT 1 FROM miembros WHERE empresa_id = $1 AND lower(email) = $2', [id, email])
+      if (ya.rowCount) return reply.code(409).send({ error: 'Esa persona ya es parte de la empresa' })
+      const pend = await c.query("SELECT count(*)::int AS n FROM invitaciones WHERE empresa_id = $1 AND estado = 'pendiente'", [id])
+      if (pend.rows[0].n >= 100) return reply.code(409).send({ error: 'Hay demasiadas invitaciones pendientes: revoca las que no uses' })
+      let fila
+      try {
+        fila = (await c.query(
+          `INSERT INTO invitaciones (empresa_id, email, rol, creado_por) VALUES ($1, $2, $3, $4)
+           RETURNING id, email, rol, estado, expira_en`, [id, email, nuevoRol, req.user.uid])).rows[0]
+      } catch (e) {
+        if (unico(e)) return reply.code(409).send({ error: 'Ya hay una invitación pendiente para ese correo' })
+        throw e
+      }
+      await registrarEquipo(c, req, id, `INVITAR ${email} (${nuevoRol})`)
+      const enviado = await correoInvitacion(c, req, id, email, nuevoRol, req.user.email)
+      return reply.code(201).send({ ...fila, enviado })
+    }))
+
+  app.post('/api/empresas/:empresaId/equipo/invitaciones/:id/reenviar', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      if (!UUID.test(req.params.id)) return reply.code(400).send({ error: 'Id inválido' })
+      if (excede(`i:${req.user.uid}`, limites.invitaciones ?? 30, 3_600_000)) {
+        reply.header('Retry-After', '3600')
+        return reply.code(429).send({ error: 'Límite de invitaciones por hora alcanzado' })
+      }
+      const r = await c.query(
+        "SELECT email, rol FROM invitaciones WHERE id = $1 AND empresa_id = $2 AND estado = 'pendiente'",
+        [req.params.id, req.params.empresaId])
+      if (!r.rowCount) return reply.code(404).send({ error: 'No encontrado' })
+      const enviado = await correoInvitacion(c, req, req.params.empresaId, r.rows[0].email, normalizarRol(r.rows[0].rol), req.user.email)
+      return { ok: true, enviado }
+    }))
+
+  app.post('/api/empresas/:empresaId/equipo/invitaciones/:id/revocar', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      if (!UUID.test(req.params.id)) return reply.code(400).send({ error: 'Id inválido' })
+      const r = await c.query(
+        "UPDATE invitaciones SET estado = 'revocada' WHERE id = $1 AND empresa_id = $2 AND estado = 'pendiente' RETURNING email",
+        [req.params.id, req.params.empresaId])
+      if (!r.rowCount) return reply.code(404).send({ error: 'No encontrado' })
+      await registrarEquipo(c, req, req.params.empresaId, `REVOCAR INVITACIÓN ${r.rows[0].email}`)
+      return { ok: true }
+    }))
+
+  // Nunca se puede dejar la empresa sin administrador, ni el administrador quitarse o cambiarse a sí mismo.
+  async function cuidarAdministrador(c, req, reply, empresaId, uid) {
+    if (uid === req.user.uid) { reply.code(409).send({ error: 'No puedes cambiar ni quitar tu propio acceso' }); return true }
+    const m = await c.query('SELECT rol FROM miembros WHERE empresa_id = $1 AND uid = $2', [empresaId, uid])
+    if (!m.rowCount) { reply.code(404).send({ error: 'No encontrado' }); return true }
+    if (normalizarRol(m.rows[0].rol) === 'admin') {
+      const n = await c.query("SELECT count(*)::int AS n FROM miembros WHERE empresa_id = $1 AND rol = 'admin'", [empresaId])
+      if (n.rows[0].n <= 1) { reply.code(409).send({ error: 'La empresa debe conservar al menos un administrador' }); return true }
+    }
+    return false
+  }
+
+  app.put('/api/empresas/:empresaId/equipo/miembros/:uid', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      if (!UID_OK.test(req.params.uid)) return reply.code(400).send({ error: 'Id inválido' })
+      const nuevoRol = rolEntrante(req.body?.rol)
+      if (!nuevoRol) return reply.code(400).send({ error: 'Rol inválido' })
+      const id = req.params.empresaId
+      if (await cuidarAdministrador(c, req, reply, id, req.params.uid)) return reply
+      const r = await c.query(
+        'UPDATE miembros SET rol = $3 WHERE empresa_id = $1 AND uid = $2 RETURNING uid, email, rol', [id, req.params.uid, nuevoRol])
+      await registrarEquipo(c, req, id, `CAMBIAR ROL ${r.rows[0].email ?? req.params.uid} -> ${nuevoRol}`)
+      return r.rows[0]
+    }))
+
+  app.delete('/api/empresas/:empresaId/equipo/miembros/:uid', (req, reply) =>
+    conEmpresa(req, reply, async (c, rol) => {
+      if (soloAdminEmpresa(rol, reply)) return
+      if (!UID_OK.test(req.params.uid)) return reply.code(400).send({ error: 'Id inválido' })
+      const id = req.params.empresaId
+      if (await cuidarAdministrador(c, req, reply, id, req.params.uid)) return reply
+      const r = await c.query('DELETE FROM miembros WHERE empresa_id = $1 AND uid = $2 RETURNING email', [id, req.params.uid])
+      const email = r.rows[0].email
+      if (email) {
+        await c.query(
+          "UPDATE invitaciones SET estado = 'revocada' WHERE empresa_id = $1 AND email = $2 AND estado = 'pendiente'",
+          [id, email.toLowerCase()])
+      }
+      await registrarEquipo(c, req, id, `QUITAR MIEMBRO ${email ?? req.params.uid}`)
+      return { ok: true }
     }))
 
   // Parámetros legales globales. Los lee cualquier usuario autenticado (el
@@ -907,9 +1064,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (!projectId) throw new Error('Falta FIREBASE_PROJECT_ID')
   const origins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean)
   const enviarCorreo = crearEnviadorResend({ apiKey: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM })
+  const webUrl = process.env.APP_URL || 'https://cieloerp.com'
   const superadmins = (process.env.SUPERADMIN_EMAILS ?? '').split(',')
   const autoregistro = (process.env.AUTOREGISTRO_EMPRESAS ?? 'true') !== 'false'
-  const app = buildApp({ projectId, origins, enviarCorreo, superadmins, autoregistro })
+  const app = buildApp({ projectId, origins, enviarCorreo, webUrl, superadmins, autoregistro })
   instalarCierreOrdenado({ app, pool })
   await app.listen({ port: Number(process.env.PORT ?? 8080), host: '0.0.0.0' })
 }

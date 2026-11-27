@@ -15,6 +15,7 @@ import {
   Landmark,
   Send,
   Timer,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/liquidacion',     icon: UserMinus,       label: 'Liquidación' },
   { href: '/aumentos',        icon: TrendingUp,      label: 'Aumentos Salariales' },
   { href: '/bandas-salariales', icon: BarChart2,     label: 'Bandas Salariales' },
+  { href: '/equipo',         icon: UserPlus,        label: 'Equipo', keywords: 'invitar usuarios colaboradores roles accesos' },
   { href: '/reportes',        icon: FileBarChart2,   label: 'Reportería', keywords: 'pdf excel conciliacion' },
 ]
 

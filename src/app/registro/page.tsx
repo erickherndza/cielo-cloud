@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { DevCredit } from '@/components/ui/DevCredit'
 import { useRouter } from 'next/navigation'
@@ -55,6 +55,11 @@ export default function RegistroPage() {
   const [gLoading, setGLoading]   = useState(false)
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState(false)
+  // Enlace del correo de invitación: trae el correo al que se invitó.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('correo')
+    if (c && c.length <= 254 && /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/.test(c)) setEmail(c)
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()

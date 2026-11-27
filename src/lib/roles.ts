@@ -47,7 +47,7 @@ export const ETIQUETA_ROL: Record<string, string> = {
 // admin: todo. analista: todo menos la configuración de la empresa, los catálogos y /admin.
 // auxiliar: solo las pantallas de captura.
 const RUTAS_AUXILIAR = ['/horas-extras', '/licencias', '/vacaciones', '/prestamos']
-const RUTAS_FUERA_DEL_ANALISTA = ['/configuracion', '/bandas-salariales', '/admin']
+const RUTAS_FUERA_DEL_ANALISTA = ['/configuracion', '/bandas-salariales', '/admin', '/equipo']
 
 const normalizarRuta = (r: string) => (r.replace(/\/$/, '') || '/')
 
